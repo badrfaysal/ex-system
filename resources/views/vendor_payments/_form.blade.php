@@ -1,0 +1,78 @@
+@php
+    $isAr = app()->getLocale() === 'ar';
+    $p = $payment ?? null;
+    $isEdit = $p && $p->exists;
+    $action = $isEdit ? route('vendor-payments.update', $p) : route('vendor-payments.store');
+@endphp
+
+<form action="{{ $action }}" method="POST">
+    @csrf
+    @if($isEdit) @method('PUT') @endif
+    <div class="grid grid-cols-1 gap-6">
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'رقم السند' : 'Payment No.' }} <span class="text-red-500">*</span></label>
+            <input type="text" name="payment_number" required dir="ltr" value="{{ old('payment_number', $p?->payment_number ?? $nextNumber) }}"
+                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono focus:outline-none focus:border-red-500 bg-gray-50 focus:bg-white">
+            @error('payment_number') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المورد' : 'Vendor' }} <span class="text-red-500">*</span></label>
+            <select name="vendor_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
+                <option value="" disabled {{ old('vendor_id', $selectedVendorId) ? '' : 'selected' }}>{{ $isAr ? '— اختر مورد —' : '— Choose vendor —' }}</option>
+                @foreach($vendors as $v)
+                    <option value="{{ $v->id }}" {{ old('vendor_id', $selectedVendorId) == $v->id ? 'selected' : '' }}>{{ $isAr ? $v->name_ar : ($v->name_en ?: $v->name_ar) }}</option>
+                @endforeach
+            </select>
+            @error('vendor_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ' : 'Amount' }} <span class="text-red-500">*</span></label>
+                <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount', $p?->amount) }}" required dir="ltr"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-gray-50 focus:bg-white">
+                @error('amount') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }} <span class="text-red-500">*</span></label>
+                <select name="currency" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
+                    @foreach($currencies as $c)
+                        <option value="{{ $c->key_value }}" {{ old('currency', $p?->currency ?? 'EGP') == $c->key_value ? 'selected' : '' }}>{{ $c->key_value }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'تاريخ الدفع' : 'Payment Date' }} <span class="text-red-500">*</span></label>
+                <input type="date" name="payment_date" value="{{ old('payment_date', optional($p?->payment_date)->toDateString() ?? now()->toDateString()) }}" required
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-gray-50 focus:bg-white">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'طريقة الدفع' : 'Payment Method' }}</label>
+                <select name="payment_method" data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
+                    <option value="">{{ $isAr ? '— غير محدد —' : '— Not set —' }}</option>
+                    @foreach($paymentMethods as $m)
+                        <option value="{{ $m->key_value }}" {{ old('payment_method', $p?->payment_method) == $m->key_value ? 'selected' : '' }}>{{ $m->display_name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'ملاحظات' : 'Notes' }}</label>
+            <textarea name="notes" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-gray-50 focus:bg-white">{{ old('notes', $p?->notes) }}</textarea>
+        </div>
+    </div>
+
+    <div class="mt-10 flex justify-end gap-4 border-t border-gray-100 pt-8">
+        <a href="{{ route('payables.index') }}" class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-100 font-medium transition-colors">
+            {{ $isAr ? 'إلغاء' : 'Cancel' }}
+        </a>
+        <button type="submit" class="px-8 py-2.5 bg-red-600 rounded-lg text-white hover:bg-red-700 font-bold shadow-lg flex items-center gap-2">
+            <i class="fas fa-save"></i> {{ $isEdit ? ($isAr ? 'حفظ التعديلات' : 'Save Changes') : ($isAr ? 'حفظ سند الدفع' : 'Save Payment') }}
+        </button>
+    </div>
+</form>
