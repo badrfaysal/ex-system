@@ -149,4 +149,11 @@ class PurchaseInvoiceController extends Controller
 
         return view('purchase_invoices.show', compact('purchaseInvoice'));
     }
+
+    public function print(PurchaseInvoice $purchaseInvoice)
+    {
+        $purchaseInvoice->load(['vendor', 'quotation', 'items']);
+
+        return view('purchase_invoices.print', compact('purchaseInvoice'));
+    }
 }

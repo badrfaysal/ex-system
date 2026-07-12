@@ -2,7 +2,7 @@
 <html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
 <meta charset="utf-8">
-<title>{{ app()->getLocale() === 'ar' ? 'فاتورة بيع' : 'Sales Invoice' }} - {{ $salesInvoice->invoice_number }}</title>
+<title>{{ app()->getLocale() === 'ar' ? 'فاتورة شراء' : 'Purchase Invoice' }} - {{ $purchaseInvoice->invoice_number }}</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
 
@@ -32,9 +32,9 @@
 
     table.header-layout { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
     table.header-layout td { vertical-align: middle; }
-    .title-main { font-size: 24px; font-weight: 800; color: #008A3B; margin: 0; line-height: 1.1; }
+    .title-main { font-size: 24px; font-weight: 800; color: #005B9F; margin: 0; line-height: 1.1; }
     .quote-number-text { font-size: 14px; font-weight: 700; color: #475569; margin-top: 3px; font-family: monospace; letter-spacing: 1px; }
-    .status-badge { display: inline-block; padding: 3px 12px; background: #e0f2fe; color: #0284c7; font-weight: bold; border-radius: 20px; font-size: 12px; margin-top: 5px; border: 1px solid #bae6fd; }
+    .status-badge { display: inline-block; padding: 3px 12px; background: #fee2e2; color: #dc2626; font-weight: bold; border-radius: 20px; font-size: 12px; margin-top: 5px; border: 1px solid #fecaca; }
 
     table.info-layout { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
     table.info-layout > tbody > tr > td { border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 9px 5px; vertical-align: top; }
@@ -48,10 +48,6 @@
     table.meta-data-table .meta-label { color: #94a3b8; text-align: {{ app()->getLocale() === 'ar' ? 'right' : 'left' }}; width: 40%; font-weight: 600; }
     table.meta-data-table .meta-value { font-weight: 700; color: #334155; text-align: {{ app()->getLocale() === 'ar' ? 'left' : 'right' }}; }
     table.meta-data-table .meta-value-currency { font-weight: 800; color: #005B9F; font-size: 13px; text-align: {{ app()->getLocale() === 'ar' ? 'left' : 'right' }}; }
-
-    table.rep-layout { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-    table.rep-layout td { font-size: 12px; padding: 6px 5px; color: #64748b; border-bottom: 1px solid #f1f5f9; }
-    .rep-highlight { color: #1e293b; font-weight: 800; }
 
     table.items-data-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12px; table-layout: fixed; }
     table.items-data-table thead td { background-color: #1e293b; color: #fff; padding: 8px; font-size: 11px; font-weight: 700; }
@@ -73,7 +69,7 @@
     table.totals-summary-table td { padding: 8px 14px; font-size: 12px; border-bottom: 1px solid #f1f5f9; }
     table.totals-summary-table .summary-label { color: #64748b; font-weight: 700; }
     table.totals-summary-table .summary-value { text-align: {{ app()->getLocale() === 'ar' ? 'left' : 'right' }}; font-weight: 800; color: #1e293b; }
-    table.totals-summary-table tr.grand-total-row td { background-color: #008A3B; color: #fff; padding: 10px 14px; border-bottom: none; }
+    table.totals-summary-table tr.grand-total-row td { background-color: #005B9F; color: #fff; padding: 10px 14px; border-bottom: none; }
     table.totals-summary-table tr.grand-total-row .summary-label { color: #fff; font-size: 14px; font-weight: 800; }
     table.totals-summary-table tr.grand-total-row .summary-value { color: #fff; font-size: 17px; font-weight: 800; }
 
@@ -89,10 +85,11 @@
 </head>
 @php
     $isAr = app()->getLocale() === 'ar';
-    $cur = $salesInvoice->currency;
-    $qrData = urlencode("Invoice: {$salesInvoice->invoice_number}\nTotal: {$salesInvoice->grand_total} {$cur}\nDate: {$salesInvoice->invoice_date->format('Y-m-d')}");
+    $cur = $purchaseInvoice->currency;
+    $vendorName = $isAr ? $purchaseInvoice->vendor->name_ar : ($purchaseInvoice->vendor->name_en ?: $purchaseInvoice->vendor->name_ar);
+    $qrData = urlencode("Invoice: {$purchaseInvoice->invoice_number}\nTotal: {$purchaseInvoice->grand_total} {$cur}\nDate: {$purchaseInvoice->invoice_date->format('Y-m-d')}");
     $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={$qrData}";
-    $barcodeUrl = "https://barcode.tec-it.com/barcode.ashx?data=" . urlencode($salesInvoice->invoice_number) . "&code=Code128&translate-esc=true&dpi=96";
+    $barcodeUrl = "https://barcode.tec-it.com/barcode.ashx?data=" . urlencode($purchaseInvoice->invoice_number) . "&code=Code128&translate-esc=true&dpi=96";
 @endphp
 <body>
 
@@ -100,8 +97,8 @@
   <div class="a4-inner">
     <table class="top-global-bar">
         <tr>
-            <td style="background-color: #008A3B; width: 50%;"></td>
             <td style="background-color: #005B9F; width: 50%;"></td>
+            <td style="background-color: #008A3B; width: 50%;"></td>
         </tr>
     </table>
 
@@ -114,9 +111,9 @@
                             <img src="{{ $qrUrl }}" alt="QR Code" style="width:62px; height:62px; border: 1px solid #e2e8f0; border-radius: 6px; padding:3px; background:#fff;">
                         </td>
                         <td style="vertical-align: top; padding-{{ $isAr ? 'right' : 'left' }}: 14px; text-align: {{ $isAr ? 'right' : 'left' }};">
-                            <div class="title-main">{{ $isAr ? 'فاتورة بيع' : 'Sales Invoice' }}</div>
-                            <div class="quote-number-text">{{ $salesInvoice->invoice_number }}</div>
-                            <div class="status-badge">{{ $isAr ? 'معتمدة' : 'Approved' }}</div>
+                            <div class="title-main">{{ $isAr ? 'فاتورة شراء' : 'Purchase Invoice' }}</div>
+                            <div class="quote-number-text">{{ $purchaseInvoice->invoice_number }}</div>
+                            <div class="status-badge">{{ $isAr ? 'التزام مسجّل' : 'Recorded' }}</div>
                         </td>
                     </tr>
                 </table>
@@ -147,34 +144,25 @@
                 <table class="meta-data-table">
                     <tr>
                         <td class="meta-label">{{ $isAr ? 'التاريخ:' : 'Date:' }}</td>
-                        <td class="meta-value" dir="ltr">{{ optional($salesInvoice->invoice_date)->format('d/m/Y') ?? '—' }}</td>
+                        <td class="meta-value" dir="ltr">{{ optional($purchaseInvoice->invoice_date)->format('d/m/Y') ?? '—' }}</td>
                     </tr>
                     <tr>
-                        <td class="meta-label">{{ $isAr ? 'أمر البيع:' : 'Sales Order:' }}</td>
-                        <td class="meta-value" dir="ltr"><span style="color:#005B9F; font-weight:bold;">{{ optional($salesInvoice->salesOrder)->so_number ?? '—' }}</span></td>
+                        <td class="meta-label">{{ $isAr ? 'مركز التكلفة:' : 'Cost Center:' }}</td>
+                        <td class="meta-value" dir="ltr"><span style="color:#005B9F; font-weight:bold;">{{ optional($purchaseInvoice->quotation)->quote_number ?? '—' }}</span></td>
                     </tr>
                     <tr>
                         <td class="meta-label">{{ $isAr ? 'العملة:' : 'Currency:' }}</td>
-                        <td class="meta-value-currency">{{ $salesInvoice->currency }}</td>
+                        <td class="meta-value-currency">{{ $purchaseInvoice->currency }}</td>
                     </tr>
                 </table>
             </td>
             <td style="width: 30%; text-align: center; vertical-align: bottom; padding-bottom: 16px;">
-                <div class="client-phone-line">{{ optional($salesInvoice->client)->phone ?? '' }} | {{ optional($salesInvoice->client)->email ?? '' }}</div>
+                <div class="client-phone-line">{{ $purchaseInvoice->vendor->mobile ?? '' }} | {{ $purchaseInvoice->vendor->email ?? '' }}</div>
             </td>
             <td style="width: 35%; text-align: {{ $isAr ? 'left' : 'right' }};">
-                <div class="block-label" style="text-align: {{ $isAr ? 'left' : 'right' }};">{{ $isAr ? 'مفوترة إلى' : 'BILLED TO' }}</div>
-                <div class="client-company-name" style="text-align: {{ $isAr ? 'left' : 'right' }};">{{ optional($salesInvoice->client)->company_name ?? '—' }}</div>
-                <div class="client-details-text" style="text-align: {{ $isAr ? 'left' : 'right' }};">{{ optional($salesInvoice->client)->contact_person ?? '' }}</div>
-            </td>
-        </tr>
-    </table>
-
-    <table class="rep-layout">
-        <tr>
-            <td style="text-align: {{ $isAr ? 'right' : 'left' }};">
-                <span class="block-label" style="font-size: 12px; display:inline;">{{ $isAr ? 'المندوب:' : 'Sales Rep:' }}</span>
-                <span class="rep-highlight">{{ optional($salesInvoice->salesOrder)->sales_rep ?? '—' }}</span>
+                <div class="block-label" style="text-align: {{ $isAr ? 'left' : 'right' }};">{{ $isAr ? 'المورد' : 'PURCHASED FROM' }}</div>
+                <div class="client-company-name" style="text-align: {{ $isAr ? 'left' : 'right' }};">{{ $vendorName ?? '—' }}</div>
+                <div class="client-details-text" style="text-align: {{ $isAr ? 'left' : 'right' }};">{{ $purchaseInvoice->vendor->contact_person_name ?? '' }}</div>
             </td>
         </tr>
     </table>
@@ -184,23 +172,23 @@
             <tr>
                 <td style="width: 5%;" class="col-center">#</td>
                 <td style="width: 14%;" class="col-center">{{ $isAr ? 'الكود' : 'Code' }}</td>
-                <td style="width: 33%;" class="col-directional">{{ $isAr ? 'البيان / الوصف' : 'Description' }}</td>
-                <td style="width: 8%;" class="col-center">{{ $isAr ? 'الكمية' : 'Qty' }}</td>
-                <td style="width: 12%;" class="col-center">{{ $isAr ? 'السعر' : 'Price' }}</td>
+                <td style="width: 37%;" class="col-directional">{{ $isAr ? 'البيان / الوصف' : 'Description' }}</td>
+                <td style="width: 9%;" class="col-center">{{ $isAr ? 'الكمية' : 'Qty' }}</td>
+                <td style="width: 13%;" class="col-center">{{ $isAr ? 'السعر' : 'Price' }}</td>
                 <td style="width: 10%;" class="col-center">{{ $isAr ? 'الخصم' : 'Disc' }}</td>
                 <td style="width: 18%;" class="col-directional">{{ $isAr ? 'الإجمالي' : 'Total' }}</td>
             </tr>
         </thead>
         <tbody>
             @php
-                $totalQty  = $salesInvoice->items->sum('quantity');
-                $totalDisc = $salesInvoice->items->sum(fn($l) => $l->quantity * $l->unit_price * $l->discount_percent / 100);
+                $totalQty  = $purchaseInvoice->items->sum('quantity');
+                $totalDisc = $purchaseInvoice->items->sum(fn($l) => $l->quantity * $l->unit_price * $l->discount_percent / 100);
             @endphp
-            @foreach($salesInvoice->items as $idx => $line)
+            @foreach($purchaseInvoice->items as $idx => $line)
             <tr>
                 <td class="col-center" style="color: #94a3b8;">{{ $idx + 1 }}</td>
                 <td class="col-center item-code-cell">{{ $line->item_code ?? '—' }}</td>
-                <td class="col-directional item-description-cell">{{ $line->displayDescription($isAr ? 'ar' : 'en') }}</td>
+                <td class="col-directional item-description-cell">{{ $line->description }}</td>
                 <td class="col-center item-qty-cell" dir="ltr">{{ rtrim(rtrim(number_format($line->quantity, 2), '0'), '.') }}</td>
                 <td class="col-center" dir="ltr">{{ number_format($line->unit_price, 2) }}</td>
                 <td class="col-center item-discount-cell">
@@ -213,15 +201,15 @@
         <tfoot>
             <tr>
                 <td colspan="3" class="col-directional">
-                    {{ $isAr ? 'الإجمالي' : 'Total' }} <span style="font-weight: normal; color: #94a3b8; font-size: 11px;">({{ $salesInvoice->items->count() }} {{ $isAr ? 'صنف' : 'items' }})</span>
+                    {{ $isAr ? 'الإجمالي' : 'Total' }} <span style="font-weight: normal; color: #94a3b8; font-size: 11px;">({{ $purchaseInvoice->items->count() }} {{ $isAr ? 'صنف' : 'items' }})</span>
                 </td>
                 <td class="col-center" dir="ltr">{{ rtrim(rtrim(number_format($totalQty, 2), '0'), '.') }}</td>
                 <td></td>
                 <td class="col-center" style="color: #dc2626;" dir="ltr">
                     @if($totalDisc > 0)- {{ number_format($totalDisc, 2) }}@else—@endif
                 </td>
-                <td class="col-directional" style="color: #008A3B; font-weight: 800; font-size: 13px;" dir="ltr">
-                    {{ number_format($salesInvoice->grand_total, 2) }} <span style="font-size: 10px; color: #94a3b8; font-weight: 600;">{{ $salesInvoice->currency }}</span>
+                <td class="col-directional" style="color: #005B9F; font-weight: 800; font-size: 13px;" dir="ltr">
+                    {{ number_format($purchaseInvoice->grand_total, 2) }} <span style="font-size: 10px; color: #94a3b8; font-weight: 600;">{{ $purchaseInvoice->currency }}</span>
                 </td>
             </tr>
         </tfoot>
@@ -230,9 +218,9 @@
     <table class="bottom-layout">
         <tr>
             <td style="width: 55%; padding-{{ $isAr ? 'left' : 'right' }}: 30px;">
-                @if($salesInvoice->notes)
+                @if($purchaseInvoice->notes)
                     <div class="block-label" style="text-align: {{ $isAr ? 'right' : 'left' }};">{{ $isAr ? 'ملاحظات' : 'Notes' }}</div>
-                    <div style="font-size: 11px; color: #475569; line-height: 1.5; font-weight: 600;">{!! nl2br(e($salesInvoice->notes)) !!}</div>
+                    <div style="font-size: 11px; color: #475569; line-height: 1.5; font-weight: 600;">{!! nl2br(e($purchaseInvoice->notes)) !!}</div>
                 @endif
             </td>
             <td style="width: 45%;">
@@ -240,25 +228,25 @@
                     <table class="totals-summary-table">
                         <tr>
                             <td class="summary-label">{{ $isAr ? 'الإجمالي الفرعي' : 'Subtotal' }}</td>
-                            <td class="summary-value" dir="ltr">{{ number_format($salesInvoice->subtotal, 2) }} <span style="color: #94a3b8; font-size: 10px;">{{ $salesInvoice->currency }}</span></td>
+                            <td class="summary-value" dir="ltr">{{ number_format($purchaseInvoice->subtotal, 2) }} <span style="color: #94a3b8; font-size: 10px;">{{ $purchaseInvoice->currency }}</span></td>
                         </tr>
-                        @if($salesInvoice->total_discount > 0)
+                        @if($purchaseInvoice->total_discount > 0)
                         <tr>
                             <td class="summary-label">{{ $isAr ? 'الخصم' : 'Discount' }}</td>
-                            <td class="summary-value" style="color: #dc2626;" dir="ltr">- {{ number_format($salesInvoice->total_discount, 2) }} <span style="color: #fca5a5; font-size: 10px;">{{ $salesInvoice->currency }}</span></td>
+                            <td class="summary-value" style="color: #dc2626;" dir="ltr">- {{ number_format($purchaseInvoice->total_discount, 2) }} <span style="color: #fca5a5; font-size: 10px;">{{ $purchaseInvoice->currency }}</span></td>
                         </tr>
                         @endif
-                        @if($salesInvoice->tax_amount > 0)
+                        @if($purchaseInvoice->tax_amount > 0)
                         <tr>
                             <td class="summary-label">{{ $isAr ? 'الضريبة' : 'Tax' }}</td>
-                            <td class="summary-value" dir="ltr">+ {{ number_format($salesInvoice->tax_amount, 2) }} <span style="color: #94a3b8; font-size: 10px;">{{ $salesInvoice->currency }}</span></td>
+                            <td class="summary-value" dir="ltr">+ {{ number_format($purchaseInvoice->tax_amount, 2) }} <span style="color: #94a3b8; font-size: 10px;">{{ $purchaseInvoice->currency }}</span></td>
                         </tr>
                         @endif
                         <tr class="grand-total-row">
                             <td class="summary-label">{{ $isAr ? 'الإجمالي النهائي' : 'Grand Total' }}</td>
                             <td class="summary-value" dir="ltr">
-                                {{ number_format($salesInvoice->grand_total, 2) }}
-                                <span style="font-size: 11px; font-weight: 600; opacity: 0.9;">{{ $salesInvoice->currency }}</span>
+                                {{ number_format($purchaseInvoice->grand_total, 2) }}
+                                <span style="font-size: 11px; font-weight: 600; opacity: 0.9;">{{ $purchaseInvoice->currency }}</span>
                             </td>
                         </tr>
                     </table>
@@ -269,7 +257,7 @@
 
     <div class="barcode-section">
         <img src="{{ $barcodeUrl }}" alt="Barcode">
-        <div class="barcode-text">{{ $salesInvoice->invoice_number }}</div>
+        <div class="barcode-text">{{ $purchaseInvoice->invoice_number }}</div>
     </div>
 
     <div class="footer-address">
@@ -301,7 +289,6 @@
 
     window.addEventListener('load', function () {
         fitToPage();
-        // إعادة الاحتواء بعد تحميل الصور الخارجية (QR/باركود) ثم الطباعة تلقائياً
         setTimeout(fitThenPrint, 600);
     });
     window.addEventListener('resize', fitToPage);

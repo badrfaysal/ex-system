@@ -8,11 +8,16 @@
 @section('content')
 <div class="max-w-5xl mx-auto">
 
-    <div class="mb-4 flex items-center justify-between">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <a href="{{ route('quotations.show', $purchaseInvoice->quotation) }}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium flex items-center gap-2">
             <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }}"></i> {{ $isAr ? 'رجوع لعرض السعر' : 'Back to Quotation' }}
         </a>
-        <a href="{{ route('purchase-invoices.index') }}" class="text-sm text-gray-500 hover:text-[#005B9F]">{{ $isAr ? 'كل فواتير الشراء' : 'All purchase invoices' }}</a>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('purchase-invoices.print', $purchaseInvoice) }}" target="_blank" class="px-5 py-2 bg-[#005B9F] text-white rounded-lg font-bold text-sm hover:bg-blue-800 flex items-center gap-2">
+                <i class="fas fa-print"></i> {{ $isAr ? 'طباعة الفاتورة' : 'Print Invoice' }}
+            </a>
+            <a href="{{ route('purchase-invoices.index') }}" class="text-sm text-gray-500 hover:text-[#005B9F]">{{ $isAr ? 'كل فواتير الشراء' : 'All purchase invoices' }}</a>
+        </div>
     </div>
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">

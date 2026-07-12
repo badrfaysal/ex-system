@@ -102,6 +102,7 @@ Route::middleware('auth')->group(function () {
     Route::get('purchase-invoices/create', [PurchaseInvoiceController::class, 'create'])->name('purchase-invoices.create');
     Route::post('purchase-invoices', [PurchaseInvoiceController::class, 'store'])->name('purchase-invoices.store');
     Route::get('purchase-invoices/{purchaseInvoice}', [PurchaseInvoiceController::class, 'show'])->name('purchase-invoices.show');
+    Route::get('purchase-invoices/{purchaseInvoice}/print', [PurchaseInvoiceController::class, 'print'])->name('purchase-invoices.print');
 
     Route::get('vendor-payments', [VendorPaymentController::class, 'index'])->name('vendor-payments.index');
     Route::get('vendor-payments/create', [VendorPaymentController::class, 'create'])->name('vendor-payments.create');
