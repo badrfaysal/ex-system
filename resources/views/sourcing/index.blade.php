@@ -28,23 +28,21 @@
         <h4 class="text-sm font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200"><i class="fas fa-plus-circle text-[#008A3B]"></i> {{ __('messages.sourcing.form_title') }}</h4>
         <form action="{{ route('sourcing.attach') }}" method="POST" class="flex flex-col md:flex-row gap-4 items-end">
             @csrf
-            <div class="flex-1 w-full">
+            <div class="flex-1 w-full relative">
                 <label class="block text-xs font-bold text-slate-600 mb-1.5">{{ __('messages.sourcing.step1') }}</label>
-                <select name="item_id" required class="w-full px-3 py-2 border border-slate-300 rounded-sm focus:outline-none focus:border-[#008A3B] text-sm bg-white">
-                    <option value="">{{ __('messages.sourcing.step1_ph') }}</option>
-                    @foreach($items as $item)
-                        <option value="{{ $item->id }}">{{ $item->name_ar }} ({{ $item->item_code }})</option>
-                    @endforeach
-                </select>
+                <input type="hidden" name="item_id" id="attachItemId" required>
+                <input type="text" id="attachItemSearch" autocomplete="off" placeholder="{{ __('messages.sourcing.step1_ph') }}"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-sm focus:outline-none focus:border-[#008A3B] text-sm bg-white"
+                    oninput="debouncedSearch('attachItem')" onfocus="debouncedSearch('attachItem')">
+                <div id="attachItemDropdown" class="absolute z-40 left-0 right-0 mt-1 bg-white border border-slate-200 shadow-lg rounded-sm hidden max-h-52 overflow-y-auto"></div>
             </div>
-            <div class="flex-1 w-full">
+            <div class="flex-1 w-full relative">
                 <label class="block text-xs font-bold text-slate-600 mb-1.5">{{ __('messages.sourcing.step2') }}</label>
-                <select name="vendor_id" required class="w-full px-3 py-2 border border-slate-300 rounded-sm focus:outline-none focus:border-[#008A3B] text-sm bg-white">
-                    <option value="">{{ __('messages.sourcing.step2_ph') }}</option>
-                    @foreach($vendors as $vendor)
-                        <option value="{{ $vendor->id }}">{{ $vendor->name_ar }} ({{ $vendor->vendor_code }})</option>
-                    @endforeach
-                </select>
+                <input type="hidden" name="vendor_id" id="attachVendorId" required>
+                <input type="text" id="attachVendorSearch" autocomplete="off" placeholder="{{ __('messages.sourcing.step2_ph') }}"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-sm focus:outline-none focus:border-[#008A3B] text-sm bg-white"
+                    oninput="debouncedSearch('attachVendor')" onfocus="debouncedSearch('attachVendor')">
+                <div id="attachVendorDropdown" class="absolute z-40 left-0 right-0 mt-1 bg-white border border-slate-200 shadow-lg rounded-sm hidden max-h-52 overflow-y-auto"></div>
             </div>
             <div class="w-full md:w-48">
                 <label class="block text-xs font-bold text-slate-600 mb-1.5">{{ __('messages.sourcing.price') }}</label>
@@ -73,7 +71,7 @@
                 <i class="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
                 <input type="text" id="searchItemInput" autocomplete="off" placeholder="{{ __('messages.sourcing.item_search') }}"
                     class="w-full pr-10 pl-3 py-2.5 bg-slate-50 border border-slate-300 rounded-sm text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
-                    onkeyup="filterItems()" onfocus="filterItems()">
+                    oninput="debouncedSearch('searchItem')" onfocus="debouncedSearch('searchItem')">
             </div>
             {{-- قائمة النتائج المنسدلة للأصناف --}}
             <div id="itemDropdown" class="absolute z-40 left-0 right-0 mt-1 bg-white border border-slate-200 shadow-lg rounded-sm hidden max-h-60 overflow-y-auto mx-5">
@@ -89,7 +87,7 @@
                 <i class="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
                 <input type="text" id="searchVendorInput" autocomplete="off" placeholder="{{ __('messages.sourcing.vendor_search') }}"
                     class="w-full pr-10 pl-3 py-2.5 bg-slate-50 border border-slate-300 rounded-sm text-sm focus:outline-none focus:border-[#005B9F] focus:bg-white transition-colors"
-                    onkeyup="filterVendors()" onfocus="filterVendors()">
+                    oninput="debouncedSearch('searchVendor')" onfocus="debouncedSearch('searchVendor')">
             </div>
             {{-- قائمة النتائج المنسدلة للموردين --}}
             <div id="vendorDropdown" class="absolute z-40 left-0 right-0 mt-1 bg-white border border-slate-200 shadow-lg rounded-sm hidden max-h-60 overflow-y-auto mx-5">
@@ -131,9 +129,10 @@
     // عناوين أساسية تعمل من أي subfolder
     const VENDORS_URL = @json(url('vendors'));
     const ITEMS_URL   = @json(url('items'));
-
-    const itemsData = @json($items);
-    const vendorsData = @json($vendors);
+    const SEARCH_ITEMS_URL   = @json(route('sourcing.search-items'));
+    const SEARCH_VENDORS_URL = @json(route('sourcing.search-vendors'));
+    const ITEM_DETAIL_URL    = @json(url('sourcing/items'));   // + /{id}
+    const VENDOR_DETAIL_URL  = @json(url('sourcing/vendors')); // + /{id}
 
     // إظهار/إخفاء فورم الربط
     function toggleAttachForm() {
@@ -143,82 +142,99 @@
 
     // إغلاق القوائم المنسدلة عند الضغط في أي مكان بالشاشة
     document.addEventListener('click', function(event) {
-        if (!event.target.closest('#searchItemInput') && !event.target.closest('#itemDropdown')) {
-            document.getElementById('itemDropdown').classList.add('hidden');
-        }
-        if (!event.target.closest('#searchVendorInput') && !event.target.closest('#vendorDropdown')) {
-            document.getElementById('vendorDropdown').classList.add('hidden');
-        }
+        [['searchItemInput', 'itemDropdown'], ['searchVendorInput', 'vendorDropdown'],
+         ['attachItemSearch', 'attachItemDropdown'], ['attachVendorSearch', 'attachVendorDropdown']]
+            .forEach(([inputId, dropdownId]) => {
+                if (!event.target.closest('#' + inputId) && !event.target.closest('#' + dropdownId)) {
+                    document.getElementById(dropdownId).classList.add('hidden');
+                }
+            });
     });
 
     // ---------------------------------------------------------
-    // محرك بحث الأصناف
+    // بحث AJAX عام (debounced) — بيُستخدم لصناديق البحث الأربعة في الصفحة
     // ---------------------------------------------------------
-    function filterItems() {
-        const query = document.getElementById('searchItemInput').value.toLowerCase();
-        const dropdown = document.getElementById('itemDropdown');
-        dropdown.innerHTML = '';
-        
-        let hasResults = false;
-        itemsData.forEach(item => {
-            if (item.name_ar.toLowerCase().includes(query) || item.item_code.toLowerCase().includes(query)) {
-                hasResults = true;
-                dropdown.innerHTML += `
-                    <div onclick="selectItem(${item.id})" class="p-3 border-b border-slate-100 hover:bg-amber-50 cursor-pointer transition-colors flex justify-between items-center group">
-                        <span class="font-bold text-slate-700 group-hover:text-amber-700 text-sm">${item.name_ar}</span>
-                        <span class="text-xs font-mono text-slate-400">${item.item_code}</span>
-                    </div>
-                `;
-            }
-        });
+    const debounceTimers = {};
 
-        if (!hasResults) {
-            dropdown.innerHTML = `<div class="p-4 text-center text-sm text-slate-400 font-medium">{{ __('messages.sourcing.no_results_i') }}</div>`;
-        }
-        dropdown.classList.remove('hidden');
+    function debouncedSearch(kind) {
+        clearTimeout(debounceTimers[kind]);
+        debounceTimers[kind] = setTimeout(() => runSearch(kind), 250);
     }
 
-    function selectItem(id) {
+    async function runSearch(kind) {
+        const isItem = kind === 'searchItem' || kind === 'attachItem';
+        const inputEl = document.getElementById(kind === 'searchItem' ? 'searchItemInput'
+            : kind === 'searchVendor' ? 'searchVendorInput'
+            : kind === 'attachItem' ? 'attachItemSearch' : 'attachVendorSearch');
+        const dropdownId = kind === 'searchItem' ? 'itemDropdown'
+            : kind === 'searchVendor' ? 'vendorDropdown'
+            : kind === 'attachItem' ? 'attachItemDropdown' : 'attachVendorDropdown';
+        const dropdown = document.getElementById(dropdownId);
+        const q = inputEl.value.trim();
+        const url = (isItem ? SEARCH_ITEMS_URL : SEARCH_VENDORS_URL) + '?q=' + encodeURIComponent(q);
+
+        dropdown.innerHTML = `<div class="p-4 text-center text-sm text-slate-400">{{ app()->getLocale() === 'ar' ? '...جارٍ البحث' : 'Searching...' }}</div>`;
+        dropdown.classList.remove('hidden');
+
+        let results = [];
+        try {
+            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            results = await res.json();
+        } catch (e) {
+            dropdown.innerHTML = `<div class="p-4 text-center text-sm text-red-400">{{ app()->getLocale() === 'ar' ? 'حدث خطأ في البحث' : 'Search failed' }}</div>`;
+            return;
+        }
+
+        if (!results.length) {
+            dropdown.innerHTML = `<div class="p-4 text-center text-sm text-slate-400 font-medium">${isItem ? '{{ __('messages.sourcing.no_results_i') }}' : '{{ __('messages.sourcing.no_results_v') }}'}</div>`;
+            return;
+        }
+
+        const onClickHandler = kind === 'searchItem' ? 'selectItem' : kind === 'searchVendor' ? 'selectVendor'
+            : kind === 'attachItem' ? 'pickAttachItem' : 'pickAttachVendor';
+        const hoverClass = isItem ? 'hover:bg-amber-50 group-hover:text-amber-700' : 'hover:bg-blue-50 group-hover:text-[#005B9F]';
+        const code = isItem ? 'item_code' : 'vendor_code';
+
+        dropdown.innerHTML = results.map(r => `
+            <div onclick='${onClickHandler}(${r.id}, ${JSON.stringify(r.name_ar)})' class="p-3 border-b border-slate-100 ${hoverClass} cursor-pointer transition-colors flex justify-between items-center group">
+                <span class="font-bold text-slate-700 text-sm">${r.name_ar}</span>
+                <span class="text-xs font-mono text-slate-400">${r[code]}</span>
+            </div>
+        `).join('');
+    }
+
+    // ---------------------------------------------------------
+    // اختيار صنف/مورد من صناديق البحث الرئيسية — بيجيب التفاصيل الكاملة عند الاختيار بس
+    // ---------------------------------------------------------
+    async function selectItem(id) {
         document.getElementById('itemDropdown').classList.add('hidden');
         document.getElementById('searchVendorInput').value = ''; // تصفير بحث الموردين
-        const item = itemsData.find(i => i.id === id);
+        const item = await (await fetch(`${ITEM_DETAIL_URL}/${id}`, { headers: { 'Accept': 'application/json' } })).json();
         document.getElementById('searchItemInput').value = item.name_ar;
         renderItemResults(item);
     }
 
-    // ---------------------------------------------------------
-    // محرك بحث الموردين
-    // ---------------------------------------------------------
-    function filterVendors() {
-        const query = document.getElementById('searchVendorInput').value.toLowerCase();
-        const dropdown = document.getElementById('vendorDropdown');
-        dropdown.innerHTML = '';
-        
-        let hasResults = false;
-        vendorsData.forEach(vendor => {
-            if (vendor.name_ar.toLowerCase().includes(query) || vendor.vendor_code.toLowerCase().includes(query)) {
-                hasResults = true;
-                dropdown.innerHTML += `
-                    <div onclick="selectVendor(${vendor.id})" class="p-3 border-b border-slate-100 hover:bg-blue-50 cursor-pointer transition-colors flex justify-between items-center group">
-                        <span class="font-bold text-slate-700 group-hover:text-[#005B9F] text-sm">${vendor.name_ar}</span>
-                        <span class="text-xs font-mono text-slate-400">${vendor.vendor_code}</span>
-                    </div>
-                `;
-            }
-        });
-
-        if (!hasResults) {
-            dropdown.innerHTML = `<div class="p-4 text-center text-sm text-slate-400 font-medium">{{ __('messages.sourcing.no_results_v') }}</div>`;
-        }
-        dropdown.classList.remove('hidden');
-    }
-
-    function selectVendor(id) {
+    async function selectVendor(id) {
         document.getElementById('vendorDropdown').classList.add('hidden');
         document.getElementById('searchItemInput').value = ''; // تصفير بحث الأصناف
-        const vendor = vendorsData.find(v => v.id === id);
+        const vendor = await (await fetch(`${VENDOR_DETAIL_URL}/${id}`, { headers: { 'Accept': 'application/json' } })).json();
         document.getElementById('searchVendorInput').value = vendor.name_ar;
         renderVendorResults(vendor);
+    }
+
+    // ---------------------------------------------------------
+    // اختيار صنف/مورد من فورم الربط السريع — بس بيسجّل الـ id، مفيش تفاصيل لازمة
+    // ---------------------------------------------------------
+    function pickAttachItem(id, name) {
+        document.getElementById('attachItemDropdown').classList.add('hidden');
+        document.getElementById('attachItemId').value = id;
+        document.getElementById('attachItemSearch').value = name;
+    }
+
+    function pickAttachVendor(id, name) {
+        document.getElementById('attachVendorDropdown').classList.add('hidden');
+        document.getElementById('attachVendorId').value = id;
+        document.getElementById('attachVendorSearch').value = name;
     }
 
     // ---------------------------------------------------------

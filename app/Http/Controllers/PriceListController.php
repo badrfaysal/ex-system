@@ -6,10 +6,18 @@ use App\Models\PriceList;
 use App\Models\Item;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class PriceListController extends Controller
 {
+    private function settingsLookup(): \Illuminate\Support\Collection
+    {
+        return Cache::remember('system_settings', 60 * 60 * 24, function () {
+            return Setting::all()->groupBy('category');
+        });
+    }
+
     /**
      * عرض قائمة بكل قوائم الأسعار
      */
@@ -35,9 +43,10 @@ class PriceListController extends Controller
      */
     public function create()
     {
+        $lookups    = $this->settingsLookup();
         $items      = Item::orderBy('name_ar')->get();
-        $currencies = Setting::where('category', 'currency')->get();
-        $uoms       = Setting::where('category', 'uom')->get()->pluck('display_name', 'key_value');
+        $currencies = $lookups->get('currency') ?? collect();
+        $uoms       = ($lookups->get('uom') ?? collect())->pluck('display_name', 'key_value');
 
         // كود تلقائي مقترح
         $last = PriceList::latest('id')->first();
@@ -76,9 +85,10 @@ class PriceListController extends Controller
     public function edit(PriceList $priceList)
     {
         $priceList->load('items');
+        $lookups    = $this->settingsLookup();
         $items      = Item::orderBy('name_ar')->get();
-        $currencies = Setting::where('category', 'currency')->get();
-        $uoms       = Setting::where('category', 'uom')->get()->pluck('display_name', 'key_value');
+        $currencies = $lookups->get('currency') ?? collect();
+        $uoms       = ($lookups->get('uom') ?? collect())->pluck('display_name', 'key_value');
 
         // خريطة الأسعار الحالية: item_id => price
         $existingPrices = $priceList->items->pluck('price', 'item_id');

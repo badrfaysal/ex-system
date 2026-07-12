@@ -346,12 +346,16 @@ class QuotationController extends Controller
 
     private function formData(): array
     {
+        $lookups = \Illuminate\Support\Facades\Cache::remember('system_settings', 60 * 60 * 24, function () {
+            return Setting::all()->groupBy('category');
+        });
+
         return [
             'clients'    => Client::orderBy('company_name')->get(),
             'items'      => Item::orderBy('name_ar')->get(),
             'priceLists' => PriceList::where('status', 'active')->orderBy('name')->get(),
-            'currencies' => Setting::where('category', 'currency')->get(),
-            'uoms'       => Setting::where('category', 'uom')->get()->pluck('display_name', 'key_value'),
+            'currencies' => $lookups->get('currency') ?? collect(),
+            'uoms'       => ($lookups->get('uom') ?? collect())->pluck('display_name', 'key_value'),
         ];
     }
 

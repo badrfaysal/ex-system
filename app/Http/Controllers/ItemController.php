@@ -45,7 +45,9 @@ $query = \App\Models\Item::with(['defaultVendor', 'images']);
 
         $items = $query->latest()->paginate(10)->withQueryString();
 
-        $idxLookups    = Setting::whereIn('category', ['item_group', 'uom', 'item_sub_category'])->get()->groupBy('category');
+        $idxLookups = Cache::remember('system_settings', 60 * 60 * 24, function () {
+            return Setting::all()->groupBy('category');
+        });
         $settingGroups    = ($idxLookups->get('item_group')        ?? collect())->values();
         $settingUoms      = ($idxLookups->get('uom')               ?? collect())->values();
         $settingSubGroups = ($idxLookups->get('item_sub_category') ?? collect())->values();

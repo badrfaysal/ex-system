@@ -88,6 +88,10 @@ Route::middleware('auth')->group(function () {
 
     // ربط الموردين بالأصناف
     Route::get('/sourcing', [SourcingController::class, 'index'])->name('sourcing.index');
+    Route::get('/sourcing/search-items', [SourcingController::class, 'searchItems'])->name('sourcing.search-items');
+    Route::get('/sourcing/search-vendors', [SourcingController::class, 'searchVendors'])->name('sourcing.search-vendors');
+    Route::get('/sourcing/items/{item}', [SourcingController::class, 'itemDetail'])->name('sourcing.item-detail');
+    Route::get('/sourcing/vendors/{vendor}', [SourcingController::class, 'vendorDetail'])->name('sourcing.vendor-detail');
     Route::post('/sourcing/attach', [SourcingController::class, 'attach'])->name('sourcing.attach');
 
     // قوائم الأسعار وعروض الأسعار

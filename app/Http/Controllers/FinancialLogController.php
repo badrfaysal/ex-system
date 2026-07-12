@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Wallet;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class FinancialLogController extends Controller
@@ -48,11 +49,18 @@ class FinancialLogController extends Controller
             $logsQuery->where('transaction_date', '<=', $request->date_to);
         }
 
-        $totalsQuery = clone $logsQuery;
-        $totals = $totalsQuery->selectRaw('
+        // مجموع (in/out) + عدد السطور الكلي في استعلام واحد بدل ما يتحسبوا في استعلام منفصل
+        // عن استعلام العدّ اللي paginate() بيعمله لوحده — كده استعلامين بس بدل تلاتة
+        $aggQuery = clone $logsQuery;
+        $agg = $aggQuery->selectRaw('
+            COUNT(*) as total_count,
             SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as total_in,
             SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as total_out
         ')->first();
+
+        $totalIn = $agg->total_in ?? 0;
+        $totalOut = abs($agg->total_out ?? 0);
+        $totalCount = (int) ($agg->total_count ?? 0);
 
         $sort = $request->get('sort', 'date_desc');
         switch ($sort) {
@@ -71,10 +79,14 @@ class FinancialLogController extends Controller
                 break;
         }
 
-        $totalIn = $totals->total_in ?? 0;
-        $totalOut = abs($totals->total_out ?? 0);
+        $perPage = 20;
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $items = $logsQuery->forPage($page, $perPage)->get();
 
-        $logs = $logsQuery->paginate(20)->withQueryString();
+        $logs = new LengthAwarePaginator($items, $totalCount, $perPage, $page, [
+            'path'  => LengthAwarePaginator::resolveCurrentPath(),
+            'query' => $request->query(),
+        ]);
 
         $walletIds = $logs->pluck('wallet_id')->unique();
         $userIds = $logs->pluck('user_id')->unique();

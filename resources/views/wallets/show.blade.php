@@ -138,7 +138,6 @@
             <input type="hidden" name="wallet_id" value="{{ $wallet->id }}">
             <input type="hidden" name="expense_date" value="{{ date('Y-m-d') }}">
             <input type="hidden" name="currency" value="{{ $wallet->currency }}">
-            <input type="hidden" name="expense_number" value="{{ $nextExpenseNumber }}">
             <input type="hidden" name="redirect_to" value="{{ route('wallets.show', $wallet) }}">
             
             <div>

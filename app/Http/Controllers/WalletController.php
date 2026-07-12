@@ -71,13 +71,12 @@ class WalletController extends Controller
     {
         [$timeline, $balance] = $this->buildTimeline($wallet);
 
-        $lastExp = \App\Models\Expense::latest('id')->first();
-        $seqExp  = $lastExp ? $lastExp->id + 1 : 1;
-        $nextExpenseNumber = 'EXP-' . now()->format('Y-m') . '-' . str_pad($seqExp, 4, '0', STR_PAD_LEFT);
+        $lookups = Cache::remember('system_settings', 60 * 60 * 24, function () {
+            return Setting::all()->groupBy('category');
+        });
+        $categories = $lookups->get('expense_category') ?? collect();
 
-        $categories = \App\Models\Setting::where('category', 'expense_category')->get();
-
-        return view('wallets.show', compact('wallet', 'timeline', 'balance', 'nextExpenseNumber', 'categories'));
+        return view('wallets.show', compact('wallet', 'timeline', 'balance', 'categories'));
     }
 
     /**
