@@ -194,6 +194,12 @@
                     <span>{{ __('messages.nav.dashboard') }}</span>
                 </a>
 
+                {{-- التقارير --}}
+                <a href="{{ route('reports.index') }}" class="sb-link mx-2 {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-line sb-group-icon text-purple-600"></i>
+                    <span>{{ $rtl ? 'التقارير والتحليلات' : 'Reports & Analytics' }}</span>
+                </a>
+
                 {{-- ===== المبيعات والعملاء ===== --}}
                 <p class="sb-section">{{ $rtl ? 'المبيعات والعملاء' : 'Sales & Clients' }}</p>
 

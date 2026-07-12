@@ -22,12 +22,9 @@ use App\Http\Controllers\SalesInvoiceController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\WalletTransferController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\ReportsController;
 
-use App\Models\Client;
-use App\Models\Vendor;
-use App\Models\Item;
 use App\Models\Quotation;
-use App\Models\PriceList;
 
 // ===== مسارات تسجيل الدخول (بدون auth) =====
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -40,30 +37,14 @@ Route::middleware('auth')->group(function () {
     // الصفحة الرئيسية — بيانات حقيقية من قاعدة البيانات
     Route::get('/', function () {
 
-
-        // كل العدادات في query واحدة
-        $counts = \Illuminate\Support\Facades\DB::table('items')->selectRaw('
-            count(*) as items_total,
-            sum(case when status="active" then 1 else 0 end) as items_active
-        ')->first();
-
-        $clientsCount    = Client::count();
-        $vendorsCount    = Vendor::count();
-        $itemsCount      = $counts->items_total ?? 0;
-        $activeItems     = $counts->items_active ?? 0;
         $quotationsCount = Quotation::count();
-        $priceListsCount = PriceList::count();
 
         $quotationsByStatus = Quotation::selectRaw('status, count(*) as total')
             ->groupBy('status')->pluck('total', 'status');
 
         $wallets = \App\Models\Wallet::withBalanceSums()->orderBy('name')->get();
 
-        return view('dashboard', compact(
-            'clientsCount', 'vendorsCount', 'itemsCount', 'activeItems',
-            'quotationsCount', 'priceListsCount', 'quotationsByStatus',
-            'wallets'
-        ));
+        return view('dashboard', compact('quotationsCount', 'quotationsByStatus', 'wallets'));
     });
 
     // العملاء
@@ -167,6 +148,9 @@ Route::middleware('auth')->group(function () {
     
     // إيرادات مباشرة للمحافظ
     Route::post('revenues', [App\Http\Controllers\RevenueController::class, 'store'])->name('revenues.store');
+
+    // التقارير
+    Route::get('reports', [ReportsController::class, 'index'])->name('reports.index');
 
     // سجل العمليات
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
