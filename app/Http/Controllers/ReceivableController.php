@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\ClientStatementMail;
 use App\Models\Client;
-use App\Models\ClientReceipt;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -70,15 +70,14 @@ class ReceivableController extends Controller
             ->filter(fn ($si) => $si['balance_due'] > 0)
             ->values();
 
-        $wallets = \App\Models\Wallet::orderBy('name')->get(['id', 'name']);
+        $wallets = Wallet::orderBy('name')->get(['id', 'name', 'currency']);
 
         return view('receivables.show', [
-            'client'            => $client,
-            'timeline'          => $timeline,
-            'balance'           => $balance,
-            'openInvoices'      => $openInvoices,
-            'nextReceiptNumber' => $this->nextReceiptNumber(),
-            'wallets'           => $wallets,
+            'client'       => $client,
+            'timeline'     => $timeline,
+            'balance'      => $balance,
+            'openInvoices' => $openInvoices,
+            'wallets'      => $wallets,
         ]);
     }
 
@@ -139,12 +138,5 @@ class ReceivableController extends Controller
         });
 
         return [$timeline, $running];
-    }
-
-    private function nextReceiptNumber(): string
-    {
-        $last = ClientReceipt::latest('id')->first();
-        $seq  = $last ? $last->id + 1 : 1;
-        return 'RC-' . now()->format('Y-m') . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
     }
 }

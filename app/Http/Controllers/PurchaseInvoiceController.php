@@ -48,10 +48,15 @@ class PurchaseInvoiceController extends Controller
         $vendors = Vendor::orderBy('name_ar')->get(['id', 'name_ar', 'name_en']);
         $items   = Item::with('approvedVendors')->orderBy('name_ar')->get();
 
+        $currencies = \Illuminate\Support\Facades\Cache::remember('system_settings', 60 * 60 * 24, function () {
+            return \App\Models\Setting::all()->groupBy('category');
+        })->get('currency') ?? collect();
+
         return view('purchase_invoices.create', [
             'salesOrder'        => $salesOrder,
             'vendors'           => $vendors,
             'items'             => $items,
+            'currencies'        => $currencies,
         ]);
     }
 

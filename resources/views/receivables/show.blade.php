@@ -187,7 +187,6 @@
 
         <form action="{{ route('client-receipts.store') }}" method="POST" class="p-6 space-y-4">
             @csrf
-            <input type="hidden" name="receipt_number" value="{{ $nextReceiptNumber }}">
             <input type="hidden" name="receipt_date" value="{{ now()->toDateString() }}">
 
             <div>
@@ -216,36 +215,38 @@
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ' : 'Amount' }} <span class="text-red-500">*</span></label>
-                <div class="flex items-center gap-2">
-                    <input type="number" step="any" min="0.01" name="amount" id="payAmountInput" required dir="ltr"
-                        class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
-                    <span id="payCurrencyLabel" class="text-sm text-gray-400 font-mono w-14"></span>
-                </div>
-            </div>
-
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'طريقة الدفع' : 'Payment Method' }}</label>
-                    <select name="payment_method" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
-                        <option value="">{{ $isAr ? '— غير محدد —' : '— Not set —' }}</option>
-                        <option value="cash">{{ $isAr ? 'نقدي' : 'Cash' }}</option>
-                        <option value="bank_transfer">{{ $isAr ? 'تحويل بنكي' : 'Bank Transfer' }}</option>
-                        <option value="cheque">{{ $isAr ? 'شيك' : 'Cheque' }}</option>
-                    </select>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ' : 'Amount' }} <span class="text-red-500">*</span></label>
+                    <input type="number" step="any" min="0.01" name="amount" id="payAmountInput" required dir="ltr"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'الخزينة / الحساب البنكي' : 'Wallet / Bank' }} <span class="text-red-500">*</span></label>
-                    <select name="wallet_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
-                        @foreach($wallets as $wallet)
-                            <option value="{{ $wallet->id }}">{{ $wallet->name }}</option>
-                        @endforeach
-                    </select>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }}</label>
+                    <input type="text" name="currency" id="payCurrencyInput" readonly dir="ltr"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-600 cursor-not-allowed">
                 </div>
             </div>
+            <p class="text-[11px] text-gray-400 -mt-2">{{ $isAr ? 'مقفولة على عملة فاتورة البيع المختارة ولا يمكن تغييرها' : 'Locked to the selected sales invoice currency and cannot be changed' }}</p>
 
-            <input type="hidden" name="currency" id="payCurrencyInput" value="EGP">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'طريقة الدفع' : 'Payment Method' }}</label>
+                <select name="payment_method" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
+                    <option value="">{{ $isAr ? '— غير محدد —' : '— Not set —' }}</option>
+                    <option value="cash">{{ $isAr ? 'نقدي' : 'Cash' }}</option>
+                    <option value="bank_transfer">{{ $isAr ? 'تحويل بنكي' : 'Bank Transfer' }}</option>
+                    <option value="cheque">{{ $isAr ? 'شيك' : 'Cheque' }}</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'الخزينة / الحساب البنكي' : 'Wallet / Bank' }} <span class="text-red-500">*</span></label>
+                <select name="wallet_id" id="payWalletSelect" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
+                    @foreach($wallets as $wallet)
+                        <option value="{{ $wallet->id }}" data-currency="{{ $wallet->currency }}">{{ $wallet->name }} ({{ $wallet->currency }})</option>
+                    @endforeach
+                </select>
+            </div>
 
             <div class="flex items-center gap-3 justify-end pt-2">
                 <button type="button" onclick="closePayModal()" class="px-5 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm font-medium">
@@ -265,11 +266,26 @@
         return sel.options[sel.selectedIndex];
     }
 
+    // العملة مقفولة على عملة الفاتورة المختارة — كل فاتورة ليها عملتها الخاصة
     function syncPayCurrency() {
         const opt = currentOrderOption();
-        const currency = opt.dataset.currency || 'EGP';
-        document.getElementById('payCurrencyLabel').textContent = currency;
-        document.getElementById('payCurrencyInput').value = currency;
+        document.getElementById('payCurrencyInput').value = opt.dataset.currency || 'EGP';
+    }
+
+    // فلترة المحفظة حسب عملة الفاتورة المختارة — تظهر بس المحافظ اللي بنفس العملة
+    function filterWallets() {
+        const cur = document.getElementById('payCurrencyInput').value;
+        const walletSel = document.getElementById('payWalletSelect');
+        let firstVisible = null;
+        Array.from(walletSel.options).forEach(function (opt) {
+            const match = opt.dataset.currency === cur;
+            opt.hidden = !match;
+            opt.disabled = !match;
+            if (match && !firstVisible) firstVisible = opt;
+        });
+        if (!walletSel.value || walletSel.selectedOptions[0]?.hidden) {
+            walletSel.value = firstVisible ? firstVisible.value : '';
+        }
     }
 
     function setPayFull() {
@@ -288,6 +304,7 @@
 
     function openPayModal() {
         syncPayCurrency();
+        filterWallets();
         setPayFull();
         const modal = document.getElementById('payModal');
         modal.classList.remove('hidden');
@@ -302,6 +319,7 @@
 
     document.getElementById('payOrderSelect').addEventListener('change', function () {
         syncPayCurrency();
+        filterWallets();
         setPayFull();
     });
 

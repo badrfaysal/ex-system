@@ -63,10 +63,15 @@ class SalesInvoiceController extends Controller
 
         $itemsList = \App\Models\Item::orderBy('name_ar')->get();
 
+        $currencies = \Illuminate\Support\Facades\Cache::remember('system_settings', 60 * 60 * 24, function () {
+            return \App\Models\Setting::all()->groupBy('category');
+        })->get('currency') ?? collect();
+
         return view('sales_invoices.create', [
             'salesOrder'        => $salesOrder,
             'lines'             => $lines,
             'itemsList'         => $itemsList,
+            'currencies'        => $currencies,
         ]);
     }
 

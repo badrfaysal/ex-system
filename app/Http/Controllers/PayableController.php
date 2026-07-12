@@ -66,10 +66,20 @@ class PayableController extends Controller
     {
         [$timeline, $balance] = $this->buildTimeline($vendor);
 
+        // فواتير الشراء اللي لسه عليها رصيد — تُستخدم في نموذج تسجيل سند الدفع
+        $openInvoices = $vendor->purchaseInvoices
+            ->map(fn ($pi) => ['id' => $pi->id, 'invoice_number' => $pi->invoice_number, 'balance_due' => $pi->balance_due, 'currency' => $pi->currency])
+            ->filter(fn ($pi) => $pi['balance_due'] > 0)
+            ->values();
+
+        $wallets = \App\Models\Wallet::orderBy('name')->get(['id', 'name', 'currency']);
+
         return view('payables.show', [
-            'vendor'   => $vendor,
-            'timeline' => $timeline,
-            'balance'  => $balance,
+            'vendor'       => $vendor,
+            'timeline'     => $timeline,
+            'balance'      => $balance,
+            'openInvoices' => $openInvoices,
+            'wallets'      => $wallets,
         ]);
     }
 

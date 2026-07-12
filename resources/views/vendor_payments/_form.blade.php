@@ -3,11 +3,29 @@
     $p = $payment ?? null;
     $isEdit = $p && $p->exists;
     $action = $isEdit ? route('vendor-payments.update', $p) : route('vendor-payments.store');
+    
+    $vendorDisplay = $isAr ? optional($purchaseInvoice->vendor)->name_ar : (optional($purchaseInvoice->vendor)->name_en ?: optional($purchaseInvoice->vendor)->name_ar);
+    $balance = $purchaseInvoice->balance_due;
 @endphp
+
+<div class="mb-6 p-4 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between">
+    <div>
+        <p class="text-xs text-gray-400">{{ $isAr ? 'فاتورة الشراء' : 'Purchase Invoice' }}</p>
+        <p class="font-mono font-bold text-gray-800">{{ $purchaseInvoice->invoice_number }}</p>
+        <p class="text-xs text-gray-500 mt-1">{{ $vendorDisplay ?? '—' }}</p>
+    </div>
+    <div class="text-{{ $isAr ? 'left' : 'right' }}">
+        <p class="text-xs text-gray-400">{{ $isAr ? 'المتبقي' : 'Balance Due' }}</p>
+        <p class="font-extrabold text-lg {{ $balance > 0 ? 'text-red-600' : 'text-green-600' }}" dir="ltr">{{ number_format($balance, 2) }} {{ $purchaseInvoice->currency }}</p>
+    </div>
+</div>
 
 <form action="{{ $action }}" method="POST">
     @csrf
     @if($isEdit) @method('PUT') @endif
+    
+    <input type="hidden" name="purchase_invoice_id" value="{{ $purchaseInvoice->id }}">
+
     <div class="grid grid-cols-1 gap-6">
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'رقم السند' : 'Payment No.' }}</label>
@@ -20,44 +38,20 @@
             @endif
         </div>
 
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المورد' : 'Vendor' }} <span class="text-red-500">*</span></label>
-            @if($selectedVendorId && !$isEdit)
-                {{-- المورد مقفول — جاي من صفحة المستحقات --}}
-                <input type="hidden" name="vendor_id" value="{{ $selectedVendorId }}">
-                <select disabled class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed">
-                    @foreach($vendors as $v)
-                        @if($v->id == $selectedVendorId)
-                            <option selected>{{ $isAr ? $v->name_ar : ($v->name_en ?: $v->name_ar) }}</option>
-                        @endif
-                    @endforeach
-                </select>
-                <p class="text-xs text-gray-400 mt-1 flex items-center gap-1"><i class="fas fa-lock text-gray-300"></i> {{ $isAr ? 'المورد مقفول — تم اختياره من صفحة المستحقات' : 'Vendor locked — selected from payables page' }}</p>
-            @else
-                <select name="vendor_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
-                    <option value="" disabled {{ old('vendor_id', $selectedVendorId) ? '' : 'selected' }}>{{ $isAr ? '— اختر مورد —' : '— Choose vendor —' }}</option>
-                    @foreach($vendors as $v)
-                        <option value="{{ $v->id }}" {{ old('vendor_id', $selectedVendorId) == $v->id ? 'selected' : '' }}>{{ $isAr ? $v->name_ar : ($v->name_en ?: $v->name_ar) }}</option>
-                    @endforeach
-                </select>
-            @endif
-            @error('vendor_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-        </div>
-
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ' : 'Amount' }} <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ المدفوع' : 'Amount Paid' }} <span class="text-red-500">*</span></label>
                 <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount', $p?->amount) }}" required dir="ltr"
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-gray-50 focus:bg-white">
+                <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'يمكن أن يكون دفع جزئي' : 'Can be a partial payment' }}</p>
                 @error('amount') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
             </div>
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }} <span class="text-red-500">*</span></label>
-                <select name="currency" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
-                    @foreach($currencies as $c)
-                        <option value="{{ $c->key_value }}" {{ old('currency', $p?->currency ?? 'EGP') == $c->key_value ? 'selected' : '' }}>{{ $c->key_value }}</option>
-                    @endforeach
-                </select>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }}</label>
+                <input type="text" name="currency" id="paymentCurrency" value="{{ $purchaseInvoice->currency }}" readonly dir="ltr"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-600 cursor-not-allowed">
+                <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'مقفولة على عملة فاتورة الشراء ولا يمكن تغييرها' : 'Locked to the purchase invoice currency and cannot be changed' }}</p>
+                @error('currency') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
             </div>
         </div>
 
@@ -98,7 +92,7 @@
     </div>
 
     <div class="mt-10 flex justify-end gap-4 border-t border-gray-100 pt-8">
-        <a href="{{ route('payables.index') }}" class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-100 font-medium transition-colors">
+        <a href="{{ route('payables.show', $purchaseInvoice->vendor_id) }}" class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-100 font-medium transition-colors">
             {{ $isAr ? 'إلغاء' : 'Cancel' }}
         </a>
         <button type="submit" class="px-8 py-2.5 bg-red-600 rounded-lg text-white hover:bg-red-700 font-bold shadow-lg flex items-center gap-2">
@@ -106,3 +100,26 @@
         </button>
     </div>
 </form>
+
+<script>
+    window.addEventListener('load', function () {
+        var cur = document.getElementById('paymentCurrency').value;
+        var walletSel = document.querySelector('select[name="wallet_id"]');
+        var ts = walletSel ? walletSel.tomselect : null;
+        if (!ts) return;
+
+        var allWallets = @json($wallets->map(fn ($w) => ['id' => $w->id, 'name' => $w->name, 'currency' => $w->currency]));
+        var oldWalletId = {{ old('wallet_id', $p?->wallet_id) ? (int) old('wallet_id', $p?->wallet_id) : 'null' }};
+        var matching = allWallets.filter(function (w) { return w.currency === cur; });
+
+        ts.clearOptions();
+        matching.forEach(function (w) {
+            ts.addOption({ value: String(w.id), text: w.name + ' (' + w.currency + ')' });
+        });
+        ts.refreshOptions(false);
+
+        if (oldWalletId !== null && matching.some(function (w) { return String(w.id) === String(oldWalletId); })) {
+            ts.setValue(String(oldWalletId), true);
+        }
+    });
+</script>

@@ -54,9 +54,11 @@
                         <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'يمكن أن يكون تحصيل جزئي' : 'Can be a partial payment' }}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }} <span class="text-red-500">*</span></label>
-                        <input type="text" name="currency" required dir="ltr" value="{{ old('currency', $salesInvoice->currency) }}"
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-50 focus:outline-none focus:border-[#008A3B]">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }}</label>
+                        <input type="text" name="currency" id="receiptCurrency" value="{{ $salesInvoice->currency }}" readonly dir="ltr"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-600 cursor-not-allowed">
+                        <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'مقفولة على عملة فاتورة البيع ولا يمكن تغييرها' : 'Locked to the sales invoice currency and cannot be changed' }}</p>
+                        @error('currency') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                     </div>
                 </div>
 
@@ -107,4 +109,28 @@
         </form>
     </div>
 </div>
+
+<script>
+    // فلترة المحفظة على عملة فاتورة البيع الثابتة — تظهر بس المحافظ اللي بنفس العملة
+    window.addEventListener('load', function () {
+        var cur = document.getElementById('receiptCurrency').value;
+        var walletSel = document.querySelector('select[name="wallet_id"]');
+        var ts = walletSel ? walletSel.tomselect : null;
+        if (!ts) return;
+
+        var allWallets = @json($wallets->map(fn ($w) => ['id' => $w->id, 'name' => $w->name, 'currency' => $w->currency]));
+        var oldWalletId = {{ old('wallet_id') ? (int) old('wallet_id') : 'null' }};
+        var matching = allWallets.filter(function (w) { return w.currency === cur; });
+
+        ts.clearOptions();
+        matching.forEach(function (w) {
+            ts.addOption({ value: String(w.id), text: w.name + ' (' + w.currency + ')' });
+        });
+        ts.refreshOptions(false);
+
+        if (oldWalletId !== null && matching.some(function (w) { return String(w.id) === String(oldWalletId); })) {
+            ts.setValue(String(oldWalletId), true);
+        }
+    });
+</script>
 @endsection

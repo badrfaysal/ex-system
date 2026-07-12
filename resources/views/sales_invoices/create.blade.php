@@ -38,7 +38,6 @@
 <form action="{{ route('sales-invoices.store') }}" method="POST" id="siForm">
     @csrf
     <input type="hidden" name="sales_order_id" value="{{ $salesOrder->id }}">
-    <input type="hidden" name="currency" value="{{ $cur }}">
 
     <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
         <p class="text-xs text-gray-400 font-mono mb-4">{{ $salesOrder->so_number }} — {{ $clientDisplay }}</p>
@@ -52,6 +51,16 @@
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'تاريخ الفاتورة' : 'Invoice Date' }} <span class="text-red-500">*</span></label>
                 <input type="date" name="invoice_date" required value="{{ old('invoice_date', now()->toDateString()) }}"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'عملة الفاتورة' : 'Invoice Currency' }} <span class="text-red-500">*</span></label>
+                <select name="currency" id="invoiceCurrency" required dir="ltr"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono bg-white focus:outline-none focus:border-[#008A3B]">
+                    @foreach($currencies as $c)
+                        <option value="{{ $c->key_value }}" {{ old('currency', $cur) == $c->key_value ? 'selected' : '' }}>{{ $c->key_value }} — {{ $c->display_name }}</option>
+                    @endforeach
+                </select>
+                <p class="text-[11px] text-amber-600 mt-1">{{ $isAr ? 'تنبيه: العملة نهائية بعد الحفظ ولا يمكن تغييرها — وهتبقى إلزامية عند تحصيل أي سند قبض لهذه الفاتورة.' : 'Note: the currency is final once saved and cannot be changed later — it will be enforced on any receipt collected against this invoice.' }}</p>
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'ملاحظات' : 'Notes' }}</label>
@@ -141,7 +150,7 @@
         <div class="px-6 py-4 flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-4">
                 <div class="text-xs text-gray-500">{{ $isAr ? 'إجمالي الفاتورة:' : 'Invoice total:' }}</div>
-                <div class="font-extrabold text-[#008A3B] text-xl" dir="ltr" id="grandTotal">0.00 <span class="text-xs font-normal text-gray-400">{{ $cur }}</span></div>
+                <div class="font-extrabold text-[#008A3B] text-xl" dir="ltr" id="grandTotal">0.00 <span class="text-xs font-normal text-gray-400" id="grandTotalCur">{{ $cur }}</span></div>
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('sales-orders.show', $salesOrder) }}" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium">{{ $isAr ? 'إلغاء' : 'Cancel' }}</a>
@@ -193,6 +202,13 @@
     document.querySelectorAll('.si-check, .si-qty, .si-price').forEach(el => el.addEventListener('input', recalc));
     document.querySelectorAll('.si-check').forEach(el => el.addEventListener('change', recalc));
     recalc();
+
+    const invoiceCurrencySel = document.getElementById('invoiceCurrency');
+    if (invoiceCurrencySel) {
+        invoiceCurrencySel.addEventListener('change', function () {
+            document.getElementById('grandTotalCur').textContent = this.value;
+        });
+    }
 
     // 3. إدارة سطور الإضافي (Extra Lines)
     let extraIndex = 0;

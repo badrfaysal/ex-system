@@ -35,9 +35,11 @@
             <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }}"></i> {{ $isAr ? 'كل الالتزامات' : 'All Payables' }}
         </a>
         <div class="flex flex-wrap items-center gap-2">
-            <a href="{{ route('vendor-payments.create', ['vendor_id' => $vendor->id]) }}" class="px-5 py-2 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-700 flex items-center gap-2">
-                <i class="fas fa-plus"></i> {{ $isAr ? 'تسجيل سند دفع' : 'Record Payment' }}
-            </a>
+            @if($openInvoices->isNotEmpty())
+            <button type="button" onclick="openPayModal()" class="px-5 py-2 bg-red-600 text-white rounded-lg font-bold text-sm hover:bg-red-700 flex items-center gap-2">
+                <i class="fas fa-money-check-alt"></i> {{ $isAr ? 'تسجيل دفعة' : 'Record Payment' }}
+            </button>
+            @endif
             <button type="button" onclick="window.print()" class="px-5 py-2 bg-[#005B9F] text-white rounded-lg font-bold text-sm hover:bg-blue-800 flex items-center gap-2">
                 <i class="fas fa-print"></i> {{ $isAr ? 'طباعة كشف الحساب' : 'Print Statement' }}
             </button>
@@ -164,6 +166,171 @@
         <div class="h-1 bg-gradient-to-r from-red-500 to-red-700"></div>
     </div>
 </div>
+
+</div>
+
+{{-- ============ Modal تسجيل دفعة ============ --}}
+@if($openInvoices->isNotEmpty())
+<div id="payModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 no-print" role="dialog">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closePayModal()"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" dir="{{ $isAr ? 'rtl' : 'ltr' }}">
+        <div class="bg-red-600 text-white px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                    <i class="fas fa-money-check-alt text-sm"></i>
+                </div>
+                <p class="font-bold text-base leading-none">{{ $isAr ? 'تسجيل دفعة للمورد' : 'Record Vendor Payment' }}</p>
+            </div>
+            <button type="button" onclick="closePayModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form action="{{ route('vendor-payments.store') }}" method="POST" class="p-6 space-y-4">
+            @csrf
+            <input type="hidden" name="payment_date" value="{{ now()->toDateString() }}">
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'فاتورة الشراء' : 'Purchase Invoice' }} <span class="text-red-500">*</span></label>
+                <select name="purchase_invoice_id" id="payOrderSelect" required
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
+                    @foreach($openInvoices as $o)
+                        <option value="{{ $o['id'] }}" data-balance="{{ $o['balance_due'] }}" data-currency="{{ $o['currency'] }}">
+                            {{ $o['invoice_number'] }} — {{ $isAr ? 'المتبقي' : 'Due' }}: {{ number_format($o['balance_due'], 2) }} {{ $o['currency'] }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'نوع الدفعة' : 'Payment Type' }}</label>
+                <div class="flex gap-2">
+                    <button type="button" id="payFullBtn" onclick="setPayFull()"
+                        class="flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 border-red-600 text-red-600 bg-red-50 hover:bg-red-100">
+                        {{ $isAr ? 'دفع كامل' : 'Pay in Full' }}
+                    </button>
+                    <button type="button" id="payPartialBtn" onclick="setPayPartial()"
+                        class="flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 border-gray-300 text-gray-600 hover:border-red-600 hover:text-red-600">
+                        {{ $isAr ? 'دفع جزئي' : 'Partial' }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ' : 'Amount' }} <span class="text-red-500">*</span></label>
+                    <input type="number" step="any" min="0.01" name="amount" id="payAmountInput" required dir="ltr"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }}</label>
+                    <input type="text" name="currency" id="payCurrencyInput" readonly dir="ltr"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-600 cursor-not-allowed">
+                </div>
+            </div>
+            <p class="text-[11px] text-gray-400 -mt-2">{{ $isAr ? 'مقفولة على عملة فاتورة الشراء المختارة ولا يمكن تغييرها' : 'Locked to the selected purchase invoice currency and cannot be changed' }}</p>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'طريقة الدفع' : 'Payment Method' }}</label>
+                <select name="payment_method" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
+                    <option value="">{{ $isAr ? '— غير محدد —' : '— Not set —' }}</option>
+                    <option value="cash">{{ $isAr ? 'نقدي' : 'Cash' }}</option>
+                    <option value="bank_transfer">{{ $isAr ? 'تحويل بنكي' : 'Bank Transfer' }}</option>
+                    <option value="cheque">{{ $isAr ? 'شيك' : 'Cheque' }}</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'الخزينة / الحساب البنكي' : 'Wallet / Bank' }} <span class="text-red-500">*</span></label>
+                <select name="wallet_id" id="payWalletSelect" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
+                    @foreach($wallets as $wallet)
+                        <option value="{{ $wallet->id }}" data-currency="{{ $wallet->currency }}">{{ $wallet->name }} ({{ $wallet->currency }})</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="flex items-center gap-3 justify-end pt-2">
+                <button type="button" onclick="closePayModal()" class="px-5 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm font-medium">
+                    {{ $isAr ? 'إلغاء' : 'Cancel' }}
+                </button>
+                <button type="submit" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm flex items-center gap-2">
+                    <i class="fas fa-save"></i> {{ $isAr ? 'حفظ الدفعة' : 'Save Payment' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function currentOrderOption() {
+        const sel = document.getElementById('payOrderSelect');
+        return sel.options[sel.selectedIndex];
+    }
+
+    // العملة مقفولة على عملة الفاتورة المختارة — كل فاتورة ليها عملتها الخاصة
+    function syncPayCurrency() {
+        const opt = currentOrderOption();
+        if(opt) document.getElementById('payCurrencyInput').value = opt.dataset.currency || 'EGP';
+    }
+
+    // فلترة المحفظة حسب عملة الفاتورة المختارة — تظهر بس المحافظ اللي بنفس العملة
+    function filterWallets() {
+        const cur = document.getElementById('payCurrencyInput').value;
+        const walletSel = document.getElementById('payWalletSelect');
+        if(!walletSel) return;
+        let firstVisible = null;
+        Array.from(walletSel.options).forEach(function (opt) {
+            const match = opt.dataset.currency === cur;
+            opt.hidden = !match;
+            opt.disabled = !match;
+            if (match && !firstVisible) firstVisible = opt;
+        });
+        if (!walletSel.value || walletSel.selectedOptions[0]?.hidden) {
+            walletSel.value = firstVisible ? firstVisible.value : '';
+        }
+    }
+
+    function setPayFull() {
+        const opt = currentOrderOption();
+        if(opt) document.getElementById('payAmountInput').value = opt.dataset.balance;
+        document.getElementById('payFullBtn').className = 'flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 border-red-600 text-red-600 bg-red-50 hover:bg-red-100';
+        document.getElementById('payPartialBtn').className = 'flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 border-gray-300 text-gray-600 hover:border-red-600 hover:text-red-600';
+    }
+
+    function setPayPartial() {
+        document.getElementById('payAmountInput').value = '';
+        document.getElementById('payAmountInput').focus();
+        document.getElementById('payPartialBtn').className = 'flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 border-red-600 text-red-600 bg-red-50 hover:bg-red-100';
+        document.getElementById('payFullBtn').className = 'flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 border-gray-300 text-gray-600 hover:border-red-600 hover:text-red-600';
+    }
+
+    function openPayModal() {
+        syncPayCurrency();
+        filterWallets();
+        setPayFull();
+        const modal = document.getElementById('payModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closePayModal() {
+        const modal = document.getElementById('payModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    const orderSelect = document.getElementById('payOrderSelect');
+    if(orderSelect) {
+        orderSelect.addEventListener('change', function () {
+            syncPayCurrency();
+            filterWallets();
+            setPayFull();
+        });
+    }
+
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePayModal(); });
+</script>
+@endif
 
 {{-- ============ Modal إرسال البريد ============ --}}
 @if($vendor->email)

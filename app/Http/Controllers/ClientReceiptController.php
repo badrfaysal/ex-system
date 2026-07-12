@@ -50,11 +50,23 @@ class ClientReceiptController extends Controller
 
     public function store(Request $request)
     {
+        $isAr = app()->getLocale() === 'ar';
+
         $data = $request->validate([
             'sales_invoice_id' => 'required|exists:sales_invoices,id',
             'wallet_id'        => 'required|exists:wallets,id',
             'amount'           => 'required|numeric|min:0.01',
-            'currency'         => ['required', 'string', new MatchesWalletCurrency],
+            'currency'         => [
+                'required', 'string', new MatchesWalletCurrency,
+                function ($attribute, $value, $fail) use ($request, $isAr) {
+                    $invoice = SalesInvoice::find($request->input('sales_invoice_id'));
+                    if ($invoice && $value !== $invoice->currency) {
+                        $fail($isAr
+                            ? "فاتورة البيع {$invoice->invoice_number} كانت بعملة {$invoice->currency} — لا يمكن تسجيل سند قبض بعملة مختلفة."
+                            : "Sales invoice {$invoice->invoice_number} was issued in {$invoice->currency} — a receipt in a different currency is not allowed.");
+                    }
+                },
+            ],
             'receipt_date'     => 'required|date',
             'payment_method'   => 'nullable|string',
             'notes'            => 'nullable|string',
