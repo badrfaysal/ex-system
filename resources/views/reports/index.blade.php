@@ -173,6 +173,50 @@
         </div>
     </div>
 
+    {{-- ===== عملاء مضت مدة الاستحقاق ولم يسددوا ===== --}}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+            <p class="font-bold text-gray-800 text-sm flex items-center gap-2"><i class="fas fa-exclamation-circle text-red-500 text-xs"></i> {{ $isAr ? 'عملاء مضت مدة الاستحقاق ولم يسددوا' : 'Clients Past Due Date & Unpaid' }}</p>
+            <div class="flex items-center gap-3">
+                @forelse($overdueTotals as $currency => $total)
+                    <span class="text-xs font-bold text-red-600 bg-red-50 rounded-full px-3 py-1" dir="ltr">{{ number_format($total, 2) }} {{ $currency }}</span>
+                @empty
+                @endforelse
+                <span class="text-xs font-bold text-gray-400">{{ $overdueInvoices->count() }} {{ $isAr ? 'فاتورة' : 'invoice(s)' }}</span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm" style="text-align:{{ $isAr ? 'right' : 'left' }}">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-500 text-[11px] font-bold">
+                        <th class="px-4 py-2.5">{{ $isAr ? 'العميل' : 'Client' }}</th>
+                        <th class="px-4 py-2.5">{{ $isAr ? 'رقم الفاتورة' : 'Invoice' }}</th>
+                        <th class="px-4 py-2.5">{{ $isAr ? 'موعد الاستحقاق' : 'Due Date' }}</th>
+                        <th class="px-4 py-2.5">{{ $isAr ? 'التأخير' : 'Overdue By' }}</th>
+                        <th class="px-4 py-2.5">{{ $isAr ? 'المتبقي' : 'Balance Due' }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @forelse($overdueInvoices as $inv)
+                        <tr class="hover:bg-red-50/30 cursor-pointer" onclick="location.href='{{ route('sales-invoices.show', $inv) }}'">
+                            <td class="px-4 py-2.5 font-semibold text-gray-800">{{ optional($inv->client)->displayName($isAr ? 'ar' : 'en') }}</td>
+                            <td class="px-4 py-2.5 font-mono text-[#005B9F]" dir="ltr">{{ $inv->invoice_number }}</td>
+                            <td class="px-4 py-2.5 text-gray-500" dir="ltr">{{ $inv->due_date->format('Y-m-d') }}</td>
+                            <td class="px-4 py-2.5">
+                                <span class="text-[11px] font-bold text-red-600 bg-red-50 rounded-full px-2.5 py-0.5">
+                                    {{ $isAr ? $inv->days_overdue . ' يوم' : $inv->days_overdue . ' days' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2.5 font-bold text-red-600" dir="ltr">{{ number_format($inv->balance_due_calc, 2) }} <span class="text-[10px] text-gray-400 font-normal">{{ $inv->currency }}</span></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400 text-sm">{{ $isAr ? 'لا يوجد عملاء متأخرين عن السداد' : 'No overdue clients' }}</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     {{-- ===== توزيعات: الأصناف/الموردين/العملاء ===== --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">

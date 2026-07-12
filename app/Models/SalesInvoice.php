@@ -10,12 +10,13 @@ class SalesInvoice extends Model
     use HasFactory;
 
     protected $fillable = [
-        'invoice_number', 'sales_order_id', 'client_id', 'quotation_id', 'invoice_date', 'currency', 'notes',
+        'invoice_number', 'sales_order_id', 'client_id', 'quotation_id', 'invoice_date', 'due_date', 'currency', 'notes',
         'subtotal', 'total_discount', 'tax_amount', 'grand_total', 'created_by',
     ];
 
     protected $casts = [
         'invoice_date' => 'date',
+        'due_date'     => 'date',
     ];
 
     public function salesOrder()
@@ -56,5 +57,17 @@ class SalesInvoice extends Model
     public function getBalanceDueAttribute(): float
     {
         return (float) $this->grand_total - $this->received_amount;
+    }
+
+    public function getIsOverdueAttribute(): bool
+    {
+        return $this->due_date !== null
+            && $this->due_date->isPast()
+            && $this->balance_due > 0.01;
+    }
+
+    public function scopeOverdue($query)
+    {
+        return $query->whereNotNull('due_date')->where('due_date', '<', now()->toDateString());
     }
 }

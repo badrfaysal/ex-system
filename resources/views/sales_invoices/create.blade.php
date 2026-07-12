@@ -53,6 +53,12 @@
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
             </div>
             <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'موعد الاستحقاق' : 'Due Date' }}</label>
+                <input type="date" name="due_date" value="{{ old('due_date') }}"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
+                <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'لو العميل ما سددش قبل هذا التاريخ هتظهر الفاتورة في التنبيهات' : "If the client hasn't paid by this date, the invoice will show up in alerts" }}</p>
+            </div>
+            <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'عملة الفاتورة' : 'Invoice Currency' }} <span class="text-red-500">*</span></label>
                 <select name="currency" id="invoiceCurrency" required dir="ltr"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono bg-white focus:outline-none focus:border-[#008A3B]">

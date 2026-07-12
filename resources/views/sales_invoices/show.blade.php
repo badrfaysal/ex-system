@@ -51,6 +51,14 @@
                    <span class="font-bold text-gray-800">{{ optional($salesInvoice->client)->displayName($isAr ? 'ar' : 'en') }}</span></p>
                 <p><span class="text-gray-400">{{ $isAr ? 'التاريخ:' : 'Date:' }}</span>
                    <span class="font-bold text-gray-800">{{ $salesInvoice->invoice_date->format('Y-m-d') }}</span></p>
+                @if($salesInvoice->due_date)
+                <p><span class="text-gray-400">{{ $isAr ? 'موعد الاستحقاق:' : 'Due Date:' }}</span>
+                   <span class="font-bold {{ $salesInvoice->is_overdue ? 'text-red-600' : 'text-gray-800' }}">{{ $salesInvoice->due_date->format('Y-m-d') }}</span>
+                   @if($salesInvoice->is_overdue)
+                       <span class="inline-flex items-center gap-1 text-red-600 font-bold"><i class="fas fa-exclamation-triangle"></i> {{ $isAr ? 'متأخر السداد' : 'Overdue' }}</span>
+                   @endif
+                </p>
+                @endif
             </div>
         </div>
 

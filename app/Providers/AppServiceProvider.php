@@ -54,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
                 ->map(function ($salesOrder) {
                     $hasPurchase = $salesOrder->purchase_invoices_count > 0;
                     return [
+                        'type'         => 'mismatch',
                         'sales_order'  => $salesOrder,
                         'missing'      => $hasPurchase ? 'sales_invoice' : 'purchase_invoice',
                         'action_route' => $hasPurchase
@@ -62,7 +63,31 @@ class AppServiceProvider extends ServiceProvider
                     ];
                 });
 
-            $view->with('navNotifications', $mismatches);
+            // تنبيهات: فواتير بيع فات موعد استحقاقها ولسه فيها مبلغ متبقي
+            $overdueInvoices = SalesInvoice::query()
+                ->overdue()
+                ->with('client')
+                ->withSum(['receipts as received_sum' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
+                ->orderBy('due_date')
+                ->limit(50)
+                ->get()
+                ->map(function ($invoice) {
+                    $invoice->balance_due_calc = (float) $invoice->grand_total - (float) ($invoice->received_sum ?? 0);
+                    return $invoice;
+                })
+                ->filter(fn ($invoice) => $invoice->balance_due_calc > 0.01)
+                ->take(20)
+                ->map(function ($invoice) {
+                    return [
+                        'type'          => 'overdue',
+                        'sales_invoice' => $invoice,
+                        'balance_due'   => $invoice->balance_due_calc,
+                        'days_overdue'  => (int) round(abs(now()->diffInSeconds($invoice->due_date)) / 86400),
+                        'action_route'  => route('sales-invoices.show', $invoice),
+                    ];
+                });
+
+            $view->with('navNotifications', $mismatches->concat($overdueInvoices));
         });
     }
 }

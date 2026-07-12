@@ -38,6 +38,8 @@ class ReportsController extends Controller
         $from = $request->filled('date_from') ? $request->date('date_from')->startOfDay() : now()->subMonths(6)->startOfDay();
         $to   = $request->filled('date_to') ? $request->date('date_to')->endOfDay() : now()->endOfDay();
 
+        $overdueInvoices = $this->overdueInvoices();
+
         return view('reports.index', [
             'dateFrom'          => $from->toDateString(),
             'dateTo'            => $to->toDateString(),
@@ -48,6 +50,8 @@ class ReportsController extends Controller
             'topItems'          => $this->topItems($from, $to),
             'topReceivables'    => $this->topReceivables(),
             'topPayables'       => $this->topPayables(),
+            'overdueInvoices'   => $overdueInvoices,
+            'overdueTotals'     => $overdueInvoices->groupBy('currency')->map(fn ($g) => $g->sum('balance_due_calc')),
             'itemsByGroup'      => Item::selectRaw('item_group, count(*) as cnt')->groupBy('item_group')->orderByDesc('cnt')->get(),
             'itemsByStatus'     => Item::selectRaw('status, count(*) as cnt')->groupBy('status')->get(),
             'vendorsByStatus'   => Vendor::selectRaw('status, count(*) as cnt')->groupBy('status')->get(),
@@ -152,6 +156,28 @@ class ReportsController extends Controller
             ->filter(fn ($v) => $v->balance_due > 0)
             ->sortByDesc('balance_due')
             ->take($limit)
+            ->values();
+    }
+
+    /**
+     * فواتير بيع فات موعد استحقاقها ولسه فيها مبلغ متبقي — مش مرتبطة بفلتر الفترة
+     * (زي المستحقات، بتعكس الحالة الحالية دايمًا)
+     */
+    private function overdueInvoices(): Collection
+    {
+        return SalesInvoice::query()
+            ->overdue()
+            ->with('client')
+            ->withSum(['receipts as received_sum' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
+            ->orderBy('due_date')
+            ->get()
+            ->map(function ($invoice) {
+                $invoice->balance_due_calc = (float) $invoice->grand_total - (float) ($invoice->received_sum ?? 0);
+                $invoice->days_overdue = (int) round(abs(now()->diffInSeconds($invoice->due_date)) / 86400);
+                return $invoice;
+            })
+            ->filter(fn ($invoice) => $invoice->balance_due_calc > 0.01)
+            ->sortByDesc('days_overdue')
             ->values();
     }
 

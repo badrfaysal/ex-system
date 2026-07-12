@@ -52,7 +52,12 @@
                             <td class="p-4 font-mono font-bold text-gray-800" dir="ltr">{{ $invoice->invoice_number }}</td>
                             <td class="p-4 font-mono text-[#005B9F]" dir="ltr">{{ optional($invoice->salesOrder)->so_number }}</td>
                             <td class="p-4">{{ optional($invoice->client)->displayName($isAr ? 'ar' : 'en') }}</td>
-                            <td class="p-4 text-gray-500" dir="ltr">{{ $invoice->invoice_date->format('Y-m-d') }}</td>
+                            <td class="p-4 text-gray-500" dir="ltr">
+                                {{ $invoice->invoice_date->format('Y-m-d') }}
+                                @if($invoice->is_overdue)
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 rounded-full px-2 py-0.5 mt-0.5"><i class="fas fa-exclamation-triangle"></i> {{ $isAr ? 'متأخر' : 'Overdue' }}</span>
+                                @endif
+                            </td>
                             <td class="p-4 font-bold text-gray-900" dir="ltr">{{ number_format($invoice->grand_total, 2) }} <span class="text-xs text-gray-400">{{ $invoice->currency }}</span></td>
                             <td class="p-4 text-left"><i class="fas fa-chevron-{{ $isAr ? 'left' : 'right' }} text-gray-300"></i></td>
                         </tr>

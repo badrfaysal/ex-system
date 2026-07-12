@@ -98,6 +98,7 @@ class SalesInvoiceController extends Controller
         $data = $request->validate([
             'sales_order_id'           => 'required|exists:sales_orders,id',
             'invoice_date'             => 'required|date',
+            'due_date'                 => 'nullable|date|after_or_equal:invoice_date',
             'currency'                 => 'required|string',
             'notes'                    => 'nullable|string',
             'selected_items'           => 'nullable|array',
@@ -135,6 +136,7 @@ class SalesInvoiceController extends Controller
                 'client_id'      => $salesOrder->client_id,
                 'quotation_id'   => $salesOrder->quotation_id,
                 'invoice_date'   => $data['invoice_date'],
+                'due_date'       => $data['due_date'] ?? null,
                 'currency'       => $data['currency'],
                 'notes'          => $data['notes'] ?? null,
                 'created_by'     => Auth::id(),
