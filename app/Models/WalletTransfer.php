@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Reversible;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class WalletTransfer extends Model
 {
-    use HasFactory;
+    use HasFactory, Reversible;
 
     protected $fillable = [
         'transfer_number', 'from_wallet_id', 'to_wallet_id',
@@ -16,6 +17,7 @@ class WalletTransfer extends Model
 
     protected $casts = [
         'transfer_date' => 'date',
+        'reversed_at'   => 'datetime',
     ];
 
     public function fromWallet()

@@ -171,6 +171,7 @@ Route::middleware('auth')->group(function () {
     // سجل العمليات
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     Route::get('financial-logs', [\App\Http\Controllers\FinancialLogController::class, 'index'])->name('financial-logs.index');
+    Route::post('financial-logs/{sourceType}/{id}/reverse', [\App\Http\Controllers\FinancialLogController::class, 'reverse'])->name('financial-logs.reverse');
 
     // تبديل اللغة
     Route::get('/lang/{locale}', function (string $locale) {

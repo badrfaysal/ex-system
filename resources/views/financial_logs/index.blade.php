@@ -97,12 +97,16 @@
                         <th class="p-4">{{ $isAr ? 'التفاصيل / الجهة' : 'Details' }}</th>
                         <th class="p-4 whitespace-nowrap">{{ $isAr ? 'المبلغ' : 'Amount' }}</th>
                         <th class="p-4 whitespace-nowrap">{{ $isAr ? 'المستخدم' : 'User' }}</th>
+                        <th class="p-4 whitespace-nowrap text-center">{{ $isAr ? 'إجراء' : 'Action' }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($logs as $log)
-                        @php $t = $typeLabels[$log->type] ?? $typeLabels['revenue']; @endphp
-                        <tr class="hover:bg-[#005B9F]/5 transition-colors cursor-pointer"
+                        @php
+                            $t = $typeLabels[$log->type] ?? $typeLabels['revenue'];
+                            $isReversed = !is_null($log->reversed_at);
+                        @endphp
+                        <tr class="hover:bg-[#005B9F]/5 transition-colors cursor-pointer {{ $isReversed ? 'opacity-60' : '' }}"
                             data-ref="{{ $log->ref }}"
                             data-date="{{ \Carbon\Carbon::parse($log->transaction_date)->format('Y-m-d') }}"
                             data-time="{{ \Carbon\Carbon::parse($log->created_at)->format('h:i A') }}"
@@ -114,6 +118,8 @@
                             data-amount="{{ number_format($log->amount, 2) }}"
                             data-amountdir="{{ $log->amount >= 0 ? 1 : -1 }}"
                             data-user="{{ $log->user_name }}"
+                            data-reversed="{{ $isReversed ? '1' : '0' }}"
+                            data-reversereason="{{ $log->reversal_reason ?? '' }}"
                             onclick="showDetailsModal(this)">
                             <td class="p-4 text-gray-500" dir="ltr">
                                 <div class="font-bold text-gray-800">{{ \Carbon\Carbon::parse($log->transaction_date)->format('Y-m-d') }}</div>
@@ -124,18 +130,33 @@
                                     <i class="fas {{ $t['icon'] }}"></i>
                                     {{ $isAr ? $t['ar'] : $t['en'] }}
                                 </div>
+                                @if($isReversed)
+                                    <div class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-200 text-gray-600">
+                                        <i class="fas fa-rotate-left"></i> {{ $isAr ? 'معكوسة' : 'Reversed' }}
+                                    </div>
+                                @endif
                             </td>
-                            <td class="p-4 font-mono text-xs text-gray-500">{{ $log->ref }}</td>
+                            <td class="p-4 font-mono text-xs text-gray-500 {{ $isReversed ? 'line-through' : '' }}">{{ $log->ref }}</td>
                             <td class="p-4 font-bold text-gray-800">{{ $log->wallet_name }}</td>
                             <td class="p-4 text-gray-600 max-w-xs truncate" title="{{ $log->detail ?? '—' }}">{{ $log->detail ?? '—' }}</td>
-                            <td class="p-4 font-extrabold {{ $log->amount >= 0 ? 'text-[#008A3B]' : 'text-red-600' }}" dir="ltr">
+                            <td class="p-4 font-extrabold {{ $isReversed ? 'line-through text-gray-400' : ($log->amount >= 0 ? 'text-[#008A3B]' : 'text-red-600') }}" dir="ltr">
                                 {{ $log->amount >= 0 ? '+' : '' }}{{ number_format($log->amount, 2) }}
                             </td>
                             <td class="p-4 text-gray-500 text-xs">{{ $log->user_name }}</td>
+                            <td class="p-4 text-center">
+                                @if($isReversed)
+                                    <span class="text-[11px] text-gray-400">—</span>
+                                @else
+                                    <button type="button" onclick="event.stopPropagation(); openReverseModal('{{ $log->source_type }}', {{ $log->id }}, {{ Js::from($log->ref) }})"
+                                        class="text-[11px] px-2.5 py-1 rounded-md border border-amber-300 text-amber-700 hover:bg-amber-50 font-bold transition-colors whitespace-nowrap">
+                                        <i class="fas fa-rotate-left"></i> {{ $isAr ? 'عكس' : 'Reverse' }}
+                                    </button>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="p-12 text-center text-gray-400">
+                            <td colspan="8" class="p-12 text-center text-gray-400">
                                 <i class="fas fa-folder-open text-4xl mb-3 text-gray-300"></i>
                                 <p class="font-bold">{{ $isAr ? 'لا توجد حركات مالية' : 'No financial logs found' }}</p>
                             </td>
@@ -194,8 +215,12 @@
                     <p class="text-xs text-gray-400 font-bold mb-1"><i class="fas fa-align-right ml-1"></i> {{ $isAr ? 'التفاصيل / الجهة' : 'Details' }}</p>
                     <p id="m-details" class="text-sm font-bold text-gray-800"></p>
                 </div>
+                <div id="m-reversed-box" class="hidden col-span-2 bg-gray-100 p-4 rounded-xl border border-gray-200">
+                    <p class="text-xs text-gray-500 font-bold mb-1"><i class="fas fa-rotate-left ml-1"></i> {{ $isAr ? 'سبب العكس' : 'Reversal Reason' }}</p>
+                    <p id="m-reverse-reason" class="text-sm font-bold text-gray-700"></p>
+                </div>
             </div>
-            
+
             <div class="mt-8">
                 <button onclick="document.getElementById('detailsModal').classList.add('hidden')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition-colors">
                     {{ $isAr ? 'إغلاق' : 'Close' }}
@@ -205,7 +230,55 @@
     </div>
 </div>
 
+<!-- Modal عكس العملية -->
+<div id="reverseModal" class="hidden fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-amber-50">
+            <h3 class="font-bold text-amber-800 text-lg flex items-center gap-2">
+                <i class="fas fa-rotate-left"></i> {{ $isAr ? 'عكس العملية' : 'Reverse Operation' }}
+            </h3>
+            <button type="button" onclick="closeReverseModal()" class="text-gray-400 hover:text-red-500 transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <form id="reverseForm" method="POST">
+            @csrf
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-gray-600">
+                    {{ $isAr ? 'هتُعكس العملية' : 'You are about to reverse operation' }}
+                    <span id="reverseRefLabel" class="font-mono font-bold text-gray-900"></span>
+                    {{ $isAr ? '— هيتلغى أثرها بالكامل من رصيد المحفظة، وهتفضل ظاهرة في السجل معلّم عليها إنها معكوسة.' : '— its effect will be fully removed from the wallet balance, and it will remain visible in the log marked as reversed.' }}
+                </p>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5">{{ $isAr ? 'سبب العكس' : 'Reversal Reason' }} <span class="text-red-500">*</span></label>
+                    <textarea name="reversal_reason" required rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-amber-500" placeholder="{{ $isAr ? 'مثال: خطأ في المبلغ / المحفظة' : 'e.g. wrong amount / wallet' }}"></textarea>
+                </div>
+            </div>
+            <div class="px-6 pb-6 flex gap-2">
+                <button type="submit" class="flex-1 bg-amber-600 text-white font-bold py-2.5 rounded-lg hover:bg-amber-700 transition-colors">
+                    {{ $isAr ? 'تأكيد العكس' : 'Confirm Reversal' }}
+                </button>
+                <button type="button" onclick="closeReverseModal()" class="px-6 bg-gray-100 text-gray-700 font-bold py-2.5 rounded-lg hover:bg-gray-200 transition-colors">
+                    {{ $isAr ? 'إلغاء' : 'Cancel' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+    const REVERSE_URL_BASE = @json(url('financial-logs'));
+
+    function openReverseModal(sourceType, id, ref) {
+        document.getElementById('reverseForm').action = `${REVERSE_URL_BASE}/${sourceType}/${id}/reverse`;
+        document.getElementById('reverseRefLabel').textContent = ref;
+        document.getElementById('reverseModal').classList.remove('hidden');
+    }
+
+    function closeReverseModal() {
+        document.getElementById('reverseModal').classList.add('hidden');
+    }
+
     function showDetailsModal(row) {
         document.getElementById('m-ref').textContent = row.dataset.ref;
         document.getElementById('m-date').textContent = row.dataset.date;
@@ -213,7 +286,15 @@
         document.getElementById('m-wallet').textContent = row.dataset.wallet;
         document.getElementById('m-details').textContent = row.dataset.details;
         document.getElementById('m-user').textContent = row.dataset.user;
-        
+
+        const reversedBox = document.getElementById('m-reversed-box');
+        if (row.dataset.reversed === '1') {
+            reversedBox.classList.remove('hidden');
+            document.getElementById('m-reverse-reason').textContent = row.dataset.reversereason || '—';
+        } else {
+            reversedBox.classList.add('hidden');
+        }
+
         let typeEl = document.getElementById('m-type');
         typeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-bold ' + row.dataset.typecolor;
         typeEl.innerHTML = '<i class="fas ' + row.dataset.typeicon + '"></i> ' + row.dataset.typename;

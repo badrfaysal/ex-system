@@ -2,9 +2,10 @@
 @php
     $isAr = app()->getLocale() === 'ar';
     $actionLabels = [
-        'created' => ['ar' => 'أنشأ', 'en' => 'Created', 'color' => 'bg-green-50 text-green-700'],
-        'updated' => ['ar' => 'عدّل', 'en' => 'Updated', 'color' => 'bg-blue-50 text-[#005B9F]'],
-        'deleted' => ['ar' => 'حذف', 'en' => 'Deleted', 'color' => 'bg-red-50 text-red-600'],
+        'created'  => ['ar' => 'أنشأ', 'en' => 'Created', 'color' => 'bg-green-50 text-green-700'],
+        'updated'  => ['ar' => 'عدّل', 'en' => 'Updated', 'color' => 'bg-blue-50 text-[#005B9F]'],
+        'deleted'  => ['ar' => 'حذف', 'en' => 'Deleted', 'color' => 'bg-red-50 text-red-600'],
+        'reversed' => ['ar' => 'عكس عملية', 'en' => 'Reversed', 'color' => 'bg-amber-50 text-amber-700'],
     ];
     $subjectLabels = [
         'Quotation' => ['ar' => 'عرض سعر', 'en' => 'Quotation'],
@@ -15,6 +16,7 @@
         'VendorPayment' => ['ar' => 'سند دفع', 'en' => 'Vendor Payment'],
         'ClientReceipt' => ['ar' => 'سند قبض', 'en' => 'Client Receipt'],
         'WalletTransfer' => ['ar' => 'تحويل محفظة', 'en' => 'Wallet Transfer'],
+        'Revenue' => ['ar' => 'إيراد مباشر', 'en' => 'Revenue'],
         'Client' => ['ar' => 'عميل', 'en' => 'Client'],
         'Vendor' => ['ar' => 'مورد', 'en' => 'Vendor'],
         'Item' => ['ar' => 'صنف', 'en' => 'Item'],
@@ -102,6 +104,7 @@
                                 case 'Expense': $url = route('expenses.index'); break;
                                 case 'ClientReceipt': $url = route('client-receipts.index'); break;
                                 case 'WalletTransfer': $url = route('wallets.index'); break;
+                                case 'Revenue': $url = route('wallets.index'); break;
                             }
                         @endphp
                         <tr class="hover:bg-[#005B9F]/5 transition-colors cursor-pointer"

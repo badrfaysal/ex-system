@@ -44,16 +44,19 @@ class Wallet extends Model
     /**
      * تحميل مجاميع الحركات مع الاستعلام لتفادي N+1 عند عرض قائمة المحافظ.
      * كل withSum بيولّد attribute بصيغة {relation}_sum_amount.
+     * الحركات المعكوسة (reversed_at) مستبعدة من المجموع — أثرها اتلغى بالكامل.
      */
     public function scopeWithBalanceSums($query)
     {
+        $notReversed = fn ($q) => $q->whereNull('reversed_at');
+
         return $query
-            ->withSum('receipts', 'amount')
-            ->withSum('revenues', 'amount')
-            ->withSum('expenses', 'amount')
-            ->withSum('vendorPayments', 'amount')
-            ->withSum('transfersOut', 'amount')
-            ->withSum('transfersIn', 'amount');
+            ->withSum(['receipts' => $notReversed], 'amount')
+            ->withSum(['revenues' => $notReversed], 'amount')
+            ->withSum(['expenses' => $notReversed], 'amount')
+            ->withSum(['vendorPayments' => $notReversed], 'amount')
+            ->withSum(['transfersOut' => $notReversed], 'amount')
+            ->withSum(['transfersIn' => $notReversed], 'amount');
     }
 
     /**
@@ -61,13 +64,14 @@ class Wallet extends Model
      *   - المصروفات - سندات دفع الموردين - تحويلات صادرة + تحويلات واردة
      *
      * العملة موحّدة على مستوى المحفظة (يُفرض عند تسجيل أي حركة)، فالجمع سليم.
+     * الحركات المعكوسة مستبعدة من الحساب في الحالتين (محمّلة مسبقًا أو مستعلَمة مباشرة).
      * يستخدم المجاميع المحمّلة مسبقًا (scopeWithBalanceSums) إن وُجدت، وإلا يستعلم.
      */
     public function getCurrentBalanceAttribute(): float
     {
         $sum = fn (string $key, string $relation): float => array_key_exists($key, $this->attributes)
             ? (float) $this->attributes[$key]
-            : (float) $this->$relation()->sum('amount');
+            : (float) $this->$relation()->whereNull('reversed_at')->sum('amount');
 
         return (float) $this->opening_balance
             + $sum('receipts_sum_amount', 'receipts')
