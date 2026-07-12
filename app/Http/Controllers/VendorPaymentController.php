@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Models\Vendor;
 use App\Models\VendorPayment;
 use App\Models\Wallet;
+use App\Rules\MatchesWalletCurrency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -52,7 +53,7 @@ class VendorPaymentController extends Controller
             'purchase_invoice_id' => 'nullable|exists:purchase_invoices,id',
             'wallet_id'           => 'required|exists:wallets,id',
             'amount'              => 'required|numeric|min:0.01',
-            'currency'            => 'required|string',
+            'currency'            => ['required', 'string', new MatchesWalletCurrency],
             'payment_date'        => 'required|date',
             'payment_method'      => 'nullable|string',
             'notes'               => 'nullable|string',
@@ -90,7 +91,7 @@ class VendorPaymentController extends Controller
             'purchase_invoice_id' => 'nullable|exists:purchase_invoices,id',
             'wallet_id'           => 'required|exists:wallets,id',
             'amount'              => 'required|numeric|min:0.01',
-            'currency'            => 'required|string',
+            'currency'            => ['required', 'string', new MatchesWalletCurrency],
             'payment_date'        => 'required|date',
             'payment_method'      => 'nullable|string',
             'notes'               => 'nullable|string',

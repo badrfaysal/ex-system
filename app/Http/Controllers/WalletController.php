@@ -11,7 +11,7 @@ class WalletController extends Controller
 {
     public function index()
     {
-        $wallets = Wallet::orderBy('name')->get();
+        $wallets = Wallet::withBalanceSums()->orderBy('name')->get();
 
         $lastExp = \App\Models\Expense::latest('id')->first();
         $seqExp  = $lastExp ? $lastExp->id + 1 : 1;

@@ -57,7 +57,7 @@ Route::middleware('auth')->group(function () {
         $quotationsByStatus = Quotation::selectRaw('status, count(*) as total')
             ->groupBy('status')->pluck('total', 'status');
 
-        $wallets = \App\Models\Wallet::orderBy('name')->get();
+        $wallets = \App\Models\Wallet::withBalanceSums()->orderBy('name')->get();
 
         return view('dashboard', compact(
             'clientsCount', 'vendorsCount', 'itemsCount', 'activeItems',

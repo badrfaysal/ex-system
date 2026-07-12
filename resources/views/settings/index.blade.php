@@ -468,19 +468,29 @@
                     <p class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
                         <i class="fas fa-plus-circle text-[#008A3B]"></i> إضافة محفظة جديدة
                     </p>
-                    <form action="{{ route('wallets.store') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-3 gap-4" onsubmit="sessionStorage.setItem('activeSettingTab', 'wallets');">
+                    <form action="{{ route('wallets.store') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" onsubmit="sessionStorage.setItem('activeSettingTab', 'wallets');">
                         @csrf
                         <input type="hidden" name="type" value="bank"> {{-- افتراضي لأنها مش هامة --}}
-                        <input type="hidden" name="currency" value="EGP"> {{-- عملة افتراضية --}}
-                        
+
                         <div>
                             <label class="block text-xs font-bold text-gray-700 mb-1">اسم المحفظة / الخزينة <span class="text-red-500">*</span></label>
-                            <input type="text" name="name" required placeholder="مثال: خزينة الشركة الرئيسية"
+                            <input type="text" name="name" value="{{ old('name') }}" required placeholder="مثال: خزينة الشركة الرئيسية"
                                 class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
                         </div>
                         <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">العملة <span class="text-red-500">*</span></label>
+                            <select name="currency" required
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
+                                @forelse($settings->get('currency') ?? [] as $c)
+                                    <option value="{{ $c->key_value }}" {{ old('currency', 'EGP') == $c->key_value ? 'selected' : '' }}>{{ $c->key_value }} — {{ $c->display_name }}</option>
+                                @empty
+                                    <option value="EGP" selected>EGP</option>
+                                @endforelse
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-xs font-bold text-gray-700 mb-1">رصيد أول المدة <span class="text-red-500">*</span></label>
-                            <input type="number" step="0.01" name="opening_balance" required placeholder="0.00" dir="ltr"
+                            <input type="number" step="0.01" name="opening_balance" value="{{ old('opening_balance') }}" required placeholder="0.00" dir="ltr"
                                 class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
                         </div>
                         <div class="flex items-end">
@@ -488,6 +498,11 @@
                                 <i class="fas fa-save"></i> إضافة المحفظة
                             </button>
                         </div>
+
+                        <p class="sm:col-span-2 lg:col-span-4 text-[11px] text-amber-600 flex items-start gap-1.5 -mt-1">
+                            <i class="fas fa-circle-info mt-0.5"></i>
+                            <span>المحفظة تعمل بعملة واحدة فقط. لن تُقبل أي حركة (قبض / دفع / مصروف / إيراد / تحويل) على هذه المحفظة إلا بنفس العملة المختارة هنا.</span>
+                        </p>
                     </form>
                 </div>
 
@@ -500,6 +515,7 @@
                         <thead class="bg-gray-100 text-gray-700">
                             <tr>
                                 <th class="p-3 font-bold border-b border-gray-200">الاسم</th>
+                                <th class="p-3 font-bold border-b border-gray-200 w-24 text-center">العملة</th>
                                 <th class="p-3 font-bold border-b border-gray-200">رصيد أول المدة</th>
                                 <th class="p-3 font-bold border-b border-gray-200">الرصيد الحالي</th>
                                 <th class="p-3 font-bold border-b border-gray-200 w-20 text-center">إجراء</th>
@@ -509,6 +525,7 @@
                             @forelse($wallets as $wallet)
                                 <tr class="hover:bg-gray-50 transition-colors">
                                     <td class="p-3 font-bold text-gray-900">{{ $wallet->name }}</td>
+                                    <td class="p-3 text-center"><span class="inline-block px-2 py-0.5 rounded bg-gray-100 text-gray-700 text-xs font-mono font-bold">{{ $wallet->currency }}</span></td>
                                     <td class="p-3 font-mono text-gray-600" dir="ltr">{{ number_format($wallet->opening_balance, 2) }}</td>
                                     <td class="p-3 font-black text-[#005B9F]" dir="ltr">{{ number_format($wallet->current_balance, 2) }}</td>
                                     <td class="p-3 text-center">
@@ -522,7 +539,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="p-10 text-center text-gray-500 bg-gray-50/50">
+                                    <td colspan="5" class="p-10 text-center text-gray-500 bg-gray-50/50">
                                         <i class="fas fa-wallet text-3xl text-gray-300 mb-3 block"></i>
                                         لا توجد محافظ مسجلة بعد.
                                     </td>

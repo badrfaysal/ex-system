@@ -35,7 +35,7 @@
                         <select name="from_wallet_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-amber-500">
                             <option value="" disabled {{ old('from_wallet_id', $selectedFromId) ? '' : 'selected' }}>{{ $isAr ? '— اختر —' : '— Choose —' }}</option>
                             @foreach($wallets as $w)
-                                <option value="{{ $w->id }}" {{ old('from_wallet_id', $selectedFromId) == $w->id ? 'selected' : '' }}>{{ $w->name }} ({{ number_format($w->current_balance, 2) }})</option>
+                                <option value="{{ $w->id }}" data-currency="{{ $w->currency }}" {{ old('from_wallet_id', $selectedFromId) == $w->id ? 'selected' : '' }}>{{ $w->name }} ({{ number_format($w->current_balance, 2) }} {{ $w->currency }})</option>
                             @endforeach
                         </select>
                         @error('from_wallet_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror

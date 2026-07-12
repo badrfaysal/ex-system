@@ -646,6 +646,52 @@
         window.addEventListener('pageshow', function () {
             if (pageLoader) pageLoader.classList.remove('active');
         });
+
+        // ===== ضبط العملة تلقائيًا حسب المحفظة المختارة =====
+        // المحفظة تعمل بعملة واحدة، فأي فورم فيه اختيار محفظة تتقفل عملته على عملتها.
+        (function () {
+            var isAr = document.documentElement.getAttribute('dir') === 'rtl'
+                || document.documentElement.getAttribute('lang') === 'ar';
+
+            function setCurrencyField(field, cur) {
+                if (!field) return;
+                if (field.tomselect) {
+                    field.tomselect.setValue(cur, true); // true = صامت (من غير trigger)
+                } else {
+                    field.value = cur;
+                }
+            }
+
+            function ensureNote(field, cur) {
+                var container = field.closest('div') || field.parentElement;
+                if (!container) return;
+                var note = container.querySelector('.wallet-cur-note');
+                if (!note) {
+                    note = document.createElement('p');
+                    note.className = 'wallet-cur-note text-[11px] text-amber-600 mt-1';
+                    container.appendChild(note);
+                }
+                note.textContent = (isAr ? 'العملة مضبوطة تلقائيًا على عملة المحفظة: ' : 'Currency locked to the wallet currency: ') + cur;
+            }
+
+            document.querySelectorAll('select[name="wallet_id"], select[name="from_wallet_id"]').forEach(function (walletSel) {
+                var form = walletSel.closest('form');
+                if (!form) return;
+                var curField = form.querySelector('[name="currency"]');
+                if (!curField) return;
+
+                function sync() {
+                    var opt = walletSel.options[walletSel.selectedIndex];
+                    var cur = opt ? opt.getAttribute('data-currency') : null;
+                    if (!cur) return;
+                    setCurrencyField(curField, cur);
+                    ensureNote(curField, cur);
+                }
+
+                walletSel.addEventListener('change', sync);
+                if (walletSel.value) sync(); // ضبط مبدئي لو فيه محفظة مختارة مسبقًا
+            });
+        })();
     </script>
 
 </body>

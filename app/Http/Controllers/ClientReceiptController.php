@@ -6,6 +6,7 @@ use App\Models\ClientReceipt;
 use App\Models\SalesInvoice;
 use App\Models\Setting;
 use App\Models\Wallet;
+use App\Rules\MatchesWalletCurrency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -53,7 +54,7 @@ class ClientReceiptController extends Controller
             'receipt_number'   => 'required|string|unique:client_receipts,receipt_number',
             'wallet_id'        => 'required|exists:wallets,id',
             'amount'           => 'required|numeric|min:0.01',
-            'currency'         => 'required|string',
+            'currency'         => ['required', 'string', new MatchesWalletCurrency],
             'receipt_date'     => 'required|date',
             'payment_method'   => 'nullable|string',
             'notes'            => 'nullable|string',

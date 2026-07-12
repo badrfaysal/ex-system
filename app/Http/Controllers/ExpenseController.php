@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\Quotation;
 use App\Models\Setting;
 use App\Models\Wallet;
+use App\Rules\MatchesWalletCurrency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -108,7 +109,7 @@ class ExpenseController extends Controller
             'description'    => 'nullable|string',
             'wallet_id'      => 'required|exists:wallets,id',
             'amount'         => 'required|numeric|min:0.01',
-            'currency'       => 'required|string',
+            'currency'       => ['required', 'string', new MatchesWalletCurrency],
             'expense_date'   => 'required|date',
             'notes'          => 'nullable|string',
         ]);

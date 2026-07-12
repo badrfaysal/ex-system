@@ -33,6 +33,12 @@
                     <option value="{{ $c->key_value }}" {{ old('currency', $w?->currency ?? 'EGP') == $c->key_value ? 'selected' : '' }}>{{ $c->key_value }} — {{ $c->display_name }}</option>
                 @endforeach
             </select>
+            <p class="text-[11px] text-amber-600 mt-1.5 flex items-start gap-1.5">
+                <i class="fas fa-circle-info mt-0.5"></i>
+                <span>{{ $isAr
+                    ? 'المحفظة تعمل بعملة واحدة فقط. لن تُقبل أي حركة (قبض / دفع / مصروف / إيراد / تحويل) على هذه المحفظة إلا بهذه العملة.'
+                    : 'This wallet operates in a single currency. No transaction (receipt / payment / expense / revenue / transfer) will be accepted on this wallet in any other currency.' }}</span>
+            </p>
         </div>
 
         <div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Revenue;
+use App\Models\Wallet;
 
 class RevenueController extends Controller
 {
@@ -18,6 +19,8 @@ class RevenueController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        // العملة ترث من المحفظة — المحفظة تعمل بعملة واحدة فقط
+        $validated['currency'] = Wallet::findOrFail($validated['wallet_id'])->currency;
         $validated['revenue_number'] = 'REV-' . date('Ym') . '-' . str_pad(Revenue::count() + 1, 4, '0', STR_PAD_LEFT);
         $validated['created_by'] = auth()->id();
 
