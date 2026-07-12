@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Client;
 use App\Models\SalesInvoice;
 use App\Models\SalesOrder;
 use App\Services\SequenceGenerator;
@@ -35,9 +36,26 @@ class SalesInvoiceController extends Controller
     public function create(Request $request)
     {
         if (!$request->filled('sales_order_id')) {
-            $salesOrders = SalesOrder::with('client')->latest()->paginate(20);
+            $query = SalesOrder::with('client');
 
-            return view('sales_invoices.select_order', compact('salesOrders'));
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where('so_number', 'like', "%{$search}%");
+            }
+            if ($request->filled('client_id')) {
+                $query->where('client_id', $request->client_id);
+            }
+            if ($request->filled('date_from')) {
+                $query->whereDate('so_date', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('so_date', '<=', $request->date_to);
+            }
+
+            $salesOrders = $query->orderByDesc('so_date')->orderByDesc('id')->paginate(20)->withQueryString();
+            $clients = Client::orderBy('company_name')->get(['id', 'company_name', 'company_name_en']);
+
+            return view('sales_invoices.select_order', compact('salesOrders', 'clients'));
         }
 
         $salesOrder = SalesOrder::with(['client', 'quotation', 'items.item', 'items.salesInvoiceItems'])

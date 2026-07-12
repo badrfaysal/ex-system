@@ -3,7 +3,7 @@
 @section('header_title', $isAr ? 'اختر أمر البيع' : 'Choose Sales Order')
 
 @section('content')
-<div class="max-w-3xl mx-auto animate-fade-in">
+<div class="max-w-4xl mx-auto animate-fade-in">
     <div class="mb-6 flex items-center gap-3">
         <div class="w-12 h-12 rounded-xl bg-[#005B9F]/10 flex items-center justify-center text-[#005B9F]">
             <i class="fas fa-file-contract text-2xl"></i>
@@ -12,6 +12,41 @@
             <h2 class="text-2xl font-bold text-gray-900">{{ $isAr ? 'إنشاء فاتورة شراء — اختر أمر البيع' : 'Create Purchase Invoice — Choose Sales Order' }}</h2>
             <p class="text-sm text-gray-500 mt-0.5">{{ $isAr ? 'فاتورة واحدة لكل مورد — اختر أمر البيع أولاً' : 'One invoice per vendor — choose the sales order first' }}</p>
         </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
+        <form action="{{ route('purchase-invoices.create') }}" method="GET" class="flex flex-wrap items-end gap-4">
+            <div class="flex-1 min-w-[160px]">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'رقم أمر البيع' : 'SO Number' }}</label>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ $isAr ? 'بحث برقم أمر البيع' : 'Search SO number' }}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#005B9F] bg-gray-50">
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'العميل' : 'Client' }}</label>
+                <select name="client_id" data-search class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-[#005B9F]">
+                    <option value="">{{ $isAr ? '— كل العملاء —' : '— All clients —' }}</option>
+                    @foreach($clients as $c)
+                        <option value="{{ $c->id }}" {{ request('client_id') == $c->id ? 'selected' : '' }}>{{ $c->displayName($isAr ? 'ar' : 'en') }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="min-w-[150px]">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'من تاريخ' : 'Date From' }}</label>
+                <input type="date" name="date_from" value="{{ request('date_from') }}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#005B9F] bg-gray-50">
+            </div>
+            <div class="min-w-[150px]">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'إلى تاريخ' : 'Date To' }}</label>
+                <input type="date" name="date_to" value="{{ request('date_to') }}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#005B9F] bg-gray-50">
+            </div>
+            <button type="submit" class="px-6 py-2 bg-[#005B9F] text-white rounded-lg text-sm font-bold hover:bg-blue-800 transition-colors flex items-center gap-2">
+                <i class="fas fa-filter"></i> {{ $isAr ? 'تطبيق' : 'Apply' }}
+            </button>
+            @if(request()->hasAny(['search', 'client_id', 'date_from', 'date_to']))
+            <a href="{{ route('purchase-invoices.create') }}" class="px-4 py-2 text-gray-500 text-sm hover:text-gray-700">{{ $isAr ? 'مسح الفلاتر' : 'Clear filters' }}</a>
+            @endif
+        </form>
     </div>
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Client;
 use App\Models\Item;
 use App\Models\PurchaseInvoice;
 use App\Models\SalesOrder;
@@ -21,6 +22,7 @@ class PurchaseInvoiceController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('invoice_number', 'like', "%{$search}%")
+                  ->orWhere('vendor_invoice_number', 'like', "%{$search}%")
                   ->orWhereHas('vendor', fn ($v) => $v->where('name_ar', 'like', "%{$search}%"));
             });
         }
@@ -36,9 +38,26 @@ class PurchaseInvoiceController extends Controller
     public function create(Request $request)
     {
         if (!$request->filled('sales_order_id')) {
-            $salesOrders = SalesOrder::with('client')->latest()->paginate(20);
+            $query = SalesOrder::with('client');
 
-            return view('purchase_invoices.select_order', compact('salesOrders'));
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where('so_number', 'like', "%{$search}%");
+            }
+            if ($request->filled('client_id')) {
+                $query->where('client_id', $request->client_id);
+            }
+            if ($request->filled('date_from')) {
+                $query->whereDate('so_date', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('so_date', '<=', $request->date_to);
+            }
+
+            $salesOrders = $query->orderByDesc('so_date')->orderByDesc('id')->paginate(20)->withQueryString();
+            $clients = Client::orderBy('company_name')->get(['id', 'company_name', 'company_name_en']);
+
+            return view('purchase_invoices.select_order', compact('salesOrders', 'clients'));
         }
 
         $request->validate(['sales_order_id' => 'required|exists:sales_orders,id']);
@@ -67,6 +86,7 @@ class PurchaseInvoiceController extends Controller
             'vendor_id'                => 'required|exists:vendors,id',
             'invoice_date'             => 'required|date',
             'currency'                 => 'required|string',
+            'vendor_invoice_number'    => 'nullable|string|max:255',
             'notes'                    => 'nullable|string',
             'lines'                    => 'required|array|min:1',
             'lines.*.item_id'          => 'nullable|exists:items,id',
@@ -82,13 +102,14 @@ class PurchaseInvoiceController extends Controller
 
         $invoice = DB::transaction(function () use ($data, $salesOrder) {
             $invoice = PurchaseInvoice::create([
-                'invoice_number' => SequenceGenerator::next('PI'),
-                'quotation_id'   => $salesOrder->quotation_id,
-                'sales_order_id' => $salesOrder->id,
-                'vendor_id'      => $data['vendor_id'],
-                'invoice_date'   => $data['invoice_date'],
-                'currency'       => $data['currency'],
-                'notes'          => $data['notes'] ?? null,
+                'invoice_number'         => SequenceGenerator::next('PI'),
+                'quotation_id'           => $salesOrder->quotation_id,
+                'sales_order_id'         => $salesOrder->id,
+                'vendor_id'              => $data['vendor_id'],
+                'invoice_date'           => $data['invoice_date'],
+                'currency'               => $data['currency'],
+                'vendor_invoice_number'  => $data['vendor_invoice_number'] ?? null,
+                'notes'                  => $data['notes'] ?? null,
                 'created_by'     => Auth::id(),
                 'subtotal'       => 0,
                 'total_discount' => 0,

@@ -15,7 +15,7 @@
         'Expense' => ['ar' => 'مصروف', 'en' => 'Expense'],
         'VendorPayment' => ['ar' => 'سند دفع', 'en' => 'Vendor Payment'],
         'ClientReceipt' => ['ar' => 'سند قبض', 'en' => 'Client Receipt'],
-        'WalletTransfer' => ['ar' => 'تحويل محفظة', 'en' => 'Wallet Transfer'],
+        'WalletTransfer' => ['ar' => 'تحويل حساب', 'en' => 'Account Transfer'],
         'Revenue' => ['ar' => 'إيراد مباشر', 'en' => 'Revenue'],
         'Client' => ['ar' => 'عميل', 'en' => 'Client'],
         'Vendor' => ['ar' => 'مورد', 'en' => 'Vendor'],

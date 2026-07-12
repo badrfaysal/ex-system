@@ -143,6 +143,36 @@
         </div>
     </div>
 
+    {{-- ===== أكتر العملاء والموردين برصيد مستحق حالي ===== --}}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100"><p class="font-bold text-gray-800 text-sm flex items-center gap-2"><i class="fas fa-hand-holding-usd text-[#005B9F] text-xs"></i> {{ $isAr ? 'أكتر عملاء ليهم مستحق حالي (يدينوا لنا)' : 'Top Clients by Outstanding Balance (Owe Us)' }}</p></div>
+            <div class="p-4">
+                @forelse($topReceivables as $c)
+                    <a href="{{ route('receivables.show', $c->id) }}" class="flex justify-between items-center text-sm py-2 px-2 rounded-lg hover:bg-blue-50/50 transition-colors border-b border-gray-50 last:border-0">
+                        <span class="text-gray-700 font-semibold truncate">{{ $isAr ? $c->company_name : ($c->company_name_en ?: $c->company_name) }}</span>
+                        <span class="font-mono text-[#005B9F] font-bold" dir="ltr">{{ $fmt($c->balance_due) }}</span>
+                    </a>
+                @empty
+                    <p class="text-[11px] text-gray-400 py-2 text-center">{{ $isAr ? 'لا توجد مستحقات حالية' : 'No outstanding balances' }}</p>
+                @endforelse
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100"><p class="font-bold text-gray-800 text-sm flex items-center gap-2"><i class="fas fa-file-invoice-dollar text-red-500 text-xs"></i> {{ $isAr ? 'أكتر موردين ليهم عندنا فلوس (التزامات علينا)' : 'Top Vendors by Outstanding Balance (We Owe Them)' }}</p></div>
+            <div class="p-4">
+                @forelse($topPayables as $v)
+                    <a href="{{ route('payables.show', $v->id) }}" class="flex justify-between items-center text-sm py-2 px-2 rounded-lg hover:bg-red-50/50 transition-colors border-b border-gray-50 last:border-0">
+                        <span class="text-gray-700 font-semibold truncate">{{ $isAr ? $v->name_ar : ($v->name_en ?: $v->name_ar) }}</span>
+                        <span class="font-mono text-red-600 font-bold" dir="ltr">{{ $fmt($v->balance_due) }}</span>
+                    </a>
+                @empty
+                    <p class="text-[11px] text-gray-400 py-2 text-center">{{ $isAr ? 'لا توجد التزامات حالية' : 'No outstanding balances' }}</p>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
     {{-- ===== توزيعات: الأصناف/الموردين/العملاء ===== --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
@@ -189,7 +219,7 @@
         </div>
     </div>
 
-    {{-- ===== المصروفات حسب البند + أرصدة المحافظ ===== --}}
+    {{-- ===== المصروفات حسب البند + أرصدة الحسابات البنكية والصناديق المالية ===== --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <p class="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><i class="fas fa-receipt text-red-400 text-xs"></i> {{ $isAr ? 'المصروفات حسب البند (الفترة)' : 'Expenses by Category (Period)' }}</p>
@@ -206,17 +236,35 @@
             </div>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <p class="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><i class="fas fa-wallet text-purple-400 text-xs"></i> {{ $isAr ? 'أرصدة المحافظ (اللحظية)' : 'Wallet Balances (Live)' }}</p>
-            <div class="space-y-2">
-                @forelse($walletBalances as $w)
-                    <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50">
-                        <span class="text-xs font-semibold text-gray-700">{{ $w->name }}</span>
-                        <span class="text-sm font-black {{ $w->current_balance >= 0 ? 'text-[#008A3B]' : 'text-red-600' }}" dir="ltr">{{ $fmt($w->current_balance) }} <span class="text-[10px] text-gray-400 font-normal">{{ $w->currency }}</span></span>
+            <p class="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><i class="fas fa-wallet text-purple-400 text-xs"></i> {{ $isAr ? 'أرصدة الحسابات البنكية والصناديق المالية (اللحظية)' : 'Bank Accounts & Cash Boxes Balances (Live)' }}</p>
+            @forelse($walletBalances->groupBy('currency') as $currency => $group)
+                @php $groupTotal = $group->sum('current_balance'); @endphp
+                <div class="mb-4 last:mb-0">
+                    <div class="space-y-2">
+                        @foreach($group as $w)
+                            @php $pct = $groupTotal != 0 ? ($w->current_balance / $groupTotal * 100) : 0; @endphp
+                            <div class="px-3 py-2 rounded-lg bg-gray-50">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-semibold text-gray-700">{{ $w->name }}</span>
+                                    <span class="text-sm font-black {{ $w->current_balance >= 0 ? 'text-[#008A3B]' : 'text-red-600' }}" dir="ltr">{{ $fmt($w->current_balance) }} <span class="text-[10px] text-gray-400 font-normal">{{ $w->currency }}</span></span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1.5">
+                                    <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                        <div class="h-full {{ $w->current_balance >= 0 ? 'bg-[#008A3B]' : 'bg-red-400' }}" style="width: {{ min(100, abs($pct)) }}%"></div>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-gray-400 w-10 shrink-0 text-{{ $isAr ? 'left' : 'right' }}" dir="ltr">{{ number_format($pct, 1) }}%</span>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
-                @empty
-                    <p class="text-sm text-gray-400 text-center py-6">{{ $isAr ? 'لا توجد محافظ' : 'No wallets' }}</p>
-                @endforelse
-            </div>
+                    <div class="flex items-center justify-between px-3 pt-2 mt-1 border-t border-dashed border-gray-200">
+                        <span class="text-xs font-bold text-gray-500">{{ $isAr ? 'الإجمالي' : 'Total' }} ({{ $currency }})</span>
+                        <span class="text-sm font-black {{ $groupTotal >= 0 ? 'text-[#005B9F]' : 'text-red-600' }}" dir="ltr">{{ $fmt($groupTotal) }} <span class="text-[10px] text-gray-400 font-normal">{{ $currency }}</span></span>
+                    </div>
+                </div>
+            @empty
+                <p class="text-sm text-gray-400 text-center py-6">{{ $isAr ? 'لا توجد محافظ' : 'No wallets' }}</p>
+            @endforelse
         </div>
     </div>
 

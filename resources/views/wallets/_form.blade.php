@@ -10,7 +10,7 @@
     @if($isEdit) @method('PUT') @endif
     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
         <div class="md:col-span-2">
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'اسم المحفظة' : 'Wallet Name' }} <span class="text-red-500">*</span></label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'اسم الحساب' : 'Account Name' }} <span class="text-red-500">*</span></label>
             <input type="text" name="name" value="{{ old('name', $w?->name) }}" required
                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] focus:ring-1 focus:ring-[#005B9F] bg-gray-50 focus:bg-white">
             @error('name') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
@@ -36,8 +36,8 @@
             <p class="text-[11px] text-amber-600 mt-1.5 flex items-start gap-1.5">
                 <i class="fas fa-circle-info mt-0.5"></i>
                 <span>{{ $isAr
-                    ? 'المحفظة تعمل بعملة واحدة فقط. لن تُقبل أي حركة (قبض / دفع / مصروف / إيراد / تحويل) على هذه المحفظة إلا بهذه العملة.'
-                    : 'This wallet operates in a single currency. No transaction (receipt / payment / expense / revenue / transfer) will be accepted on this wallet in any other currency.' }}</span>
+                    ? 'الحساب يعمل بعملة واحدة فقط. لن تُقبل أي حركة (قبض / دفع / مصروف / إيراد / تحويل) على هذا الحساب إلا بهذه العملة.'
+                    : 'This account operates in a single currency. No transaction (receipt / payment / expense / revenue / transfer) will be accepted on this account in any other currency.' }}</span>
             </p>
         </div>
 
@@ -59,7 +59,7 @@
             {{ $isAr ? 'إلغاء' : 'Cancel' }}
         </a>
         <button type="submit" class="px-8 py-2.5 bg-[#005B9F] rounded-lg text-white hover:bg-blue-800 font-bold shadow-lg flex items-center gap-2">
-            <i class="fas fa-save"></i> {{ $isEdit ? ($isAr ? 'حفظ التعديلات' : 'Save Changes') : ($isAr ? 'حفظ المحفظة' : 'Save Wallet') }}
+            <i class="fas fa-save"></i> {{ $isEdit ? ($isAr ? 'حفظ التعديلات' : 'Save Changes') : ($isAr ? 'حفظ الحساب' : 'Save Account') }}
         </button>
     </div>
 </form>

@@ -45,8 +45,8 @@
                 'users'         => ['icon' => 'fa-user-cog', 'custom' => true],
                 'notify_emails' => ['icon' => 'fa-bell', 'custom' => true],
             ],
-            'المالية والمحافظ' => [
-                'wallets'          => ['icon' => 'fa-wallet', 'custom' => true, 'title' => 'المحافظ والصناديق'],
+            'المالية والحسابات' => [
+                'wallets'          => ['icon' => 'fa-wallet', 'custom' => true, 'title' => 'الحسابات البنكية والصناديق المالية'],
                 'expense_category' => ['icon' => 'fa-file-invoice-dollar'],
             ],
         ];
@@ -443,16 +443,16 @@
 
             </div>
 
-            {{-- ===== panel المحافظ والصناديق (custom) ===== --}}
+            {{-- ===== panel الحسابات البنكية والصناديق المالية (custom) ===== --}}
             <div id="panel-wallets" class="tab-panel hidden p-6 animate-fade-in">
 
                 <div class="border-b border-gray-100 pb-4 mb-6 flex justify-between items-start">
                     <div>
                         <h3 class="text-xl font-bold text-[#008A3B] flex items-center gap-2">
-                            <i class="fas fa-wallet"></i> إعدادات المحافظ والصناديق
+                            <i class="fas fa-wallet"></i> إعدادات الحسابات البنكية والصناديق المالية
                         </h3>
                         <p class="text-sm text-gray-500 mt-1.5 leading-relaxed">
-                            أضف محافظ مالية (مثل: بنك، خزينة، عهدة) مع رصيد أول المدة.
+                            أضف حسابات مالية (مثل: بنك، خزينة، عهدة) مع رصيد أول المدة.
                         </p>
                     </div>
                 </div>
@@ -463,17 +463,17 @@
                 </div>
                 @endif
 
-                {{-- إضافة محفظة جديدة --}}
+                {{-- إضافة حساب جديد --}}
                 <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 mb-8">
                     <p class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                        <i class="fas fa-plus-circle text-[#008A3B]"></i> إضافة محفظة جديدة
+                        <i class="fas fa-plus-circle text-[#008A3B]"></i> إضافة حساب جديد
                     </p>
                     <form action="{{ route('wallets.store') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" onsubmit="sessionStorage.setItem('activeSettingTab', 'wallets');">
                         @csrf
                         <input type="hidden" name="type" value="bank"> {{-- افتراضي لأنها مش هامة --}}
 
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1">اسم المحفظة / الخزينة <span class="text-red-500">*</span></label>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">اسم الحساب / الخزينة <span class="text-red-500">*</span></label>
                             <input type="text" name="name" value="{{ old('name') }}" required placeholder="مثال: خزينة الشركة الرئيسية"
                                 class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
                         </div>
@@ -495,20 +495,20 @@
                         </div>
                         <div class="flex items-end">
                             <button type="submit" class="w-full py-2 bg-[#008A3B] text-white text-sm font-bold rounded-lg hover:bg-[#007030] flex items-center justify-center gap-2 h-[38px]">
-                                <i class="fas fa-save"></i> إضافة المحفظة
+                                <i class="fas fa-save"></i> إضافة الحساب
                             </button>
                         </div>
 
                         <p class="sm:col-span-2 lg:col-span-4 text-[11px] text-amber-600 flex items-start gap-1.5 -mt-1">
                             <i class="fas fa-circle-info mt-0.5"></i>
-                            <span>المحفظة تعمل بعملة واحدة فقط. لن تُقبل أي حركة (قبض / دفع / مصروف / إيراد / تحويل) على هذه المحفظة إلا بنفس العملة المختارة هنا.</span>
+                            <span>الحساب يعمل بعملة واحدة فقط. لن تُقبل أي حركة (قبض / دفع / مصروف / إيراد / تحويل) على هذا الحساب إلا بنفس العملة المختارة هنا.</span>
                         </p>
                     </form>
                 </div>
 
-                {{-- قائمة المحافظ الحالية --}}
+                {{-- قائمة الحسابات الحالية --}}
                 <p class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <i class="fas fa-list text-gray-400"></i> قائمة المحافظ الحالية
+                    <i class="fas fa-list text-gray-400"></i> قائمة الحسابات الحالية
                 </p>
                 <div class="border border-gray-200 rounded overflow-hidden">
                     <table class="w-full text-right text-sm">

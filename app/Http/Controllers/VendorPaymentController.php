@@ -57,7 +57,17 @@ class VendorPaymentController extends Controller
         $data = $request->validate([
             'purchase_invoice_id' => 'required|exists:purchase_invoices,id',
             'wallet_id'           => 'required|exists:wallets,id',
-            'amount'              => 'required|numeric|min:0.01',
+            'amount'              => [
+                'required', 'numeric', 'min:0.01',
+                function ($attribute, $value, $fail) use ($request, $isAr) {
+                    $invoice = \App\Models\PurchaseInvoice::find($request->input('purchase_invoice_id'));
+                    if ($invoice && round((float) $value, 2) > round($invoice->balance_due, 2)) {
+                        $fail($isAr
+                            ? 'المبلغ المدخل أكبر من المتبقي على فاتورة الشراء (' . number_format($invoice->balance_due, 2) . ' ' . $invoice->currency . ').'
+                            : 'The amount exceeds the purchase invoice balance due (' . number_format($invoice->balance_due, 2) . ' ' . $invoice->currency . ').');
+                    }
+                },
+            ],
             'currency'            => [
                 'required', 'string', new MatchesWalletCurrency,
                 function ($attribute, $value, $fail) use ($request, $isAr) {
@@ -117,7 +127,20 @@ class VendorPaymentController extends Controller
 
         $data = $request->validate([
             'wallet_id'      => 'required|exists:wallets,id',
-            'amount'         => 'required|numeric|min:0.01',
+            'amount'         => [
+                'required', 'numeric', 'min:0.01',
+                function ($attribute, $value, $fail) use ($vendorPayment, $isAr) {
+                    $invoice = \App\Models\PurchaseInvoice::find($vendorPayment->purchase_invoice_id);
+                    if ($invoice) {
+                        $allowed = $invoice->balance_due + (float) $vendorPayment->amount;
+                        if (round((float) $value, 2) > round($allowed, 2)) {
+                            $fail($isAr
+                                ? 'المبلغ المدخل أكبر من المتبقي على فاتورة الشراء (' . number_format($allowed, 2) . ' ' . $invoice->currency . ').'
+                                : 'The amount exceeds the purchase invoice balance due (' . number_format($allowed, 2) . ' ' . $invoice->currency . ').');
+                        }
+                    }
+                },
+            ],
             'currency'       => [
                 'required', 'string', new MatchesWalletCurrency,
                 function ($attribute, $value, $fail) use ($vendorPayment, $isAr) {

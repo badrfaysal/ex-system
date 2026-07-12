@@ -10,15 +10,23 @@ class CostCenterController extends Controller
     /**
      * كل عروض الأسعار كمراكز تكلفة، مع إيراد/تكلفة/ربح محسوبة لكل واحد
      */
-    public function index()
+    public function index(Request $request)
     {
-        $quotations = Quotation::query()
+        $query = Quotation::query()
             ->withSum('receipts as revenue_sum', 'amount')
             ->withSum('expenses as expenses_sum', 'amount')
             ->withSum('purchaseInvoices as purchases_sum', 'grand_total')
-            ->with('client')
-            ->latest()
-            ->paginate(15);
+            ->with('client');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('quote_number', 'like', "%{$search}%")
+                  ->orWhereHas('client', fn ($c) => $c->where('company_name', 'like', "%{$search}%"));
+            });
+        }
+
+        $quotations = $query->latest()->paginate(15)->withQueryString();
 
         $quotations->getCollection()->transform(function ($q) {
             $q->revenue = (float) $q->revenue_sum;

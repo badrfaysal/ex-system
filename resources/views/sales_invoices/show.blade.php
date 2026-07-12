@@ -101,7 +101,7 @@
         </div>
         @if($salesInvoice->receipts->isNotEmpty())
         <table class="w-full text-sm">
-            <thead><tr class="text-gray-500 text-xs border-b"><th class="py-2">{{ $isAr ? 'السند' : 'Receipt' }}</th><th class="py-2">{{ $isAr ? 'المحفظة' : 'Wallet' }}</th><th class="py-2">{{ $isAr ? 'التاريخ' : 'Date' }}</th><th class="py-2">{{ $isAr ? 'المبلغ' : 'Amount' }}</th></tr></thead>
+            <thead><tr class="text-gray-500 text-xs border-b"><th class="py-2">{{ $isAr ? 'السند' : 'Receipt' }}</th><th class="py-2">{{ $isAr ? 'الحساب' : 'Account' }}</th><th class="py-2">{{ $isAr ? 'التاريخ' : 'Date' }}</th><th class="py-2">{{ $isAr ? 'المبلغ' : 'Amount' }}</th></tr></thead>
             <tbody class="divide-y divide-gray-100">
                 @foreach($salesInvoice->receipts as $r)
                 <tr>

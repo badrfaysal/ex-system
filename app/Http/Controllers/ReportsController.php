@@ -46,6 +46,8 @@ class ReportsController extends Controller
             'topClients'        => $this->topClients($from, $to),
             'topVendors'        => $this->topVendors($from, $to),
             'topItems'          => $this->topItems($from, $to),
+            'topReceivables'    => $this->topReceivables(),
+            'topPayables'       => $this->topPayables(),
             'itemsByGroup'      => Item::selectRaw('item_group, count(*) as cnt')->groupBy('item_group')->orderByDesc('cnt')->get(),
             'itemsByStatus'     => Item::selectRaw('status, count(*) as cnt')->groupBy('status')->get(),
             'vendorsByStatus'   => Vendor::selectRaw('status, count(*) as cnt')->groupBy('status')->get(),
@@ -113,6 +115,44 @@ class ReportsController extends Controller
             ->withSum(['payments as paid_total' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
             ->get(['id'])
             ->sum(fn ($v) => max(0, (float) $v->invoiced_total - (float) $v->paid_total));
+    }
+
+    /**
+     * أكتر العملاء اللي ليّا عندهم فلوس (أعلى رصيد مستحق حالي — مش مرتبط بفلتر الفترة)
+     */
+    private function topReceivables(int $limit = 5): Collection
+    {
+        return Client::query()
+            ->withSum('salesInvoices as invoiced_total', 'grand_total')
+            ->withSum(['receipts as collected_total' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
+            ->get(['id', 'company_name', 'company_name_en'])
+            ->map(function ($c) {
+                $c->balance_due = max(0, (float) $c->invoiced_total - (float) $c->collected_total);
+                return $c;
+            })
+            ->filter(fn ($c) => $c->balance_due > 0)
+            ->sortByDesc('balance_due')
+            ->take($limit)
+            ->values();
+    }
+
+    /**
+     * أكتر الموردين اللي ليهم عندي فلوس (أعلى التزام حالي — مش مرتبط بفلتر الفترة)
+     */
+    private function topPayables(int $limit = 5): Collection
+    {
+        return Vendor::query()
+            ->withSum('purchaseInvoices as invoiced_total', 'grand_total')
+            ->withSum(['payments as paid_total' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
+            ->get(['id', 'name_ar', 'name_en'])
+            ->map(function ($v) {
+                $v->balance_due = max(0, (float) $v->invoiced_total - (float) $v->paid_total);
+                return $v;
+            })
+            ->filter(fn ($v) => $v->balance_due > 0)
+            ->sortByDesc('balance_due')
+            ->take($limit)
+            ->values();
     }
 
     private function salesFunnel(): Collection

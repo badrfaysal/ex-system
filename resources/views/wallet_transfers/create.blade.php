@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @php $isAr = app()->getLocale() === 'ar'; @endphp
-@section('header_title', $isAr ? 'تحويل بين المحافظ' : 'Wallet Transfer')
+@section('header_title', $isAr ? 'تحويل بين الحسابات' : 'Account Transfer')
 
 @section('content')
 <div class="max-w-2xl mx-auto">
@@ -9,10 +9,10 @@
             <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
                 <i class="fas fa-exchange-alt text-2xl"></i>
             </div>
-            <h2 class="text-2xl font-bold text-gray-900">{{ $isAr ? 'تحويل بين المحافظ' : 'Wallet Transfer' }}</h2>
+            <h2 class="text-2xl font-bold text-gray-900">{{ $isAr ? 'تحويل بين الحسابات' : 'Account Transfer' }}</h2>
         </div>
         <a href="{{ route('wallets.index') }}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 font-medium transition-colors shadow-sm flex items-center gap-2">
-            <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }} text-sm"></i> {{ $isAr ? 'المحافظ' : 'Wallets' }}
+            <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }} text-sm"></i> {{ $isAr ? 'الحسابات' : 'Accounts' }}
         </a>
     </div>
 
@@ -30,8 +30,8 @@
 
                 <div class="grid grid-cols-2 gap-4 items-end">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'من محفظة' : 'From Wallet' }} <span class="text-red-500">*</span></label>
-                        <select name="from_wallet_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-amber-500">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'من حساب' : 'From Account' }} <span class="text-red-500">*</span></label>
+                        <select name="from_wallet_id" id="fromWalletSelect" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-amber-500">
                             <option value="" disabled {{ old('from_wallet_id', $selectedFromId) ? '' : 'selected' }}>{{ $isAr ? '— اختر —' : '— Choose —' }}</option>
                             @foreach($wallets as $w)
                                 <option value="{{ $w->id }}" data-currency="{{ $w->currency }}" {{ old('from_wallet_id', $selectedFromId) == $w->id ? 'selected' : '' }}>{{ $w->name }} ({{ number_format($w->current_balance, 2) }} {{ $w->currency }})</option>
@@ -40,11 +40,11 @@
                         @error('from_wallet_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'إلى محفظة' : 'To Wallet' }} <span class="text-red-500">*</span></label>
-                        <select name="to_wallet_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-amber-500">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'إلى حساب' : 'To Account' }} <span class="text-red-500">*</span></label>
+                        <select name="to_wallet_id" id="toWalletSelect" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-amber-500">
                             <option value="" disabled selected>{{ $isAr ? '— اختر —' : '— Choose —' }}</option>
                             @foreach($wallets as $w)
-                                <option value="{{ $w->id }}" {{ old('to_wallet_id') == $w->id ? 'selected' : '' }}>{{ $w->name }}</option>
+                                <option value="{{ $w->id }}" data-currency="{{ $w->currency }}" {{ old('to_wallet_id') == $w->id ? 'selected' : '' }}>{{ $w->name }} ({{ $w->currency }})</option>
                             @endforeach
                         </select>
                         @error('to_wallet_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
@@ -58,11 +58,12 @@
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 bg-gray-50 focus:bg-white">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }} <span class="text-red-500">*</span></label>
-                        <input type="text" name="currency" value="{{ old('currency', 'EGP') }}" required dir="ltr"
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-50 focus:outline-none focus:border-amber-500">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }}</label>
+                        <input type="text" id="transferCurrency" readonly dir="ltr"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-600 cursor-not-allowed">
                     </div>
                 </div>
+                <p class="text-[11px] text-gray-400 -mt-3">{{ $isAr ? 'مقفولة على عملة "من حساب" ولا يمكن تعديلها — الحسابان لازم يكونا بنفس العملة.' : 'Locked to the "From Account" currency and cannot be edited — both accounts must share the same currency.' }}</p>
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'تاريخ التحويل' : 'Transfer Date' }} <span class="text-red-500">*</span></label>
@@ -87,4 +88,65 @@
         </form>
     </div>
 </div>
+
+@php
+    // بيتحسب هنا في متغيّر عادي بدل ما يتحط جوه @json() مباشرة — تجنّبًا لباج معروف
+    // في Blade بيقطع الكود لما @json() يحتوي على closure متداخل بعدد أقواس/مفاتيح معيّن
+    $walletsJs = $wallets->map(fn ($w) => [
+        'id' => $w->id, 'name' => $w->name, 'currency' => $w->currency, 'balance' => $w->current_balance,
+    ]);
+@endphp
+<script>
+    // العملة مقفولة على عملة "من حساب"، و"إلى حساب" بيتفلتر على نفس العملة —
+    // مينفعش تحويل بين حسابين بعملتين مختلفتين
+    window.addEventListener('load', function () {
+        var fromSel = document.getElementById('fromWalletSelect');
+        var toSel = document.getElementById('toWalletSelect');
+        var curField = document.getElementById('transferCurrency');
+        if (!fromSel || !toSel || !curField) return;
+
+        var allWallets = @json($walletsJs);
+        var oldToId = {{ old('to_wallet_id') ? (int) old('to_wallet_id') : 'null' }};
+
+        function currentFromCurrency() {
+            var opt = fromSel.options[fromSel.selectedIndex];
+            return opt ? (opt.getAttribute('data-currency') || '') : '';
+        }
+
+        function syncCurrency() {
+            curField.value = currentFromCurrency();
+        }
+
+        function filterToOptions(preserveValue) {
+            var ts = toSel.tomselect;
+            if (!ts) return;
+
+            var cur = currentFromCurrency();
+            var fromId = fromSel.value;
+            var matching = allWallets.filter(function (w) { return w.currency === cur && String(w.id) !== String(fromId); });
+            var valueToRestore = preserveValue !== undefined ? preserveValue : ts.getValue();
+
+            ts.clearOptions();
+            matching.forEach(function (w) {
+                ts.addOption({ value: String(w.id), text: w.name + ' (' + w.currency + ')' });
+            });
+            ts.refreshOptions(false);
+
+            var stillValid = matching.some(function (w) { return String(w.id) === String(valueToRestore); });
+            if (stillValid && valueToRestore !== null && valueToRestore !== '') {
+                ts.setValue(String(valueToRestore), true);
+            } else {
+                ts.clear(true);
+            }
+        }
+
+        syncCurrency();
+        filterToOptions(oldToId);
+
+        fromSel.addEventListener('change', function () {
+            syncCurrency();
+            filterToOptions();
+        });
+    });
+</script>
 @endsection

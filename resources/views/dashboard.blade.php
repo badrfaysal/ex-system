@@ -20,10 +20,10 @@
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <p class="font-bold text-gray-800 text-sm flex items-center gap-2">
                 <i class="fas fa-wallet text-gray-400 text-xs"></i>
-                المحافظ والصناديق (الأرصدة الحالية)
+                الحسابات البنكية والصناديق المالية (الأرصدة الحالية)
             </p>
             <a href="{{ route('settings.index') }}#wallets" class="text-[10px] bg-blue-50 text-[#005B9F] hover:bg-blue-100 px-2.5 py-1 rounded-full font-bold transition-colors flex items-center gap-1">
-                <i class="fas fa-cog"></i> إعدادات المحافظ
+                <i class="fas fa-cog"></i> إعدادات الحسابات
             </a>
         </div>
 
@@ -77,7 +77,7 @@
             ['href' => route('price-lists.create'),      'icon' => 'fa-tags',                 'cls' => 'text-indigo-500 bg-indigo-50', 'label' => 'قائمة أسعار جديدة'],
             ['href' => route('expenses.create'),         'icon' => 'fa-receipt',              'cls' => 'text-red-500 bg-red-50',       'label' => 'تسجيل مصروف'],
             ['href' => route('vendor-payments.create'),  'icon' => 'fa-money-check-alt',      'cls' => 'text-red-600 bg-red-50',       'label' => 'سند دفع لمورد'],
-            ['href' => route('wallet-transfers.create'), 'icon' => 'fa-exchange-alt',         'cls' => 'text-amber-600 bg-amber-50',   'label' => 'تحويل بين محافظ'],
+            ['href' => route('wallet-transfers.create'), 'icon' => 'fa-exchange-alt',         'cls' => 'text-amber-600 bg-amber-50',   'label' => 'تحويل بين حسابات'],
             ['href' => route('financial-logs.index'),    'icon' => 'fa-chart-line',           'cls' => 'text-purple-600 bg-purple-50', 'label' => 'سجل الماليات'],
             ['href' => route('sourcing.index'),          'icon' => 'fa-network-wired',        'cls' => 'text-amber-500 bg-amber-50',   'label' => 'ربط الموردين بالأصناف'],
             ['href' => route('reports.index'),           'icon' => 'fa-chart-pie',            'cls' => 'text-purple-600 bg-purple-50', 'label' => 'التقارير والتحليلات'],

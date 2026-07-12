@@ -48,6 +48,16 @@
         .tbl-head th { padding: 6px 8px !important; }
         .tot-row     { padding: 4px 14px !important; }
         .tot-final   { padding: 6px 14px !important; }
+        .so-grid     { display: block !important; }
+    }
+    .so-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        align-items: start;
+    }
+    @media (min-width: 1024px) {
+        .so-grid { grid-template-columns: 260px minmax(0, 1fr) 260px; }
     }
 </style>
 
@@ -142,55 +152,37 @@
     @endif
 </div>
 
-{{-- ============ فواتير البيع ============ --}}
-@if($salesOrder->salesInvoices->isNotEmpty())
-<div class="no-print mb-4 max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
-        <i class="fas fa-file-invoice text-[#008A3B]"></i>
-        <span class="font-bold text-gray-700 text-sm">{{ $isAr ? 'فواتير البيع' : 'Sales Invoices' }}</span>
-    </div>
-    <table class="w-full text-sm" style="text-align:{{ $txtAlign }}">
-        <tbody class="divide-y divide-gray-100">
-            @foreach($salesOrder->salesInvoices as $si)
-            <tr class="hover:bg-gray-50/60">
-                <td class="px-5 py-2.5"><a href="{{ route('sales-invoices.show', $si) }}" class="font-mono font-bold text-[#008A3B] hover:underline">{{ $si->invoice_number }}</a></td>
-                <td class="px-5 py-2.5 text-gray-500" dir="ltr">{{ $si->invoice_date->format('Y-m-d') }}</td>
-                <td class="px-5 py-2.5 font-bold text-green-600 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($si->grand_total, 2) }} {{ $si->currency }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-</div>
-@endif
+{{-- ============ فواتير البيع / أمر البيع / فواتير الشراء ============ --}}
+<div class="so-grid max-w-[1500px] mx-auto mb-8">
 
-{{-- ============ فواتير الشراء ============ --}}
-@if($salesOrder->purchaseInvoices->isNotEmpty())
-<div class="no-print mb-4 max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
-        <i class="fas fa-file-invoice-dollar text-[#005B9F]"></i>
-        <span class="font-bold text-gray-700 text-sm">{{ $isAr ? 'فواتير الشراء' : 'Purchase Invoices' }}</span>
-        @if($salesOrder->quotation)
-        <a href="{{ route('cost-centers.show', $salesOrder->quotation) }}" class="{{ $isAr ? 'mr-auto' : 'ml-auto' }} text-xs text-[#005B9F] hover:underline">
-            {{ $isAr ? 'تقرير مركز التكلفة' : 'Cost center report' }} <i class="fas fa-chart-line"></i>
-        </a>
+    {{-- فواتير البيع --}}
+    <div class="no-print bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden self-start">
+        <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
+            <i class="fas fa-file-invoice text-[#008A3B] text-xs"></i>
+            <span class="font-bold text-gray-700 text-xs">{{ $isAr ? 'فواتير البيع' : 'Sales Invoices' }}</span>
+            <span class="{{ $isAr ? 'mr-auto' : 'ml-auto' }} text-[11px] font-bold text-[#008A3B] bg-[#008A3B]/10 rounded-full px-2 py-0.5">{{ $salesOrder->salesInvoices->count() }}</span>
+        </div>
+        @if($salesOrder->salesInvoices->isNotEmpty())
+        <ul class="divide-y divide-gray-100">
+            @foreach($salesOrder->salesInvoices as $si)
+            <li>
+                <a href="{{ route('sales-invoices.show', $si) }}" class="block px-4 py-2.5 hover:bg-gray-50/60 transition-colors">
+                    <div class="font-mono font-bold text-[#008A3B] text-xs hover:underline">{{ $si->invoice_number }}</div>
+                    <div class="flex items-center justify-between mt-0.5">
+                        <span class="text-gray-400 text-[11px]" dir="ltr">{{ $si->invoice_date->format('Y-m-d') }}</span>
+                        <span class="font-bold text-green-600 text-[11px]" dir="ltr">{{ number_format($si->grand_total, 2) }} {{ $si->currency }}</span>
+                    </div>
+                </a>
+            </li>
+            @endforeach
+        </ul>
+        @else
+        <p class="px-4 py-4 text-[11px] text-gray-400 text-center">{{ $isAr ? 'لا توجد فواتير بيع بعد' : 'No sales invoices yet' }}</p>
         @endif
     </div>
-    <table class="w-full text-sm" style="text-align:{{ $txtAlign }}">
-        <tbody class="divide-y divide-gray-100">
-            @foreach($salesOrder->purchaseInvoices as $pi)
-            <tr class="hover:bg-gray-50/60">
-                <td class="px-5 py-2.5"><a href="{{ route('purchase-invoices.show', $pi) }}" class="font-mono font-bold text-[#005B9F] hover:underline">{{ $pi->invoice_number }}</a></td>
-                <td class="px-5 py-2.5 text-gray-500" dir="ltr">{{ $pi->invoice_date->format('Y-m-d') }}</td>
-                <td class="px-5 py-2.5 font-bold text-red-600 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($pi->grand_total, 2) }} {{ $pi->currency }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-</div>
-@endif
 
-{{-- ============ المستند ============ --}}
-<div class="print-doc bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-w-5xl mx-auto mb-8" dir="{{ $docDir }}">
+    {{-- ============ المستند ============ --}}
+    <div class="print-doc bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8" dir="{{ $docDir }}">
 
     <div class="h-1.5 bg-gradient-to-r from-[#008A3B] to-[#005B9F]"></div>
 
@@ -392,6 +384,39 @@
     </div>
 
     <div class="h-1 bg-gradient-to-r from-[#008A3B] to-[#005B9F]"></div>
+    </div>
+
+    {{-- فواتير الشراء --}}
+    <div class="no-print bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden self-start">
+        <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
+            <i class="fas fa-file-invoice-dollar text-[#005B9F] text-xs"></i>
+            <span class="font-bold text-gray-700 text-xs">{{ $isAr ? 'فواتير الشراء' : 'Purchase Invoices' }}</span>
+            <span class="{{ $isAr ? 'mr-auto' : 'ml-auto' }} text-[11px] font-bold text-[#005B9F] bg-[#005B9F]/10 rounded-full px-2 py-0.5">{{ $salesOrder->purchaseInvoices->count() }}</span>
+        </div>
+        @if($salesOrder->purchaseInvoices->isNotEmpty())
+        <ul class="divide-y divide-gray-100">
+            @foreach($salesOrder->purchaseInvoices as $pi)
+            <li>
+                <a href="{{ route('purchase-invoices.show', $pi) }}" class="block px-4 py-2.5 hover:bg-gray-50/60 transition-colors">
+                    <div class="font-mono font-bold text-[#005B9F] text-xs hover:underline">{{ $pi->invoice_number }}</div>
+                    <div class="flex items-center justify-between mt-0.5">
+                        <span class="text-gray-400 text-[11px]" dir="ltr">{{ $pi->invoice_date->format('Y-m-d') }}</span>
+                        <span class="font-bold text-red-600 text-[11px]" dir="ltr">{{ number_format($pi->grand_total, 2) }} {{ $pi->currency }}</span>
+                    </div>
+                </a>
+            </li>
+            @endforeach
+        </ul>
+        @else
+        <p class="px-4 py-4 text-[11px] text-gray-400 text-center">{{ $isAr ? 'لا توجد فواتير شراء بعد' : 'No purchase invoices yet' }}</p>
+        @endif
+        @if($salesOrder->quotation)
+        <a href="{{ route('cost-centers.show', $salesOrder->quotation) }}" class="block px-4 py-2 text-[11px] text-[#005B9F] hover:underline border-t border-gray-100 bg-gray-50/40">
+            {{ $isAr ? 'تقرير مركز التكلفة' : 'Cost center report' }} <i class="fas fa-chart-line"></i>
+        </a>
+        @endif
+    </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>

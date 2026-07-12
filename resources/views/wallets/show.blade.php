@@ -17,7 +17,7 @@
 
     <div class="mb-4 flex items-center justify-between">
         <a href="{{ route('wallets.index') }}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium flex items-center gap-2">
-            <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }}"></i> {{ $isAr ? 'كل المحافظ' : 'All Wallets' }}
+            <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }}"></i> {{ $isAr ? 'كل الحسابات' : 'All Accounts' }}
         </a>
         <div class="flex items-center gap-2">
             <button onclick="document.getElementById('revenueModal').classList.remove('hidden')" class="px-5 py-2 bg-[#008A3B] text-white rounded-lg font-bold text-sm hover:bg-green-700 flex items-center gap-2 shadow-sm">
@@ -43,7 +43,7 @@
         <div class="px-8 py-5 flex items-center justify-between">
             <div>
                 <p class="text-2xl font-extrabold text-gray-900">{{ $wallet->name }}</p>
-                <p class="text-sm text-gray-400 mt-1">{{ $isAr ? 'كشف حساب المحفظة' : 'Wallet Statement' }} — {{ $wallet->currency }}</p>
+                <p class="text-sm text-gray-400 mt-1">{{ $isAr ? 'كشف الحساب' : 'Account Statement' }} — {{ $wallet->currency }}</p>
             </div>
             <div class="text-{{ $isAr ? 'left' : 'right' }}">
                 <p class="text-xs text-gray-400">{{ $isAr ? 'الرصيد الحالي' : 'Current Balance' }}</p>

@@ -32,6 +32,10 @@
                    <a href="{{ route('cost-centers.show', $purchaseInvoice->quotation) }}" class="font-mono font-bold text-[#005B9F] hover:underline">{{ $purchaseInvoice->quotation->quote_number }}</a></p>
                 <p><span class="text-gray-400">{{ $isAr ? 'التاريخ:' : 'Date:' }}</span>
                    <span class="font-bold text-gray-800">{{ $purchaseInvoice->invoice_date->format('Y-m-d') }}</span></p>
+                @if($purchaseInvoice->vendor_invoice_number)
+                <p><span class="text-gray-400">{{ $isAr ? 'رقم فاتورة المورد:' : 'Vendor Invoice No.:' }}</span>
+                   <span class="font-mono font-bold text-gray-800">{{ $purchaseInvoice->vendor_invoice_number }}</span></p>
+                @endif
             </div>
         </div>
 

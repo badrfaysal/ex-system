@@ -77,11 +77,11 @@
 
     <div class="md:col-span-2">
         <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-            <i class="fas fa-wallet text-[#005B9F] mr-1"></i> {{ $isAr ? 'المحفظة (الخصم منها)' : 'Wallet (Deduct from)' }} <span class="text-red-500">*</span>
+            <i class="fas fa-wallet text-[#005B9F] mr-1"></i> {{ $isAr ? 'الحساب (الخصم منه)' : 'Account (Deduct from)' }} <span class="text-red-500">*</span>
         </label>
         <select name="wallet_id" required data-search
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
-            <option value="" disabled {{ old('wallet_id', $e?->wallet_id) ? '' : 'selected' }}>{{ $isAr ? '— اختر المحفظة —' : '— Choose wallet —' }}</option>
+            <option value="" disabled {{ old('wallet_id', $e?->wallet_id) ? '' : 'selected' }}>{{ $isAr ? '— اختر الحساب —' : '— Choose account —' }}</option>
             @foreach($wallets as $w)
                 <option value="{{ $w->id }}" data-currency="{{ $w->currency }}" {{ old('wallet_id', $e?->wallet_id) == $w->id ? 'selected' : '' }}>{{ $w->name }} ({{ $w->currency }})</option>
             @endforeach

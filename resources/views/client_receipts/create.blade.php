@@ -49,9 +49,9 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ المحصّل' : 'Amount Received' }} <span class="text-red-500">*</span></label>
-                        <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount') }}" required dir="ltr"
+                        <input type="number" step="0.01" min="0.01" max="{{ $balance }}" name="amount" value="{{ old('amount') }}" required dir="ltr"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B] bg-gray-50 focus:bg-white">
-                        <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'يمكن أن يكون تحصيل جزئي' : 'Can be a partial payment' }}</p>
+                        <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'يمكن أن يكون تحصيل جزئي — مينفعش يتعدى المتبقي' : "Can be a partial collection — can't exceed the balance due" }}</p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }}</label>
@@ -81,10 +81,10 @@
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-                        <i class="fas fa-wallet text-[#005B9F] mr-1"></i> {{ $isAr ? 'المحفظة (الإضافة إليها)' : 'Wallet (Add to)' }} <span class="text-red-500">*</span>
+                        <i class="fas fa-wallet text-[#005B9F] mr-1"></i> {{ $isAr ? 'الحساب (الإضافة إليه)' : 'Account (Add to)' }} <span class="text-red-500">*</span>
                     </label>
                     <select name="wallet_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
-                        <option value="" disabled {{ old('wallet_id') ? '' : 'selected' }}>{{ $isAr ? '— اختر المحفظة —' : '— Choose wallet —' }}</option>
+                        <option value="" disabled {{ old('wallet_id') ? '' : 'selected' }}>{{ $isAr ? '— اختر الحساب —' : '— Choose account —' }}</option>
                         @foreach($wallets as $w)
                             <option value="{{ $w->id }}" data-currency="{{ $w->currency }}" {{ old('wallet_id') == $w->id ? 'selected' : '' }}>{{ $w->name }} ({{ $w->currency }})</option>
                         @endforeach
@@ -110,15 +110,18 @@
     </div>
 </div>
 
+@php
+    $walletsJs = $wallets->map(fn ($w) => ['id' => $w->id, 'name' => $w->name, 'currency' => $w->currency]);
+@endphp
 <script>
-    // فلترة المحفظة على عملة فاتورة البيع الثابتة — تظهر بس المحافظ اللي بنفس العملة
+    // فلترة الحساب على عملة فاتورة البيع الثابتة — تظهر بس الحسابات اللي بنفس العملة
     window.addEventListener('load', function () {
         var cur = document.getElementById('receiptCurrency').value;
         var walletSel = document.querySelector('select[name="wallet_id"]');
         var ts = walletSel ? walletSel.tomselect : null;
         if (!ts) return;
 
-        var allWallets = @json($wallets->map(fn ($w) => ['id' => $w->id, 'name' => $w->name, 'currency' => $w->currency]));
+        var allWallets = @json($walletsJs);
         var oldWalletId = {{ old('wallet_id') ? (int) old('wallet_id') : 'null' }};
         var matching = allWallets.filter(function (w) { return w.currency === cur; });
 

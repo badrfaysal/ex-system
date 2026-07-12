@@ -2,7 +2,7 @@
 <html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
 <meta charset="utf-8">
-<title>{{ app()->getLocale() === 'ar' ? 'كشف حساب محفظة' : 'Wallet Statement' }} - {{ $wallet->name }}</title>
+<title>{{ app()->getLocale() === 'ar' ? 'كشف حساب' : 'Account Statement' }} - {{ $wallet->name }}</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
 
@@ -141,7 +141,7 @@
                             <img src="{{ $qrUrl }}" alt="QR Code" style="width:75px; height:75px; border: 1px solid #e2e8f0; border-radius: 6px; padding:3px; background:#fff;">
                         </td>
                         <td style="vertical-align: top; padding-{{ $isAr ? 'right' : 'left' }}: 15px; text-align: {{ $isAr ? 'right' : 'left' }};">
-                            <div class="title-main">{{ $isAr ? 'كشف حساب محفظة' : 'Wallet Statement' }}</div>
+                            <div class="title-main">{{ $isAr ? 'كشف حساب' : 'Account Statement' }}</div>
                             <div class="quote-number-text">{{ $wallet->name }}</div>
                             <div class="status-badge" style="margin-top: 4px;">{{ $isAr ? 'حساب جاري' : 'Current Account' }}</div>
                         </td>
@@ -170,14 +170,14 @@
     <table class="info-layout">
         <tr>
             <td style="width: 45%;">
-                <div class="block-label">{{ $isAr ? 'تفاصيل المحفظة' : 'WALLET DETAILS' }}</div>
+                <div class="block-label">{{ $isAr ? 'تفاصيل الحساب' : 'ACCOUNT DETAILS' }}</div>
                 <table class="meta-data-table">
                     <tr>
                         <td class="meta-label">{{ $isAr ? 'تاريخ الطباعة:' : 'Date:' }}</td>
                         <td class="meta-value" dir="ltr">{{ now()->format('d/m/Y - h:i A') }}</td>
                     </tr>
                     <tr>
-                        <td class="meta-label">{{ $isAr ? 'نوع المحفظة:' : 'Wallet Type:' }}</td>
+                        <td class="meta-label">{{ $isAr ? 'نوع الحساب:' : 'Account Type:' }}</td>
                         <td class="meta-value">{{ $wallet->type === 'bank' ? ($isAr ? 'حساب بنكي' : 'Bank Account') : ($isAr ? 'خزينة نقدية' : 'Cash Drawer') }}</td>
                     </tr>
                     <tr>
@@ -245,7 +245,7 @@
         <tr>
             <td style="width: 55%; padding-{{ $isAr ? 'left' : 'right' }}: 30px;">
                 <div style="font-size: 11px; color: #64748b; line-height: 1.6;">
-                    {{ $isAr ? 'ملاحظة: هذا السجل يشمل كافة الحركات المالية المسجلة على المحفظة حتى تاريخ الطباعة.' : 'Note: This statement includes all financial transactions recorded on the wallet up to the date of printing.' }}
+                    {{ $isAr ? 'ملاحظة: هذا السجل يشمل كافة الحركات المالية المسجلة على الحساب حتى تاريخ الطباعة.' : 'Note: This statement includes all financial transactions recorded on the account up to the date of printing.' }}
                 </div>
             </td>
             

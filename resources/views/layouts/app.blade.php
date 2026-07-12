@@ -359,11 +359,11 @@
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-wallet sb-group-icon text-purple-600"></i>
-                        <span>{{ $rtl ? 'المحافظ' : 'Wallets' }}</span>
+                        <span>{{ $rtl ? 'الحسابات البنكية والصناديق المالية' : 'Bank Accounts & Cash Boxes' }}</span>
                     </div>
                     <div class="sb-indent space-y-0.5">
-                        <a href="{{ route('wallets.index') }}" class="sb-sub {{ request()->routeIs('wallets.*') ? 'active' : '' }}">{{ $rtl ? 'عرض المحافظ' : 'View Wallets' }}</a>
-                        <a href="{{ route('wallet-transfers.create') }}" class="sb-sub {{ request()->routeIs('wallet-transfers.*') ? 'active' : '' }}">{{ $rtl ? 'تحويل بين محافظ' : 'Transfer Between Wallets' }}</a>
+                        <a href="{{ route('wallets.index') }}" class="sb-sub {{ request()->routeIs('wallets.*') ? 'active' : '' }}">{{ $rtl ? 'عرض الحسابات' : 'View Accounts' }}</a>
+                        <a href="{{ route('wallet-transfers.create') }}" class="sb-sub {{ request()->routeIs('wallet-transfers.*') ? 'active' : '' }}">{{ $rtl ? 'تحويل بين حسابات' : 'Transfer Between Accounts' }}</a>
                     </div>
                 </div>
 
@@ -463,14 +463,7 @@
                         {{ __('messages.home') }} / <span class="text-gray-900 font-medium">@yield('header_title', __('messages.nav.dashboard'))</span>
                     </div>
 
-                    {{-- بحث سريع عام في العملاء --}}
-                    <form action="{{ route('clients.index') }}" method="GET" class="hidden md:flex flex-1 max-w-md mx-auto">
-                        <div class="relative w-full">
-                            <i class="fas fa-search absolute top-1/2 -translate-y-1/2 {{ $rtl ? 'right-4' : 'left-4' }} text-gray-400 text-sm"></i>
-                            <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('messages.quick_search') }}"
-                                class="w-full {{ $rtl ? 'pr-11 pl-4' : 'pl-11 pr-4' }} py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#008A3B] focus:ring-1 focus:ring-[#008A3B] transition-colors">
-                        </div>
-                    </form>
+                    <div class="flex-1"></div>
 
                     <div class="flex items-center gap-4">
                         {{-- زر تبديل اللغة عربي/إنجليزي --}}
@@ -696,8 +689,8 @@
             if (pageLoader) pageLoader.classList.remove('active');
         });
 
-        // ===== ضبط العملة تلقائيًا حسب المحفظة المختارة =====
-        // المحفظة تعمل بعملة واحدة، فأي فورم فيه اختيار محفظة تتقفل عملته على عملتها.
+        // ===== ضبط العملة تلقائيًا حسب الحساب المختار =====
+        // الحساب يعمل بعملة واحدة، فأي فورم فيه اختيار حساب تتقفل عملته على عملته.
         (function () {
             var isAr = document.documentElement.getAttribute('dir') === 'rtl'
                 || document.documentElement.getAttribute('lang') === 'ar';
@@ -720,7 +713,7 @@
                     note.className = 'wallet-cur-note text-[11px] text-amber-600 mt-1';
                     container.appendChild(note);
                 }
-                note.textContent = (isAr ? 'العملة مضبوطة تلقائيًا على عملة المحفظة: ' : 'Currency locked to the wallet currency: ') + cur;
+                note.textContent = (isAr ? 'العملة مضبوطة تلقائيًا على عملة الحساب: ' : 'Currency locked to the account currency: ') + cur;
             }
 
             document.querySelectorAll('select[name="wallet_id"], select[name="from_wallet_id"]').forEach(function (walletSel) {
@@ -738,7 +731,7 @@
                 }
 
                 walletSel.addEventListener('change', sync);
-                if (walletSel.value) sync(); // ضبط مبدئي لو فيه محفظة مختارة مسبقًا
+                if (walletSel.value) sync(); // ضبط مبدئي لو فيه حساب مختار مسبقًا
             });
         })();
     </script>

@@ -23,7 +23,14 @@
     {{-- شريط الفلاتر الذكي (Filter Bar) --}}
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
         <form action="{{ route('clients.index') }}" method="GET" class="flex flex-wrap items-end gap-4">
-            
+
+            {{-- بحث نصي --}}
+            <div class="flex-1 min-w-[220px]">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ app()->getLocale() === 'ar' ? 'بحث' : 'Search' }}</label>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('messages.clients.search') }}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
+            </div>
+
             {{-- نوع الفلتر --}}
             <div class="w-full sm:w-auto">
                 <label class="block text-xs font-bold text-gray-500 mb-1">{{ __('messages.filter.period') }}</label>

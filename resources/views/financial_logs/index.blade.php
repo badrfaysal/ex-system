@@ -22,7 +22,7 @@
             </div>
             <div>
                 <h2 class="text-3xl font-bold text-gray-900">{{ $isAr ? 'سجل الماليات' : 'Financial Log' }}</h2>
-                <p class="text-sm text-gray-500 mt-0.5">{{ $isAr ? 'جميع حركات الوارد والمنصرف من جميع المحافظ' : 'All incoming and outgoing transactions across wallets' }}</p>
+                <p class="text-sm text-gray-500 mt-0.5">{{ $isAr ? 'جميع حركات الوارد والمنصرف من كل الحسابات البنكية والصناديق المالية' : 'All incoming and outgoing transactions across all bank accounts & cash boxes' }}</p>
             </div>
         </div>
     </div>
@@ -51,7 +51,11 @@
 
     <!-- الفلاتر -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
-        <form method="GET" action="{{ route('financial-logs.index') }}" class="flex flex-col sm:flex-row gap-4 items-end">
+        <form method="GET" action="{{ route('financial-logs.index') }}" class="flex flex-col sm:flex-row gap-4 items-end flex-wrap">
+            <div class="flex-1 w-full min-w-[200px]">
+                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'بحث' : 'Search' }}</label>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ $isAr ? 'رقم المستند أو التفاصيل' : 'Document no. or detail' }}" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+            </div>
             <div class="flex-1 w-full">
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'من تاريخ' : 'Date From' }}</label>
                 <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
@@ -59,6 +63,17 @@
             <div class="flex-1 w-full">
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'إلى تاريخ' : 'Date To' }}</label>
                 <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+            </div>
+            <div class="flex-1 w-full">
+                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'نوع الحركة' : 'Transaction Type' }}</label>
+                <select name="type" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-bold">
+                    <option value="" {{ $type == '' ? 'selected' : '' }}>{{ $isAr ? 'الكل' : 'All' }}</option>
+                    <option value="transfer" {{ $type == 'transfer' ? 'selected' : '' }}>{{ $isAr ? 'تحويلات فقط' : 'Transfers Only' }}</option>
+                    <option value="revenue" {{ $type == 'revenue' ? 'selected' : '' }}>{{ $isAr ? 'إيراد فقط' : 'Revenue Only' }}</option>
+                    <option value="expense" {{ $type == 'expense' ? 'selected' : '' }}>{{ $isAr ? 'مصروف فقط' : 'Expense Only' }}</option>
+                    <option value="receipt" {{ $type == 'receipt' ? 'selected' : '' }}>{{ $isAr ? 'سندات قبض فقط' : 'Receipts Only' }}</option>
+                    <option value="vendor_payment" {{ $type == 'vendor_payment' ? 'selected' : '' }}>{{ $isAr ? 'سندات دفع فقط' : 'Vendor Payments Only' }}</option>
+                </select>
             </div>
             <div class="flex-1 w-full">
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'ترتيب حسب' : 'Sort By' }}</label>
@@ -74,7 +89,7 @@
                     <i class="fas fa-filter"></i> {{ $isAr ? 'تطبيق الفلتر' : 'Apply Filter' }}
                 </button>
             </div>
-            @if(request()->anyFilled(['date_from', 'date_to', 'sort']))
+            @if(request()->anyFilled(['search', 'date_from', 'date_to', 'type', 'sort']))
                 <div>
                     <a href="{{ route('financial-logs.index') }}" class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200 transition-colors w-full sm:w-auto h-[42px] flex items-center justify-center">
                         <i class="fas fa-times"></i>
@@ -93,7 +108,7 @@
                         <th class="p-4 whitespace-nowrap">{{ $isAr ? 'التاريخ والوقت' : 'Date & Time' }}</th>
                         <th class="p-4 whitespace-nowrap">{{ $isAr ? 'نوع الحركة' : 'Type' }}</th>
                         <th class="p-4 whitespace-nowrap">{{ $isAr ? 'الرقم / المرجع' : 'Ref / Number' }}</th>
-                        <th class="p-4">{{ $isAr ? 'المحفظة' : 'Wallet' }}</th>
+                        <th class="p-4">{{ $isAr ? 'الحساب' : 'Account' }}</th>
                         <th class="p-4">{{ $isAr ? 'التفاصيل / الجهة' : 'Details' }}</th>
                         <th class="p-4 whitespace-nowrap">{{ $isAr ? 'المبلغ' : 'Amount' }}</th>
                         <th class="p-4 whitespace-nowrap">{{ $isAr ? 'المستخدم' : 'User' }}</th>
@@ -204,7 +219,7 @@
                     <p class="text-sm font-bold text-gray-800" dir="ltr"><span id="m-date"></span> <span id="m-time" class="text-gray-500 font-normal ml-1"></span></p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-400 font-bold mb-1">{{ $isAr ? 'المحفظة' : 'Wallet' }}</p>
+                    <p class="text-xs text-gray-400 font-bold mb-1">{{ $isAr ? 'الحساب' : 'Account' }}</p>
                     <p id="m-wallet" class="text-sm font-bold text-[#005B9F]"></p>
                 </div>
                 <div>
@@ -247,11 +262,11 @@
                 <p class="text-sm text-gray-600">
                     {{ $isAr ? 'هتُعكس العملية' : 'You are about to reverse operation' }}
                     <span id="reverseRefLabel" class="font-mono font-bold text-gray-900"></span>
-                    {{ $isAr ? '— هيتلغى أثرها بالكامل من رصيد المحفظة، وهتفضل ظاهرة في السجل معلّم عليها إنها معكوسة.' : '— its effect will be fully removed from the wallet balance, and it will remain visible in the log marked as reversed.' }}
+                    {{ $isAr ? '— هيتلغى أثرها بالكامل من رصيد الحساب، وهتفضل ظاهرة في السجل معلّم عليها إنها معكوسة.' : '— its effect will be fully removed from the account balance, and it will remain visible in the log marked as reversed.' }}
                 </p>
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-1.5">{{ $isAr ? 'سبب العكس' : 'Reversal Reason' }} <span class="text-red-500">*</span></label>
-                    <textarea name="reversal_reason" required rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-amber-500" placeholder="{{ $isAr ? 'مثال: خطأ في المبلغ / المحفظة' : 'e.g. wrong amount / wallet' }}"></textarea>
+                    <textarea name="reversal_reason" required rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-amber-500" placeholder="{{ $isAr ? 'مثال: خطأ في المبلغ / الحساب' : 'e.g. wrong amount / account' }}"></textarea>
                 </div>
             </div>
             <div class="px-6 pb-6 flex gap-2">

@@ -148,9 +148,19 @@
 
     <div class="max-w-5xl mx-auto mb-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-                <div class="text-xs text-gray-500">{{ $isAr ? 'إجمالي الفاتورة:' : 'Invoice total:' }}</div>
-                <div class="font-extrabold text-[#008A3B] text-xl" dir="ltr" id="grandTotal">0.00 <span class="text-xs font-normal text-gray-400" id="grandTotalCur">{{ $cur }}</span></div>
+            <div class="flex items-center gap-6">
+                <div>
+                    <div class="text-xs text-gray-500">{{ $isAr ? 'الإجمالي' : 'Subtotal' }}</div>
+                    <div class="font-bold text-gray-800 text-lg" dir="ltr" id="subtotalDisplay">0.00</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500">{{ $isAr ? 'إجمالي الضريبة' : 'Tax total' }}</div>
+                    <div class="font-bold text-gray-800 text-lg" dir="ltr" id="taxTotalDisplay">0.00</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500">{{ $isAr ? 'إجمالي الفاتورة:' : 'Invoice total:' }}</div>
+                    <div class="font-extrabold text-[#008A3B] text-xl" dir="ltr" id="grandTotal">0.00 <span class="text-xs font-normal text-gray-400" id="grandTotalCur">{{ $cur }}</span></div>
+                </div>
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('sales-orders.show', $salesOrder) }}" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium">{{ $isAr ? 'إلغاء' : 'Cancel' }}</a>
@@ -167,16 +177,17 @@
     // 1. حساب سطور أمر البيع الأساسية
     function lineNet(tr) {
         const chk = tr.querySelector('.si-check');
-        if (!chk || !chk.checked) return 0;
+        if (!chk || !chk.checked) return { net: 0, afterDisc: 0, tax: 0 };
         const q = parseFloat(tr.querySelector('.si-qty').value || 0);
         const p = parseFloat(tr.querySelector('.si-price').value || 0);
         const d = parseFloat(tr.querySelector('.si-qty').dataset.discount || 0);
         const t = parseFloat(tr.querySelector('.si-qty').dataset.tax || 0);
         const base = q * p;
         const afterDisc = base - (base * d / 100);
-        const net = afterDisc + (afterDisc * t / 100);
+        const tax = afterDisc * t / 100;
+        const net = afterDisc + tax;
         if(tr.querySelector('.si-net')) tr.querySelector('.si-net').textContent = net.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        return net;
+        return { net, afterDisc, tax };
     }
 
     // 2. حساب سطور الأصناف الإضافية
@@ -187,15 +198,27 @@
         const t = parseFloat(tr.querySelector('.ex-tax').value || 0);
         const base = q * p;
         const afterDisc = base - (base * d / 100);
-        const net = afterDisc + (afterDisc * t / 100);
+        const tax = afterDisc * t / 100;
+        const net = afterDisc + tax;
         if(tr.querySelector('.ex-net')) tr.querySelector('.ex-net').textContent = net.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        return net;
+        return { net, afterDisc, tax };
     }
 
     function recalc() {
-        let grand = 0;
-        document.querySelectorAll('.si-line').forEach(tr => grand += lineNet(tr));
-        document.querySelectorAll('.ex-line').forEach(tr => grand += calcExtraLineNet(tr));
+        let subtotal = 0, taxTotal = 0;
+        document.querySelectorAll('.si-line').forEach(tr => {
+            const r = lineNet(tr);
+            subtotal += r.afterDisc;
+            taxTotal += r.tax;
+        });
+        document.querySelectorAll('.ex-line').forEach(tr => {
+            const r = calcExtraLineNet(tr);
+            subtotal += r.afterDisc;
+            taxTotal += r.tax;
+        });
+        const grand = subtotal + taxTotal;
+        document.getElementById('subtotalDisplay').textContent = subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('taxTotalDisplay').textContent = taxTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('grandTotal').childNodes[0].textContent = grand.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ';
     }
 

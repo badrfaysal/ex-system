@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Exceptions\InsufficientBalanceException;
 use App\Models\Wallet;
 use App\Models\WalletTransfer;
-use App\Rules\MatchesWalletCurrency;
 use App\Services\SequenceGenerator;
 use App\Services\WalletLedger;
 use Illuminate\Http\Request;
@@ -36,29 +35,30 @@ class WalletTransferController extends Controller
                     $to   = Wallet::find($value);
                     if ($from && $to && $from->currency !== $to->currency) {
                         $fail($isAr
-                            ? "لا يمكن التحويل بين محفظتين بعملتين مختلفتين ({$from->currency} ≠ {$to->currency})."
-                            : "Cannot transfer between wallets of different currencies ({$from->currency} ≠ {$to->currency}).");
+                            ? "لا يمكن التحويل بين حسابين بعملتين مختلفتين ({$from->currency} ≠ {$to->currency})."
+                            : "Cannot transfer between accounts of different currencies ({$from->currency} ≠ {$to->currency}).");
                     }
                 },
             ],
             'amount'          => 'required|numeric|min:0.01',
-            'currency'        => ['required', 'string', new MatchesWalletCurrency('from_wallet_id')],
             'transfer_date'   => 'required|date',
             'notes'           => 'nullable|string',
         ], [
-            'from_wallet_id.different' => $isAr ? 'لازم تختار محفظتين مختلفتين.' : 'Choose two different wallets.',
+            'from_wallet_id.different' => $isAr ? 'لازم تختار حسابين مختلفين.' : 'Choose two different accounts.',
         ]);
 
         $data['created_by'] = Auth::id();
 
         try {
-            $transfer = DB::transaction(function () use ($data) {
-                // نقفل المحفظتين بترتيب ثابت (حسب id) لتفادي deadlock مع تحويل عكسي متزامن
+            $transfer = DB::transaction(function () use (&$data) {
+                // نقفل الحسابين بترتيب ثابت (حسب id) لتفادي deadlock مع تحويل عكسي متزامن
                 WalletLedger::lockMany([$data['from_wallet_id'], $data['to_wallet_id']]);
 
-                // التحقق من كفاية رصيد محفظة المصدر — آمن حتى مع طلبات متزامنة على نفس المحفظة
-                WalletLedger::lockAndCheck($data['from_wallet_id'], $data['amount']);
+                // التحقق من كفاية رصيد حساب المصدر — آمن حتى مع طلبات متزامنة على نفس الحساب
+                $fromWallet = WalletLedger::lockAndCheck($data['from_wallet_id'], $data['amount']);
 
+                // العملة مقفولة على عملة حساب المصدر — مش بتُقبل من المستخدم أصلاً
+                $data['currency'] = $fromWallet->currency;
                 $data['transfer_number'] = SequenceGenerator::next('TR');
 
                 return WalletTransfer::create($data);

@@ -48,7 +48,12 @@
                 <tbody class="divide-y divide-gray-100 text-sm">
                     @forelse ($invoices as $invoice)
                         <tr class="hover:bg-blue-50/40 transition-colors cursor-pointer" onclick="location.href='{{ route('purchase-invoices.show', $invoice) }}'">
-                            <td class="p-4 font-mono font-bold text-gray-800" dir="ltr">{{ $invoice->invoice_number }}</td>
+                            <td class="p-4 font-mono font-bold text-gray-800" dir="ltr">
+                                {{ $invoice->invoice_number }}
+                                @if($invoice->vendor_invoice_number)
+                                    <div class="text-[11px] font-normal text-gray-400 mt-0.5">{{ $isAr ? 'فاتورة المورد:' : 'Vendor No.:' }} {{ $invoice->vendor_invoice_number }}</div>
+                                @endif
+                            </td>
                             <td class="p-4 font-mono text-[#005B9F]" dir="ltr">{{ optional($invoice->quotation)->quote_number }}</td>
                             <td class="p-4 text-gray-500" dir="ltr">{{ $invoice->invoice_date->format('Y-m-d') }}</td>
                             <td class="p-4 font-bold text-gray-900" dir="ltr">{{ number_format($invoice->grand_total, 2) }} <span class="text-xs text-gray-400">{{ $invoice->currency }}</span></td>

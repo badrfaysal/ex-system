@@ -4,14 +4,6 @@
     $cur  = $salesOrder->currency ?? 'EGP';
     $clientDisplay = optional($salesOrder->client)->displayName($isAr ? 'ar' : 'en') ?? '—';
 
-    // خريطة آخر سعر شراء لكل (صنف × مورد) — عشان نقترح السعر تلقائي حسب المورد المختار
-    $priceMap = [];
-    foreach ($items as $it) {
-        foreach ($it->approvedVendors as $v) {
-            $priceMap[$it->id][$v->id] = is_null($v->pivot->last_purchase_price) ? null : (float) $v->pivot->last_purchase_price;
-        }
-    }
-
     $jsItems = $items->map(function ($i) use ($isAr) {
         $name = $isAr ? ($i->name_ar ?: $i->name_en) : ($i->name_en ?: $i->name_ar);
         return ['id' => $i->id, 'code' => $i->item_code, 'name' => $name, 'uom' => $i->base_uom];
@@ -57,8 +49,8 @@
         <i class="fas fa-info-circle text-amber-500 mt-0.5 shrink-0"></i>
         <p class="text-xs text-amber-700 leading-relaxed">
             {{ $isAr
-                ? 'فاتورة الشراء دي لمورد واحد بس. اختر المورد أولاً — السعر هيتقترح تلقائي لأصنافه. تقدر تضيف أي صنف من الكتالوج. بمجرد الحفظ تصبح التزامًا فوريًا للمورد.'
-                : 'This purchase invoice is for a single vendor. Choose the vendor first — prices will be suggested for their items. You can add any catalog item. Once saved, it becomes an immediate liability.' }}
+                ? 'فاتورة الشراء دي لمورد واحد بس. اختر المورد أولاً وأدخل الأسعار يدويًا. تقدر تضيف أي صنف من الكتالوج. بمجرد الحفظ تصبح التزامًا فوريًا للمورد.'
+                : 'This purchase invoice is for a single vendor. Choose the vendor first and enter prices manually. You can add any catalog item. Once saved, it becomes an immediate liability.' }}
         </p>
     </div>
 </div>
@@ -85,6 +77,13 @@
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-400 italic cursor-not-allowed">
             </div>
             <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'رقم فاتورة المورد' : 'Vendor Invoice Number' }}</label>
+                <input type="text" name="vendor_invoice_number" value="{{ old('vendor_invoice_number') }}" dir="ltr"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
+                <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'رقم الفاتورة الخاص بالمورد لمراجعته لاحقًا (اختياري)' : 'The vendor\'s own invoice number for reference (optional)' }}</p>
+                @error('vendor_invoice_number') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+            </div>
+            <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'تاريخ الفاتورة' : 'Invoice Date' }} <span class="text-red-500">*</span></label>
                 <input type="date" name="invoice_date" required value="{{ old('invoice_date', now()->toDateString()) }}"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
@@ -98,6 +97,10 @@
                     @endforeach
                 </select>
                 <p class="text-[11px] text-amber-600 mt-1">{{ $isAr ? 'تنبيه: العملة نهائية بعد الحفظ — وهتبقى إلزامية عند سداد أي دفعة لهذه الفاتورة.' : 'Note: the currency is final once saved — it will be enforced on any payment made against this invoice.' }}</p>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'ملاحظات' : 'Notes' }}</label>
+                <textarea name="notes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">{{ old('notes') }}</textarea>
             </div>
         </div>
     </div>
@@ -154,28 +157,18 @@
 
 <script>
 (function () {
-    const ITEM_VENDOR_PRICE = @json($priceMap);
     const ALL_ITEMS = @json($jsItems);
     const isAr = @json($isAr);
     const SO_ITEMS = @json($soItemsArray);
     let rowIndex = 0;
 
     function fmt(n) { return (Math.round(n * 100) / 100).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
-    function selectedVendorId() { return document.getElementById('vendorSelect').value; }
 
     const invoiceCurrencySel = document.getElementById('invoiceCurrency');
     if (invoiceCurrencySel) {
         invoiceCurrencySel.addEventListener('change', function () {
             document.getElementById('grandTotalCur').textContent = this.value;
         });
-    }
-
-    function suggestedPrice(itemId) {
-        const vId = selectedVendorId();
-        if (!vId || !itemId) return null;
-        const m = ITEM_VENDOR_PRICE[itemId] || {};
-        const p = m[vId];
-        return (p === undefined || p === null) ? null : p;
     }
 
     function rowNet(tr) {
@@ -197,7 +190,7 @@
 
     function rowTemplate(data) {
         const i = rowIndex++;
-        const price = data.item_id ? (suggestedPrice(data.item_id) ?? '') : '';
+        const price = data.unit_price ?? '';
         const tr = document.createElement('tr');
         tr.className = 'border-b border-gray-100';
         tr.dataset.itemId = data.item_id || '';
@@ -231,15 +224,6 @@
     // إضافة أصناف أمر البيع تلقائياً
     SO_ITEMS.forEach(item => {
         rowTemplate(item);
-    });
-
-    // لما المورد يتغير، نحدّث الأسعار المقترحة للأصناف اللي لسه بسعرها الافتراضي فاضي/مقترح
-    document.getElementById('vendorSelect').addEventListener('change', function () {
-        document.querySelectorAll('#itemsBody tr').forEach(tr => {
-            const p = suggestedPrice(tr.dataset.itemId);
-            if (p !== null) tr.querySelector('.calc-p').value = p;
-        });
-        recalcAll();
     });
 
     setTimeout(function () {

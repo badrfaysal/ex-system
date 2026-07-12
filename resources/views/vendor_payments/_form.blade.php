@@ -41,9 +41,9 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ المدفوع' : 'Amount Paid' }} <span class="text-red-500">*</span></label>
-                <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount', $p?->amount) }}" required dir="ltr"
+                <input type="number" step="0.01" min="0.01" max="{{ $balance + (float) ($p?->amount ?? 0) }}" name="amount" value="{{ old('amount', $p?->amount) }}" required dir="ltr"
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-gray-50 focus:bg-white">
-                <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'يمكن أن يكون دفع جزئي' : 'Can be a partial payment' }}</p>
+                <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'يمكن أن يكون دفع جزئي — مينفعش يتعدى المتبقي' : "Can be a partial payment — can't exceed the balance due" }}</p>
                 @error('amount') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
             </div>
             <div>
@@ -74,10 +74,10 @@
 
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-                <i class="fas fa-wallet text-red-400 mr-1"></i> {{ $isAr ? 'المحفظة (الخصم منها)' : 'Wallet (Deduct from)' }} <span class="text-red-500">*</span>
+                <i class="fas fa-wallet text-red-400 mr-1"></i> {{ $isAr ? 'الحساب (الخصم منه)' : 'Account (Deduct from)' }} <span class="text-red-500">*</span>
             </label>
             <select name="wallet_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
-                <option value="" disabled {{ old('wallet_id', $p?->wallet_id) ? '' : 'selected' }}>{{ $isAr ? '— اختر المحفظة —' : '— Choose wallet —' }}</option>
+                <option value="" disabled {{ old('wallet_id', $p?->wallet_id) ? '' : 'selected' }}>{{ $isAr ? '— اختر الحساب —' : '— Choose account —' }}</option>
                 @foreach($wallets as $w)
                     <option value="{{ $w->id }}" data-currency="{{ $w->currency }}" {{ old('wallet_id', $p?->wallet_id) == $w->id ? 'selected' : '' }}>{{ $w->name }} ({{ $w->currency }})</option>
                 @endforeach
@@ -101,6 +101,9 @@
     </div>
 </form>
 
+@php
+    $walletsJs = $wallets->map(fn ($w) => ['id' => $w->id, 'name' => $w->name, 'currency' => $w->currency]);
+@endphp
 <script>
     window.addEventListener('load', function () {
         var cur = document.getElementById('paymentCurrency').value;
@@ -108,7 +111,7 @@
         var ts = walletSel ? walletSel.tomselect : null;
         if (!ts) return;
 
-        var allWallets = @json($wallets->map(fn ($w) => ['id' => $w->id, 'name' => $w->name, 'currency' => $w->currency]));
+        var allWallets = @json($walletsJs);
         var oldWalletId = {{ old('wallet_id', $p?->wallet_id) ? (int) old('wallet_id', $p?->wallet_id) : 'null' }};
         var matching = allWallets.filter(function (w) { return w.currency === cur; });
 

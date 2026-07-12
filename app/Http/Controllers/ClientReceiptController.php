@@ -55,7 +55,17 @@ class ClientReceiptController extends Controller
         $data = $request->validate([
             'sales_invoice_id' => 'required|exists:sales_invoices,id',
             'wallet_id'        => 'required|exists:wallets,id',
-            'amount'           => 'required|numeric|min:0.01',
+            'amount'           => [
+                'required', 'numeric', 'min:0.01',
+                function ($attribute, $value, $fail) use ($request, $isAr) {
+                    $invoice = SalesInvoice::find($request->input('sales_invoice_id'));
+                    if ($invoice && round((float) $value, 2) > round($invoice->balance_due, 2)) {
+                        $fail($isAr
+                            ? 'المبلغ المدخل أكبر من المتبقي على فاتورة البيع (' . number_format($invoice->balance_due, 2) . ' ' . $invoice->currency . ').'
+                            : 'The amount exceeds the sales invoice balance due (' . number_format($invoice->balance_due, 2) . ' ' . $invoice->currency . ').');
+                    }
+                },
+            ],
             'currency'         => [
                 'required', 'string', new MatchesWalletCurrency,
                 function ($attribute, $value, $fail) use ($request, $isAr) {

@@ -244,6 +244,7 @@ return [
         'save_client' => 'Save client',
         'delete'      => 'Delete client',
         'confirm_del' => 'Are you sure you want to permanently delete this client?',
+        'search'      => 'Search by name, contact, phone, email, country, or tax ID...',
     ],
 
     // ===== Vendors =====

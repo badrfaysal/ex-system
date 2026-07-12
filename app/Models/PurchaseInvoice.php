@@ -10,7 +10,7 @@ class PurchaseInvoice extends Model
     use HasFactory;
 
     protected $fillable = [
-        'invoice_number', 'quotation_id', 'sales_order_id', 'vendor_id', 'invoice_date', 'currency', 'notes',
+        'invoice_number', 'vendor_invoice_number', 'quotation_id', 'sales_order_id', 'vendor_id', 'invoice_date', 'currency', 'notes',
         'subtotal', 'total_discount', 'tax_amount', 'grand_total', 'created_by',
     ];
 

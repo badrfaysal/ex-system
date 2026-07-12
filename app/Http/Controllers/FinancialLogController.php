@@ -65,6 +65,18 @@ class FinancialLogController extends Controller
         if ($request->filled('date_to')) {
             $logsQuery->where('transaction_date', '<=', $request->date_to);
         }
+        // فلترة حسب نوع الحركة — source_type بيوحّد الصادر/الوارد للتحويلات في قيمة واحدة "transfer"
+        if ($request->filled('type') && array_key_exists($request->get('type'), self::REVERSIBLE_MODELS)) {
+            $logsQuery->where('source_type', $request->get('type'));
+        }
+        // بحث نصي برقم المستند أو التفاصيل (اسم العميل/المورد/الفئة)
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $logsQuery->where(function ($q) use ($search) {
+                $q->where('ref', 'like', "%{$search}%")
+                  ->orWhere('detail', 'like', "%{$search}%");
+            });
+        }
 
         // مجموع (in/out) + عدد السطور الكلي (للـ pagination) في استعلام واحد بدل ما يتحسبوا
         // في استعلامين منفصلين — الحركات المعكوسة بتدخل في العدّ الكلي (لسه ظاهرة في القائمة
@@ -118,7 +130,9 @@ class FinancialLogController extends Controller
             return $log;
         });
 
-        return view('financial_logs.index', compact('logs', 'totalIn', 'totalOut', 'sort'));
+        $type = $request->get('type', '');
+
+        return view('financial_logs.index', compact('logs', 'totalIn', 'totalOut', 'sort', 'type'));
     }
 
     /**

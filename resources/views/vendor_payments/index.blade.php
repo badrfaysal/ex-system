@@ -17,6 +17,22 @@
         </a>
     </div>
 
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+        <form action="{{ route('vendor-payments.index') }}" method="GET" class="flex flex-wrap items-end gap-4">
+            <div class="flex-1 min-w-[220px]">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'بحث' : 'Search' }}</label>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ $isAr ? 'رقم السند أو اسم المورد' : 'Payment no. or vendor name' }}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-red-500 bg-gray-50">
+            </div>
+            <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors flex items-center gap-2">
+                <i class="fas fa-filter"></i> {{ $isAr ? 'تطبيق' : 'Apply' }}
+            </button>
+            @if(request()->filled('search'))
+            <a href="{{ route('vendor-payments.index') }}" class="px-4 py-2 text-gray-500 text-sm hover:text-gray-700">{{ $isAr ? 'مسح' : 'Clear' }}</a>
+            @endif
+        </form>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-right border-collapse">

@@ -150,6 +150,12 @@
                         <td class="meta-label">{{ $isAr ? 'مركز التكلفة:' : 'Cost Center:' }}</td>
                         <td class="meta-value" dir="ltr"><span style="color:#005B9F; font-weight:bold;">{{ optional($purchaseInvoice->quotation)->quote_number ?? '—' }}</span></td>
                     </tr>
+                    @if($purchaseInvoice->vendor_invoice_number)
+                    <tr>
+                        <td class="meta-label">{{ $isAr ? 'رقم فاتورة المورد:' : 'Vendor Invoice No.:' }}</td>
+                        <td class="meta-value" dir="ltr">{{ $purchaseInvoice->vendor_invoice_number }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <td class="meta-label">{{ $isAr ? 'العملة:' : 'Currency:' }}</td>
                         <td class="meta-value-currency">{{ $purchaseInvoice->currency }}</td>

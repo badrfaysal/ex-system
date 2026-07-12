@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @php $isAr = app()->getLocale() === 'ar'; @endphp
-@section('header_title', $isAr ? 'المحافظ النقدية والبنكية' : 'Cash & Bank Wallets')
+@section('header_title', $isAr ? 'الحسابات البنكية والصناديق المالية' : 'Bank Accounts & Cash Boxes')
 
 @section('content')
 <div class="container mx-auto px-4 max-w-7xl animate-fade-in relative">
@@ -11,7 +11,7 @@
                 <i class="fas fa-wallet text-2xl"></i>
             </div>
             <div>
-                <h2 class="text-3xl font-bold text-gray-900">{{ $isAr ? 'المحافظ' : 'Wallets' }}</h2>
+                <h2 class="text-3xl font-bold text-gray-900">{{ $isAr ? 'الحسابات البنكية والصناديق المالية' : 'Bank Accounts & Cash Boxes' }}</h2>
                 <p class="text-sm text-gray-500 mt-0.5">{{ $isAr ? 'الحسابات البنكية والخزائن النقدية' : 'Bank accounts and cash drawers' }}</p>
             </div>
         </div>
@@ -26,7 +26,7 @@
                 <i class="fas fa-exchange-alt"></i> {{ $isAr ? 'تحويل' : 'Transfer' }}
             </a>
             <a href="{{ route('wallets.create') }}" class="px-4 py-2.5 bg-[#005B9F] text-white rounded-lg font-bold hover:bg-blue-800 transition-colors shadow-sm flex items-center gap-2">
-                <i class="fas fa-plus"></i> {{ $isAr ? 'محفظة جديدة' : 'New Wallet' }}
+                <i class="fas fa-plus"></i> {{ $isAr ? 'حساب جديد' : 'New Account' }}
             </a>
         </div>
     </div>
@@ -52,7 +52,7 @@
             </div>
         @empty
             <div class="col-span-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
-                {{ $isAr ? 'لا توجد محافظ بعد' : 'No wallets yet' }}
+                {{ $isAr ? 'لا توجد حسابات بعد' : 'No accounts yet' }}
             </div>
         @endforelse
     </div>
@@ -71,9 +71,9 @@
             <input type="hidden" name="redirect_to" value="{{ route('wallets.index') }}">
             
             <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'إلى محفظة' : 'To Wallet' }} *</label>
+                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'إلى حساب' : 'To Account' }} *</label>
                 <select name="wallet_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-[#008A3B] focus:border-[#008A3B] text-sm font-bold">
-                    <option value="">{{ $isAr ? '— اختر المحفظة —' : '-- Select Wallet --' }}</option>
+                    <option value="">{{ $isAr ? '— اختر الحساب —' : '-- Select Account --' }}</option>
                     @foreach($wallets as $w)
                         <option value="{{ $w->id }}">{{ $w->name }} ({{ $w->currency }})</option>
                     @endforeach
@@ -118,9 +118,9 @@
             <input type="hidden" name="currency" value="EGP">
             
             <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'من محفظة' : 'From Wallet' }} *</label>
+                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'من حساب' : 'From Account' }} *</label>
                 <select name="wallet_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm font-bold">
-                    <option value="">{{ $isAr ? '— اختر المحفظة —' : '-- Select Wallet --' }}</option>
+                    <option value="">{{ $isAr ? '— اختر الحساب —' : '-- Select Account --' }}</option>
                     @foreach($wallets as $w)
                         <option value="{{ $w->id }}">{{ $w->name }} ({{ $w->currency }})</option>
                     @endforeach

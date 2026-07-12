@@ -272,7 +272,7 @@
         document.getElementById('payCurrencyInput').value = opt.dataset.currency || 'EGP';
     }
 
-    // فلترة المحفظة حسب عملة الفاتورة المختارة — تظهر بس المحافظ اللي بنفس العملة
+    // فلترة الحساب حسب عملة الفاتورة المختارة — تظهر بس الحسابات اللي بنفس العملة
     function filterWallets() {
         const cur = document.getElementById('payCurrencyInput').value;
         const walletSel = document.getElementById('payWalletSelect');
