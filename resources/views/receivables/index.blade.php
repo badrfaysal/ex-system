@@ -15,13 +15,23 @@
                 <p class="text-sm text-gray-500 mt-0.5">{{ $isAr ? 'الفلوس اللي ليك عند العملاء' : 'Money clients owe you' }}</p>
             </div>
         </div>
+        <div class="flex bg-gray-100 p-1 rounded-xl">
+            <a href="{{ route('receivables.index', ['tab' => 'active', 'search' => request('search'), 'sort' => request('sort')]) }}"
+               class="px-5 py-2 text-sm font-bold rounded-lg transition-colors {{ request('tab', 'active') === 'active' ? 'bg-white shadow-sm text-[#008A3B]' : 'text-gray-500 hover:text-gray-700' }}">
+                {{ $isAr ? 'النشط' : 'Active' }}
+            </a>
+            <a href="{{ route('receivables.index', ['tab' => 'paid', 'search' => request('search'), 'sort' => request('sort')]) }}"
+               class="px-5 py-2 text-sm font-bold rounded-lg transition-colors {{ request('tab') === 'paid' ? 'bg-white shadow-sm text-[#008A3B]' : 'text-gray-500 hover:text-gray-700' }}">
+                {{ $isAr ? 'المسدد' : 'Paid' }}
+            </a>
+        </div>
     </div>
 
     {{-- كروت الملخص --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'إجمالي أوامر البيع' : 'Total Ordered' }}</p>
-            <p class="text-2xl font-extrabold text-gray-900" dir="ltr">{{ number_format($summary['ordered'], 2) }}</p>
+            <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'إجمالي فواتير البيع' : 'Total Invoiced' }}</p>
+            <p class="text-2xl font-extrabold text-gray-900" dir="ltr">{{ number_format($summary['invoiced'], 2) }}</p>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'إجمالي المحصّل' : 'Total Collected' }}</p>
@@ -36,6 +46,7 @@
     {{-- فلتر وترتيب --}}
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
         <form action="{{ route('receivables.index') }}" method="GET" class="flex flex-wrap items-end gap-4">
+            <input type="hidden" name="tab" value="{{ request('tab', 'active') }}">
             <div class="flex-1 min-w-[220px]">
                 <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'بحث بالعميل' : 'Search Client' }}</label>
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ $isAr ? 'اسم العميل' : 'Client name' }}"
@@ -67,7 +78,7 @@
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-100 text-gray-600 text-sm font-bold">
                         <th class="p-4">{{ $isAr ? 'العميل' : 'Client' }}</th>
-                        <th class="p-4">{{ $isAr ? 'إجمالي أوامر البيع' : 'Total Ordered' }}</th>
+                        <th class="p-4">{{ $isAr ? 'إجمالي فواتير البيع' : 'Total Invoiced' }}</th>
                         <th class="p-4">{{ $isAr ? 'إجمالي المحصّل' : 'Total Collected' }}</th>
                         <th class="p-4">{{ $isAr ? 'الرصيد المستحق' : 'Balance Due' }}</th>
                     </tr>
@@ -76,7 +87,7 @@
                     @forelse ($clients as $client)
                         <tr class="hover:bg-green-50/30 cursor-pointer" onclick="location.href='{{ route('receivables.show', $client) }}'">
                             <td class="p-4 font-bold text-gray-900">{{ $client->displayName($isAr ? 'ar' : 'en') }}</td>
-                            <td class="p-4 text-gray-600" dir="ltr">{{ number_format($client->ordered_total ?? 0, 2) }}</td>
+                            <td class="p-4 text-gray-600" dir="ltr">{{ number_format($client->invoiced_total ?? 0, 2) }}</td>
                             <td class="p-4 text-gray-600" dir="ltr">{{ number_format($client->collected_total ?? 0, 2) }}</td>
                             <td class="p-4 font-extrabold {{ $client->balance > 0 ? 'text-red-600' : 'text-green-600' }}" dir="ltr">{{ number_format($client->balance, 2) }}</td>
                         </tr>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Expense;
 use App\Models\Quotation;
 use App\Models\Setting;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -47,10 +48,16 @@ class ExpenseController extends Controller
     {
         $data = $this->validateData($request);
 
+        $data['created_by'] = auth()->id();
         $expense = Expense::create($data);
 
-        return redirect()->route('expenses.index')
-            ->with('success', app()->getLocale() === 'ar' ? 'تم حفظ المصروف بنجاح' : 'Expense saved successfully');
+        $msg = app()->getLocale() === 'ar' ? 'تم حفظ المصروف بنجاح' : 'Expense saved successfully';
+
+        if ($request->has('redirect_to')) {
+            return redirect($request->redirect_to)->with('success', $msg);
+        }
+
+        return redirect()->route('expenses.index')->with('success', $msg);
     }
 
     public function edit(Expense $expense)
@@ -62,6 +69,7 @@ class ExpenseController extends Controller
     {
         $data = $this->validateData($request, $expense->id);
 
+        $data['created_by'] = auth()->id();
         $expense->update($data);
 
         return redirect()->route('expenses.index')
@@ -80,6 +88,7 @@ class ExpenseController extends Controller
             'quotations' => Quotation::orderByDesc('id')->get(['id', 'quote_number', 'cost_center_name', 'client_id']),
             'categories' => $lookups->get('expense_category') ?? collect(),
             'currencies' => $lookups->get('currency') ?? collect(),
+            'wallets'    => Wallet::orderBy('name')->get(['id', 'name', 'currency']),
         ];
     }
 
@@ -94,9 +103,10 @@ class ExpenseController extends Controller
     {
         return $request->validate([
             'expense_number' => 'required|string|unique:expenses,expense_number' . ($ignoreId ? ",$ignoreId" : ''),
-            'quotation_id'   => 'required|exists:quotations,id',
+            'quotation_id'   => 'nullable|exists:quotations,id',
             'category'       => 'required|string',
             'description'    => 'nullable|string',
+            'wallet_id'      => 'required|exists:wallets,id',
             'amount'         => 'required|numeric|min:0.01',
             'currency'       => 'required|string',
             'expense_date'   => 'required|date',

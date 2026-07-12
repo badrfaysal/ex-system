@@ -42,13 +42,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($byVendor as $vendorId => $lines)
-                        @php $vendor = $lines->first()->vendor; @endphp
-                        @foreach($lines as $idx => $line)
+                    @foreach($purchaseInvoice->items as $idx => $line)
                         <tr class="border-b border-gray-100 {{ $idx === 0 ? 'border-t-2 border-t-blue-100' : '' }}">
                             @if($idx === 0)
-                            <td class="px-3 py-2 font-bold text-[#005B9F]" rowspan="{{ $lines->count() }}">
-                                {{ $isAr ? optional($vendor)->name_ar : (optional($vendor)->name_en ?: optional($vendor)->name_ar) }}
+                            <td class="px-3 py-2 font-bold text-[#005B9F]" rowspan="{{ $purchaseInvoice->items->count() }}">
+                                {{ $isAr ? optional($purchaseInvoice->vendor)->name_ar : (optional($purchaseInvoice->vendor)->name_en ?: optional($purchaseInvoice->vendor)->name_ar) }}
                             </td>
                             @endif
                             <td class="px-3 py-2 text-gray-800">{{ $line->displayDescription($isAr ? 'ar' : 'en') }}</td>
@@ -56,7 +54,6 @@
                             <td class="px-3 py-2 text-center" dir="ltr">{{ number_format($line->unit_price, 2) }}</td>
                             <td class="px-3 py-2 font-bold" dir="ltr">{{ number_format($line->net_total, 2) }}</td>
                         </tr>
-                        @endforeach
                     @endforeach
                 </tbody>
             </table>
@@ -76,17 +73,14 @@
         </div>
     </div>
 
-    {{-- التزامات كل مورد --}}
+    {{-- التزامات المورد --}}
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
-        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-hand-holding-usd text-red-500"></i> {{ $isAr ? 'الالتزام لكل مورد من هذه الفاتورة' : 'Liability per vendor from this invoice' }}</h3>
+        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-hand-holding-usd text-red-500"></i> {{ $isAr ? 'الالتزام للمورد عن هذه الفاتورة' : 'Liability for vendor from this invoice' }}</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            @foreach($byVendor as $vendorId => $lines)
-                @php $vendor = $lines->first()->vendor; @endphp
-                <a href="{{ route('payables.show', $vendorId) }}" class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-[#005B9F] transition-colors">
-                    <span class="font-bold text-gray-800">{{ $isAr ? optional($vendor)->name_ar : (optional($vendor)->name_en ?: optional($vendor)->name_ar) }}</span>
-                    <span class="font-extrabold text-red-600" dir="ltr">{{ number_format($lines->sum('net_total'), 2) }} {{ $cur }}</span>
-                </a>
-            @endforeach
+            <a href="{{ route('payables.show', $purchaseInvoice->vendor_id) }}" class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-[#005B9F] transition-colors">
+                <span class="font-bold text-gray-800">{{ $isAr ? optional($purchaseInvoice->vendor)->name_ar : (optional($purchaseInvoice->vendor)->name_en ?: optional($purchaseInvoice->vendor)->name_ar) }}</span>
+                <span class="font-extrabold text-red-600" dir="ltr">{{ number_format($purchaseInvoice->grand_total, 2) }} {{ $cur }}</span>
+            </a>
         </div>
     </div>
 </div>

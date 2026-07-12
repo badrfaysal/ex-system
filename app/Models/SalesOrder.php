@@ -34,18 +34,35 @@ class SalesOrder extends Model
         return $this->hasMany(SalesOrderItem::class);
     }
 
-    public function receipts()
+    public function salesInvoices()
     {
-        return $this->hasMany(ClientReceipt::class);
+        return $this->hasMany(SalesInvoice::class);
     }
 
-    public function getReceivedAmountAttribute(): float
+    public function purchaseInvoices()
     {
-        return (float) $this->receipts()->sum('amount');
+        return $this->hasMany(PurchaseInvoice::class);
     }
 
-    public function getBalanceDueAttribute(): float
+    /**
+     * إجمالي المفوتر فعليًا من هذا الأمر (عبر فاتورة بيع واحدة أو أكتر — فوترة جزئية)
+     */
+    public function getInvoicedAmountAttribute(): float
     {
-        return (float) $this->grand_total - $this->received_amount;
+        return (float) $this->salesInvoices()->sum('grand_total');
+    }
+
+    /**
+     * أوامر البيع اللي عندها فاتورة شراء بدون فاتورة بيع، أو العكس
+     */
+    public function scopeWithMismatchedInvoices($query)
+    {
+        return $query
+            ->where(function ($q) {
+                $q->whereHas('purchaseInvoices')->whereDoesntHave('salesInvoices');
+            })
+            ->orWhere(function ($q) {
+                $q->whereHas('salesInvoices')->whereDoesntHave('purchaseInvoices');
+            });
     }
 }

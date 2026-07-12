@@ -128,55 +128,45 @@
     {{-- ===== الجسم: آخر العمليات + توزيع عروض الأسعار ===== --}}
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
 
-        {{-- آخر 4 عمليات --}}
+        {{-- المحافظ والأرصدة --}}
         <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                 <p class="font-bold text-gray-800 text-sm flex items-center gap-2">
-                    <i class="fas fa-history text-gray-400 text-xs"></i>
-                    {{ __('messages.dashboard.recent_title') }}
+                    <i class="fas fa-wallet text-gray-400 text-xs"></i>
+                    المحافظ والصناديق (الأرصدة الحالية)
                 </p>
-                <span class="text-[10px] bg-green-50 text-green-600 px-2.5 py-1 rounded-full font-bold uppercase tracking-wide">
-                    {{ __('messages.dashboard.live_update') }}
-                </span>
+                <a href="{{ route('settings.index') }}#wallets" class="text-[10px] bg-blue-50 text-[#005B9F] hover:bg-blue-100 px-2.5 py-1 rounded-full font-bold transition-colors flex items-center gap-1">
+                    <i class="fas fa-cog"></i> إعدادات المحافظ
+                </a>
             </div>
 
-            @if($recentActivities->isEmpty())
+            @if($wallets->isEmpty())
                 <div class="px-6 py-14 text-center text-gray-400">
-                    <i class="fas fa-inbox text-3xl mb-2 block text-gray-200"></i>
-                    <p class="text-sm">لا توجد عمليات حديثة بعد</p>
+                    <i class="fas fa-wallet text-3xl mb-2 block text-gray-200"></i>
+                    <p class="text-sm">لا توجد محافظ مسجلة بعد</p>
                 </div>
             @else
-            <div class="divide-y divide-gray-50">
-                @foreach($recentActivities as $act)
-                @php
-                    $palette = [
-                        'blue'   => 'bg-blue-50 text-blue-600',
-                        'green'  => 'bg-green-50 text-[#008A3B]',
-                        'amber'  => 'bg-amber-50 text-amber-600',
-                        'purple' => 'bg-purple-50 text-purple-600',
-                        'indigo' => 'bg-indigo-50 text-indigo-600',
-                    ];
-                    $cls = $palette[$act['color']] ?? 'bg-gray-100 text-gray-600';
-                @endphp
-                <a href="{{ $act['url'] }}"
-                    class="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 transition-colors group">
-                    <div class="w-9 h-9 rounded-xl {{ $cls }} flex items-center justify-center flex-shrink-0">
-                        <i class="fas {{ $act['icon'] }} text-sm"></i>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-gray-50/50">
+                @foreach($wallets as $wallet)
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-[#EBF7F0] text-[#008A3B] flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-gray-900">{{ $wallet->name }}</p>
+                            <p class="text-xs text-gray-400">
+                                رصيد أول المدة: <span dir="ltr">{{ number_format($wallet->opening_balance, 2) }}</span>
+                            </p>
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-800 truncate">{{ $act['name'] }}</p>
-                        <p class="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
-                            <span class="font-bold {{ explode(' ', $cls)[1] }}">{{ $act['label'] }}</span>
-                            @if($act['sub'])
-                                <span class="text-gray-300 mx-0.5">·</span>
-                                <span class="font-mono truncate">{{ $act['sub'] }}</span>
-                            @endif
+                    <div class="text-left">
+                        <p class="text-xs text-gray-400 mb-0.5">الرصيد الحالي</p>
+                        <p class="font-black text-lg text-[#005B9F]" dir="ltr">
+                            {{ number_format($wallet->current_balance, 2) }} <span class="text-xs text-gray-500 font-normal">{{ $wallet->currency }}</span>
                         </p>
                     </div>
-                    <span class="text-[11px] text-gray-400 whitespace-nowrap flex-shrink-0">
-                        {{ $act['time']?->diffForHumans() ?? '—' }}
-                    </span>
-                </a>
+                </div>
                 @endforeach
             </div>
             @endif

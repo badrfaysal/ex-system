@@ -16,8 +16,8 @@ class ReceivableController extends Controller
     public function index(Request $request)
     {
         $query = Client::query()
-            ->whereHas('salesOrders')
-            ->withSum('salesOrders as ordered_total', 'grand_total')
+            ->whereHas('salesInvoices')
+            ->withSum('salesInvoices as invoiced_total', 'grand_total')
             ->withSum('receipts as collected_total', 'amount');
 
         if ($request->filled('search')) {
@@ -28,9 +28,16 @@ class ReceivableController extends Controller
 
         $clients = $query->get()
             ->map(function ($client) {
-                $client->balance = (float) $client->ordered_total - (float) $client->collected_total;
+                $client->balance = (float) $client->invoiced_total - (float) $client->collected_total;
                 return $client;
             });
+
+        $tab = $request->input('tab', 'active');
+        if ($tab === 'paid') {
+            $clients = $clients->filter(fn ($c) => $c->balance <= 0);
+        } else {
+            $clients = $clients->filter(fn ($c) => $c->balance > 0);
+        }
 
         $sort = $request->input('sort', 'balance_desc');
         $clients = match ($sort) {
@@ -42,7 +49,7 @@ class ReceivableController extends Controller
         $clients = $clients->values();
 
         $summary = [
-            'ordered'   => $clients->sum('ordered_total'),
+            'invoiced'  => $clients->sum('invoiced_total'),
             'collected' => $clients->sum('collected_total'),
             'balance'   => $clients->sum('balance'),
         ];
@@ -57,18 +64,21 @@ class ReceivableController extends Controller
     {
         [$timeline, $balance] = $this->buildTimeline($client);
 
-        // أوامر البيع اللي لسه عليها رصيد — تُستخدم في نموذج تسجيل الدفعة (كامل/جزئي)
-        $openOrders = $client->salesOrders
-            ->map(fn ($so) => ['id' => $so->id, 'so_number' => $so->so_number, 'balance_due' => $so->balance_due, 'currency' => $so->currency])
-            ->filter(fn ($so) => $so['balance_due'] > 0)
+        // فواتير البيع اللي لسه عليها رصيد — تُستخدم في نموذج تسجيل الدفعة (كامل/جزئي)
+        $openInvoices = $client->salesInvoices
+            ->map(fn ($si) => ['id' => $si->id, 'invoice_number' => $si->invoice_number, 'balance_due' => $si->balance_due, 'currency' => $si->currency])
+            ->filter(fn ($si) => $si['balance_due'] > 0)
             ->values();
+
+        $wallets = \App\Models\Wallet::orderBy('name')->get(['id', 'name']);
 
         return view('receivables.show', [
             'client'            => $client,
             'timeline'          => $timeline,
             'balance'           => $balance,
-            'openOrders'        => $openOrders,
+            'openInvoices'      => $openInvoices,
             'nextReceiptNumber' => $this->nextReceiptNumber(),
+            'wallets'           => $wallets,
         ]);
     }
 
@@ -101,14 +111,14 @@ class ReceivableController extends Controller
      */
     private function buildTimeline(Client $client): array
     {
-        $client->load(['salesOrders', 'receipts']);
+        $client->load(['salesInvoices', 'receipts']);
 
-        $orderEntries = $client->salesOrders->map(fn ($so) => [
-            'date'   => $so->so_date,
-            'type'   => 'order',
-            'ref'    => $so->so_number,
-            'amount' => $so->grand_total,
-            'link'   => route('sales-orders.show', $so),
+        $invoiceEntries = $client->salesInvoices->map(fn ($si) => [
+            'date'   => $si->invoice_date,
+            'type'   => 'invoice',
+            'ref'    => $si->invoice_number,
+            'amount' => $si->grand_total,
+            'link'   => route('sales-invoices.show', $si),
         ]);
 
         $receiptEntries = $client->receipts->map(fn ($r) => [
@@ -119,7 +129,7 @@ class ReceivableController extends Controller
             'link'   => null,
         ]);
 
-        $timeline = $orderEntries->concat($receiptEntries)->sortBy('date')->values();
+        $timeline = $invoiceEntries->concat($receiptEntries)->sortBy('date')->values();
 
         $running = 0;
         $timeline = $timeline->map(function ($entry) use (&$running) {

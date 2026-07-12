@@ -1,8 +1,8 @@
 @extends('layouts.app')
 @php
     $isAr = app()->getLocale() === 'ar';
-    $clientDisplay = optional($salesOrder->client)->displayName($isAr ? 'ar' : 'en') ?? '—';
-    $balance = $salesOrder->balance_due;
+    $clientDisplay = optional($salesInvoice->client)->displayName($isAr ? 'ar' : 'en') ?? '—';
+    $balance = $salesInvoice->balance_due;
 @endphp
 @section('header_title', $isAr ? 'تسجيل سند قبض' : 'Record Client Receipt')
 
@@ -15,21 +15,21 @@
             </div>
             <h2 class="text-2xl font-bold text-gray-900">{{ $isAr ? 'تسجيل سند قبض' : 'Record Client Receipt' }}</h2>
         </div>
-        <a href="{{ route('sales-orders.show', $salesOrder) }}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 font-medium transition-colors shadow-sm flex items-center gap-2">
-            <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }} text-sm"></i> {{ $isAr ? 'أمر البيع' : 'Sales Order' }}
+        <a href="{{ route('sales-invoices.show', $salesInvoice) }}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 font-medium transition-colors shadow-sm flex items-center gap-2">
+            <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }} text-sm"></i> {{ $isAr ? 'فاتورة البيع' : 'Sales Invoice' }}
         </a>
     </div>
 
     <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 animate-fade-in">
         <div class="mb-6 p-4 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between">
             <div>
-                <p class="text-xs text-gray-400">{{ $isAr ? 'أمر البيع' : 'Sales Order' }}</p>
-                <p class="font-mono font-bold text-gray-800">{{ $salesOrder->so_number }}</p>
+                <p class="text-xs text-gray-400">{{ $isAr ? 'فاتورة البيع' : 'Sales Invoice' }}</p>
+                <p class="font-mono font-bold text-gray-800">{{ $salesInvoice->invoice_number }}</p>
                 <p class="text-xs text-gray-500 mt-1">{{ $clientDisplay }}</p>
             </div>
             <div class="text-{{ $isAr ? 'left' : 'right' }}">
                 <p class="text-xs text-gray-400">{{ $isAr ? 'المتبقي' : 'Balance Due' }}</p>
-                <p class="font-extrabold text-lg {{ $balance > 0 ? 'text-red-600' : 'text-green-600' }}" dir="ltr">{{ number_format($balance, 2) }} {{ $salesOrder->currency }}</p>
+                <p class="font-extrabold text-lg {{ $balance > 0 ? 'text-red-600' : 'text-green-600' }}" dir="ltr">{{ number_format($balance, 2) }} {{ $salesInvoice->currency }}</p>
             </div>
         </div>
 
@@ -37,7 +37,7 @@
 
         <form action="{{ route('client-receipts.store') }}" method="POST">
             @csrf
-            <input type="hidden" name="sales_order_id" value="{{ $salesOrder->id }}">
+            <input type="hidden" name="sales_invoice_id" value="{{ $salesInvoice->id }}">
 
             <div class="grid grid-cols-1 gap-6">
                 <div>
@@ -55,7 +55,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }} <span class="text-red-500">*</span></label>
-                        <input type="text" name="currency" required dir="ltr" value="{{ old('currency', $salesOrder->currency) }}"
+                        <input type="text" name="currency" required dir="ltr" value="{{ old('currency', $salesInvoice->currency) }}"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-50 focus:outline-none focus:border-[#008A3B]">
                     </div>
                 </div>
@@ -78,13 +78,26 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-wallet text-[#005B9F] mr-1"></i> {{ $isAr ? 'المحفظة (الإضافة إليها)' : 'Wallet (Add to)' }} <span class="text-red-500">*</span>
+                    </label>
+                    <select name="wallet_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
+                        <option value="" disabled {{ old('wallet_id') ? '' : 'selected' }}>{{ $isAr ? '— اختر المحفظة —' : '— Choose wallet —' }}</option>
+                        @foreach($wallets as $w)
+                            <option value="{{ $w->id }}" {{ old('wallet_id') == $w->id ? 'selected' : '' }}>{{ $w->name }} ({{ $w->currency }})</option>
+                        @endforeach
+                    </select>
+                    @error('wallet_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'ملاحظات' : 'Notes' }}</label>
                     <textarea name="notes" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B] bg-gray-50 focus:bg-white">{{ old('notes') }}</textarea>
                 </div>
             </div>
 
             <div class="mt-10 flex justify-end gap-4 border-t border-gray-100 pt-8">
-                <a href="{{ route('sales-orders.show', $salesOrder) }}" class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-100 font-medium transition-colors">
+                <a href="{{ route('sales-invoices.show', $salesInvoice) }}" class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-100 font-medium transition-colors">
                     {{ $isAr ? 'إلغاء' : 'Cancel' }}
                 </a>
                 <button type="submit" class="px-8 py-2.5 bg-[#008A3B] rounded-lg text-white hover:bg-[#007030] font-bold shadow-lg flex items-center gap-2">

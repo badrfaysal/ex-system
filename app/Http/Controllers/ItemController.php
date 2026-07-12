@@ -67,7 +67,7 @@ $query = \App\Models\Item::with(['defaultVendor', 'images']);
         // Build sub-category map: expand JSON parent_keys so each sub appears under every parent it belongs to
         $subCatMap = $this->buildSubCatMap($itemSubGroups);
 
-        $vendors = Vendor::where('status', 'active')->select('id', 'name_ar', 'vendor_code')->get();
+        $vendors = Vendor::select('id', 'name_ar', 'vendor_code')->get();
 
         return view('items.create', compact('itemGroups', 'itemSubGroups', 'uoms', 'itemStatuses', 'vendors', 'subCatMap'));
     }
@@ -147,7 +147,7 @@ public function store(Request $request)
 
         $subCatMap = $this->buildSubCatMap($itemSubGroups);
 
-        $vendors = Vendor::where('status', 'active')->select('id', 'name_ar', 'vendor_code')->get();
+        $vendors = Vendor::select('id', 'name_ar', 'vendor_code')->get();
 
         return view('items.edit', compact('item', 'itemGroups', 'itemSubGroups', 'uoms', 'itemStatuses', 'vendors', 'subCatMap'));
     }

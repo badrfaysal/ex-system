@@ -84,7 +84,7 @@ public function index(Request $request)
             'address'               => 'nullable|string',
             'default_price_list_id' => 'nullable|exists:price_lists,id',
             'default_sales_rep'     => 'nullable|string|max:255',
-            'default_currency'      => 'nullable|string|max:10',
+            'default_currency'      => 'nullable|string|max:255',
         ]);
 
         Client::create($validatedData);
@@ -116,7 +116,7 @@ public function index(Request $request)
             'address'               => 'nullable|string',
             'default_price_list_id' => 'nullable|exists:price_lists,id',
             'default_sales_rep'     => 'nullable|string|max:255',
-            'default_currency'      => 'nullable|string|max:10',
+            'default_currency'      => 'nullable|string|max:255',
         ]);
 
         $client->update($validatedData);

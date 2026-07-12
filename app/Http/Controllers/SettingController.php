@@ -14,7 +14,8 @@ class SettingController extends Controller
     {
         // جلب كل الإعدادات وتصنيفها حسب نوع القائمة (category)
         $settings = Setting::all()->groupBy('category');
-        return view('settings.index', compact('settings'));
+        $wallets = \App\Models\Wallet::orderBy('name')->get();
+        return view('settings.index', compact('settings', 'wallets'));
     }
 
     public function store(Request $request)
@@ -90,12 +91,15 @@ class SettingController extends Controller
             'parent_key'   => $request->parent_key ?: null,
         ]);
 
+        \Illuminate\Support\Facades\Cache::forget('system_settings');
+
         return back()->with('success', 'تم إضافة العنصر للقائمة بنجاح');
     }
 
     public function destroy(Setting $setting)
     {
         $setting->delete();
+        \Illuminate\Support\Facades\Cache::forget('system_settings');
         return back()->with('success', 'تم حذف العنصر من النظام');
     }
 

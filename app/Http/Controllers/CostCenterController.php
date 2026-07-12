@@ -50,7 +50,11 @@ class CostCenterController extends Controller
     public function update(Request $request, Quotation $quotation)
     {
         $data = $request->validate([
-            'cost_center_name' => 'required|string|max:255',
+            'cost_center_name' => 'required|string|max:255|unique:quotations,cost_center_name,' . $quotation->id,
+        ], [
+            'cost_center_name.unique' => app()->getLocale() === 'ar'
+                ? 'اسم مركز التكلفة ده مستخدم قبل كده — اختر اسم تاني.'
+                : 'This cost center name is already taken — choose another.',
         ]);
 
         $quotation->update($data);

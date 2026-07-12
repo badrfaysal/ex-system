@@ -72,7 +72,7 @@ public function index(Request $request)
     $vendorStatuses = $lookups->get('vendor_status') ?? collect();
     $currencies     = $lookups->get('currency') ?? collect();
     $paymentMethods = $lookups->get('payment_method') ?? collect();
-$items = Item::where('status', 'active')->select('id', 'name_ar', 'item_code')->get();
+$items = Item::select('id', 'name_ar', 'item_code')->get();
     return view('vendors.create', compact('vendorGroups', 'vendorStatuses', 'currencies', 'paymentMethods', 'items'));
 }
 
@@ -151,7 +151,7 @@ $items = Item::where('status', 'active')->select('id', 'name_ar', 'item_code')->
      */
     public function edit(Vendor $vendor)
     {
-        $items = Item::where('status', 'active')->select('id', 'name_ar', 'item_code')->get();
+        $items = Item::select('id', 'name_ar', 'item_code')->get();
         $vendor->load('approvedItems');
         return view('vendors.edit', compact('vendor', 'items'));
     }
@@ -167,8 +167,8 @@ $items = Item::where('status', 'active')->select('id', 'name_ar', 'item_code')->
             'name_en'          => 'nullable|string|max:255',
             'legal_name'       => 'nullable|string|max:255',
             'vendor_group'     => 'required|string',
-            'status'           => 'required|in:active,on_hold,blocked',
-            'block_reason'     => 'nullable|required_if:status,blocked|string',
+            'status'           => 'required|string',
+            'block_reason'     => 'nullable|string',
 
             // الاتصال
             'phone'            => 'nullable|string',

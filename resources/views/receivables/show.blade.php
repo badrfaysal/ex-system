@@ -4,7 +4,7 @@
     $docDir = $isAr ? 'rtl' : 'ltr';
     $txtAlign = $isAr ? 'right' : 'left';
     $txtAlignOpp = $isAr ? 'left' : 'right';
-    $totalOrdered = $timeline->where('type', 'order')->sum('amount');
+    $totalInvoiced = $timeline->where('type', 'invoice')->sum('amount');
     $totalCollected = -1 * $timeline->where('type', 'receipt')->sum('amount');
 @endphp
 @section('header_title', $client->displayName($isAr ? 'ar' : 'en'))
@@ -34,7 +34,7 @@
             <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }}"></i> {{ $isAr ? 'كل المستحقات' : 'All Receivables' }}
         </a>
         <div class="flex flex-wrap items-center gap-2">
-            @if($openOrders->isNotEmpty())
+            @if($openInvoices->isNotEmpty())
             <button type="button" onclick="openPayModal()" class="px-5 py-2 bg-[#008A3B] text-white rounded-lg font-bold text-sm hover:bg-[#007030] flex items-center gap-2">
                 <i class="fas fa-hand-holding-usd"></i> {{ $isAr ? 'تسجيل دفعة' : 'Record Payment' }}
             </button>
@@ -95,8 +95,8 @@
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{{ $isAr ? 'الملخص' : 'Summary' }}</p>
                 <table class="text-xs w-full" dir="{{ $docDir }}">
                     <tr>
-                        <td class="text-gray-400 pb-1.5 {{ $isAr ? 'pl-3' : 'pr-3' }}">{{ $isAr ? 'إجمالي المستحق:' : 'Total Due:' }}</td>
-                        <td class="font-bold text-gray-700 pb-1.5 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($totalOrdered, 2) }}</td>
+                        <td class="text-gray-400 pb-1.5 {{ $isAr ? 'pl-3' : 'pr-3' }}">{{ $isAr ? 'إجمالي فواتير البيع:' : 'Total Invoiced:' }}</td>
+                        <td class="font-bold text-gray-700 pb-1.5 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($totalInvoiced, 2) }}</td>
                     </tr>
                     <tr>
                         <td class="text-gray-400 pb-1.5 {{ $isAr ? 'pl-3' : 'pr-3' }}">{{ $isAr ? 'إجمالي المدفوع:' : 'Total Paid:' }}</td>
@@ -130,8 +130,8 @@
                                 @if($entry['link'] && !empty($isAr)) <span class="font-mono text-[#005B9F]">{{ $entry['ref'] }}</span> @else <span class="font-mono text-gray-700">{{ $entry['ref'] }}</span> @endif
                             </td>
                             <td class="px-3 py-2 text-xs">
-                                @if($entry['type'] === 'order')
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-[#005B9F]">{{ $isAr ? 'أمر بيع' : 'Sales Order' }}</span>
+                                @if($entry['type'] === 'invoice')
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-[#005B9F]">{{ $isAr ? 'فاتورة بيع' : 'Sales Invoice' }}</span>
                                 @else
                                     <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700">{{ $isAr ? 'سند قبض' : 'Receipt' }}</span>
                                 @endif
@@ -169,7 +169,7 @@
 </div>
 
 {{-- ============ Modal تسجيل دفعة ============ --}}
-@if($openOrders->isNotEmpty())
+@if($openInvoices->isNotEmpty())
 <div id="payModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 no-print" role="dialog">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closePayModal()"></div>
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" dir="{{ $isAr ? 'rtl' : 'ltr' }}">
@@ -191,12 +191,12 @@
             <input type="hidden" name="receipt_date" value="{{ now()->toDateString() }}">
 
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'أمر البيع' : 'Sales Order' }} <span class="text-red-500">*</span></label>
-                <select name="sales_order_id" id="payOrderSelect" required
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'فاتورة البيع' : 'Sales Invoice' }} <span class="text-red-500">*</span></label>
+                <select name="sales_invoice_id" id="payOrderSelect" required
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
-                    @foreach($openOrders as $o)
+                    @foreach($openInvoices as $o)
                         <option value="{{ $o['id'] }}" data-balance="{{ $o['balance_due'] }}" data-currency="{{ $o['currency'] }}">
-                            {{ $o['so_number'] }} — {{ $isAr ? 'المتبقي' : 'Due' }}: {{ number_format($o['balance_due'], 2) }} {{ $o['currency'] }}
+                            {{ $o['invoice_number'] }} — {{ $isAr ? 'المتبقي' : 'Due' }}: {{ number_format($o['balance_due'], 2) }} {{ $o['currency'] }}
                         </option>
                     @endforeach
                 </select>
@@ -225,14 +225,24 @@
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'طريقة الدفع' : 'Payment Method' }}</label>
-                <select name="payment_method" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
-                    <option value="">{{ $isAr ? '— غير محدد —' : '— Not set —' }}</option>
-                    <option value="cash">{{ $isAr ? 'نقدي' : 'Cash' }}</option>
-                    <option value="bank_transfer">{{ $isAr ? 'تحويل بنكي' : 'Bank Transfer' }}</option>
-                    <option value="cheque">{{ $isAr ? 'شيك' : 'Cheque' }}</option>
-                </select>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'طريقة الدفع' : 'Payment Method' }}</label>
+                    <select name="payment_method" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
+                        <option value="">{{ $isAr ? '— غير محدد —' : '— Not set —' }}</option>
+                        <option value="cash">{{ $isAr ? 'نقدي' : 'Cash' }}</option>
+                        <option value="bank_transfer">{{ $isAr ? 'تحويل بنكي' : 'Bank Transfer' }}</option>
+                        <option value="cheque">{{ $isAr ? 'شيك' : 'Cheque' }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'الخزينة / الحساب البنكي' : 'Wallet / Bank' }} <span class="text-red-500">*</span></label>
+                    <select name="wallet_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-[#008A3B]">
+                        @foreach($wallets as $wallet)
+                            <option value="{{ $wallet->id }}">{{ $wallet->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
             <input type="hidden" name="currency" id="payCurrencyInput" value="EGP">

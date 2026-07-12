@@ -10,8 +10,8 @@ class VendorPayment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'payment_number', 'vendor_id', 'purchase_invoice_id',
-        'amount', 'currency', 'payment_date', 'payment_method', 'notes',
+        'payment_number', 'vendor_id', 'purchase_invoice_id', 'wallet_id',
+        'amount', 'currency', 'payment_date', 'payment_method', 'notes', 'created_by',
     ];
 
     protected $casts = [
@@ -26,5 +26,15 @@ class VendorPayment extends Model
     public function purchaseInvoice()
     {
         return $this->belongsTo(PurchaseInvoice::class);
+    }
+
+    public function wallet()
+    {
+        return $this->belongsTo(Wallet::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

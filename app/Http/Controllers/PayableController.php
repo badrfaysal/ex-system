@@ -15,8 +15,8 @@ class PayableController extends Controller
     public function index(Request $request)
     {
         $query = Vendor::query()
-            ->whereHas('invoiceItems')
-            ->withSum('invoiceItems as invoiced_total', 'net_total')
+            ->whereHas('purchaseInvoices')
+            ->withSum('purchaseInvoices as invoiced_total', 'grand_total')
             ->withSum('payments as paid_total', 'amount');
 
         if ($request->filled('search')) {
@@ -33,6 +33,13 @@ class PayableController extends Controller
                 $vendor->balance = (float) $vendor->invoiced_total - (float) $vendor->paid_total;
                 return $vendor;
             });
+
+        $tab = $request->input('tab', 'active');
+        if ($tab === 'paid') {
+            $vendors = $vendors->filter(fn ($v) => $v->balance <= 0);
+        } else {
+            $vendors = $vendors->filter(fn ($v) => $v->balance > 0);
+        }
 
         $sort = $request->input('sort', 'balance_desc');
         $vendors = match ($sort) {
@@ -95,17 +102,15 @@ class PayableController extends Controller
      */
     private function buildTimeline(Vendor $vendor): array
     {
-        $vendor->load(['invoiceItems.purchaseInvoice', 'payments']);
+        $vendor->load(['purchaseInvoices', 'payments']);
 
-        $invoiceEntries = $vendor->invoiceItems
-            ->groupBy('purchase_invoice_id')
-            ->map(function ($lines) {
-                $invoice = $lines->first()->purchaseInvoice;
+        $invoiceEntries = $vendor->purchaseInvoices
+            ->map(function ($invoice) {
                 return [
                     'date'   => $invoice->invoice_date,
                     'type'   => 'invoice',
                     'ref'    => $invoice->invoice_number,
-                    'amount' => $lines->sum('net_total'),
+                    'amount' => $invoice->grand_total,
                     'link'   => route('purchase-invoices.show', $invoice),
                 ];
             })->values();

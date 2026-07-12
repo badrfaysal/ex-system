@@ -56,6 +56,11 @@ class Quotation extends Model
         return $this->hasMany(PurchaseInvoice::class);
     }
 
+    public function salesInvoices()
+    {
+        return $this->hasMany(SalesInvoice::class);
+    }
+
     public function receipts()
     {
         return $this->hasMany(ClientReceipt::class);
@@ -80,19 +85,5 @@ class Quotation extends Model
     public function getProfitAttribute(): float
     {
         return $this->total_revenue - $this->total_cost;
-    }
-
-    /**
-     * عروض الأسعار اللي عندها فاتورة شراء بدون أمر بيع، أو أمر بيع بدون فاتورة شراء
-     */
-    public function scopeWithMismatchedDocs($query)
-    {
-        return $query
-            ->where(function ($q) {
-                $q->whereHas('purchaseInvoices')->whereDoesntHave('salesOrders');
-            })
-            ->orWhere(function ($q) {
-                $q->whereHas('salesOrders')->whereDoesntHave('purchaseInvoices');
-            });
     }
 }

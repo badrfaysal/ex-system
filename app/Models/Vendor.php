@@ -31,9 +31,9 @@ class Vendor extends Model
                     ->withTimestamps();
     }
 
-    public function invoiceItems()
+    public function purchaseInvoices()
     {
-        return $this->hasMany(PurchaseInvoiceItem::class);
+        return $this->hasMany(PurchaseInvoice::class);
     }
 
     public function payments()
@@ -42,11 +42,11 @@ class Vendor extends Model
     }
 
     /**
-     * الرصيد المستحق للمورد: إجمالي أسطر فواتير الشراء - إجمالي المدفوع
+     * الرصيد المستحق للمورد: إجمالي فواتير الشراء - إجمالي المدفوع
      */
     public function getBalanceDueAttribute(): float
     {
-        $invoiced = (float) $this->invoiceItems()->sum('net_total');
+        $invoiced = (float) $this->purchaseInvoices()->sum('grand_total');
         $paid     = (float) $this->payments()->sum('amount');
         return $invoiced - $paid;
     }

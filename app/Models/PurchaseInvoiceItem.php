@@ -10,7 +10,7 @@ class PurchaseInvoiceItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'purchase_invoice_id', 'vendor_id', 'item_id', 'quotation_item_id',
+        'purchase_invoice_id', 'item_id',
         'item_code', 'description', 'quantity', 'uom', 'unit_price',
         'discount_percent', 'tax_percent', 'net_total',
     ];
@@ -20,19 +20,9 @@ class PurchaseInvoiceItem extends Model
         return $this->belongsTo(PurchaseInvoice::class);
     }
 
-    public function vendor()
-    {
-        return $this->belongsTo(Vendor::class);
-    }
-
     public function item()
     {
         return $this->belongsTo(Item::class);
-    }
-
-    public function quotationItem()
-    {
-        return $this->belongsTo(QuotationItem::class);
     }
 
     public function displayDescription(?string $locale = null): string

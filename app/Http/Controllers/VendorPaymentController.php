@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Setting;
 use App\Models\Vendor;
 use App\Models\VendorPayment;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -37,6 +38,7 @@ class VendorPaymentController extends Controller
             'vendors'        => Vendor::orderBy('name_ar')->get(['id', 'name_ar', 'name_en']),
             'paymentMethods' => $lookups->get('payment_method') ?? collect(),
             'currencies'     => $lookups->get('currency') ?? collect(),
+            'wallets'        => Wallet::orderBy('name')->get(['id', 'name', 'currency']),
             'selectedVendorId' => $request->integer('vendor_id') ?: null,
             'nextNumber'     => $this->nextNumber(),
         ]);
@@ -48,6 +50,7 @@ class VendorPaymentController extends Controller
             'payment_number'      => 'required|string|unique:vendor_payments,payment_number',
             'vendor_id'           => 'required|exists:vendors,id',
             'purchase_invoice_id' => 'nullable|exists:purchase_invoices,id',
+            'wallet_id'           => 'required|exists:wallets,id',
             'amount'              => 'required|numeric|min:0.01',
             'currency'            => 'required|string',
             'payment_date'        => 'required|date',
@@ -55,6 +58,7 @@ class VendorPaymentController extends Controller
             'notes'               => 'nullable|string',
         ]);
 
+        $data['created_by'] = auth()->id();
         VendorPayment::create($data);
 
         return redirect()->route('payables.show', $data['vendor_id'])
@@ -72,6 +76,7 @@ class VendorPaymentController extends Controller
             'vendors'        => Vendor::orderBy('name_ar')->get(['id', 'name_ar', 'name_en']),
             'paymentMethods' => $lookups->get('payment_method') ?? collect(),
             'currencies'     => $lookups->get('currency') ?? collect(),
+            'wallets'        => Wallet::orderBy('name')->get(['id', 'name', 'currency']),
             'selectedVendorId' => $vendorPayment->vendor_id,
             'nextNumber'     => $vendorPayment->payment_number,
         ]);
@@ -83,6 +88,7 @@ class VendorPaymentController extends Controller
             'payment_number'      => 'required|string|unique:vendor_payments,payment_number,' . $vendorPayment->id,
             'vendor_id'           => 'required|exists:vendors,id',
             'purchase_invoice_id' => 'nullable|exists:purchase_invoices,id',
+            'wallet_id'           => 'required|exists:wallets,id',
             'amount'              => 'required|numeric|min:0.01',
             'currency'            => 'required|string',
             'payment_date'        => 'required|date',
@@ -90,6 +96,7 @@ class VendorPaymentController extends Controller
             'notes'               => 'nullable|string',
         ]);
 
+        $data['created_by'] = auth()->id();
         $vendorPayment->update($data);
 
         return redirect()->route('payables.show', $data['vendor_id'])

@@ -24,6 +24,19 @@ class SalesOrderItem extends Model
         return $this->belongsTo(Item::class);
     }
 
+    public function salesInvoiceItems()
+    {
+        return $this->hasMany(SalesInvoiceItem::class);
+    }
+
+    /**
+     * الكمية اللي اتفوترت فعليًا لحد دلوقتي (عبر فاتورة بيع واحدة أو أكتر)
+     */
+    public function getInvoicedQuantityAttribute(): float
+    {
+        return (float) $this->salesInvoiceItems()->sum('quantity');
+    }
+
     public function displayDescription(?string $locale = null): string
     {
         $locale = $locale ?? app()->getLocale();

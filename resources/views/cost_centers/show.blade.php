@@ -29,13 +29,16 @@
                 @csrf
                 @method('PATCH')
                 <i class="fas fa-layer-group text-purple-500"></i>
-                <input type="text" name="cost_center_name" value="{{ $quotation->cost_center_name }}"
-                    class="flex-1 text-xl font-extrabold text-gray-900 border-0 border-b-2 border-transparent hover:border-gray-200 focus:border-purple-400 focus:outline-none bg-transparent px-1 py-0.5 transition-colors"
+                <input type="text" name="cost_center_name" value="{{ old('cost_center_name', $quotation->cost_center_name) }}"
+                    class="flex-1 text-xl font-extrabold text-gray-900 border-0 border-b-2 border-transparent hover:border-gray-200 focus:border-purple-400 focus:outline-none bg-transparent px-1 py-0.5 transition-colors @error('cost_center_name') border-red-400 @enderror"
                     onchange="document.getElementById('renameForm').submit()">
                 <button type="submit" class="text-xs px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg font-bold hover:bg-purple-100 flex items-center gap-1.5">
                     <i class="fas fa-save"></i> {{ $isAr ? 'حفظ الاسم' : 'Save name' }}
                 </button>
             </form>
+            @error('cost_center_name')
+                <p class="text-red-500 text-xs mb-2 flex items-center gap-1"><i class="fas fa-exclamation-circle"></i> {{ $message }}</p>
+            @enderror
             <p class="text-sm text-gray-500 font-mono" dir="ltr">{{ $quotation->quote_number }}</p>
             <p class="text-sm text-gray-500 mt-1">{{ optional($quotation->client)->displayName($isAr ? 'ar' : 'en') }}</p>
         </div>

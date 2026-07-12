@@ -10,8 +10,8 @@ class SourcingController extends Controller
     public function index()
     {
         // جلب البيانات بالكامل لاستخدامها في الشاشة السريعة (SPA)
-        $items = Item::with('approvedVendors')->where('status', 'active')->get();
-        $vendors = Vendor::with('approvedItems')->where('status', 'active')->get();
+        $items = Item::with('approvedVendors')->get();
+        $vendors = Vendor::with('approvedItems')->get();
 
         return view('sourcing.index', compact('items', 'vendors'));
     }

@@ -18,12 +18,25 @@
 
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المورد' : 'Vendor' }} <span class="text-red-500">*</span></label>
-            <select name="vendor_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
-                <option value="" disabled {{ old('vendor_id', $selectedVendorId) ? '' : 'selected' }}>{{ $isAr ? '— اختر مورد —' : '— Choose vendor —' }}</option>
-                @foreach($vendors as $v)
-                    <option value="{{ $v->id }}" {{ old('vendor_id', $selectedVendorId) == $v->id ? 'selected' : '' }}>{{ $isAr ? $v->name_ar : ($v->name_en ?: $v->name_ar) }}</option>
-                @endforeach
-            </select>
+            @if($selectedVendorId && !$isEdit)
+                {{-- المورد مقفول — جاي من صفحة المستحقات --}}
+                <input type="hidden" name="vendor_id" value="{{ $selectedVendorId }}">
+                <select disabled class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed">
+                    @foreach($vendors as $v)
+                        @if($v->id == $selectedVendorId)
+                            <option selected>{{ $isAr ? $v->name_ar : ($v->name_en ?: $v->name_ar) }}</option>
+                        @endif
+                    @endforeach
+                </select>
+                <p class="text-xs text-gray-400 mt-1 flex items-center gap-1"><i class="fas fa-lock text-gray-300"></i> {{ $isAr ? 'المورد مقفول — تم اختياره من صفحة المستحقات' : 'Vendor locked — selected from payables page' }}</p>
+            @else
+                <select name="vendor_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
+                    <option value="" disabled {{ old('vendor_id', $selectedVendorId) ? '' : 'selected' }}>{{ $isAr ? '— اختر مورد —' : '— Choose vendor —' }}</option>
+                    @foreach($vendors as $v)
+                        <option value="{{ $v->id }}" {{ old('vendor_id', $selectedVendorId) == $v->id ? 'selected' : '' }}>{{ $isAr ? $v->name_ar : ($v->name_en ?: $v->name_ar) }}</option>
+                    @endforeach
+                </select>
+            @endif
             @error('vendor_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
         </div>
 
@@ -59,6 +72,19 @@
                     @endforeach
                 </select>
             </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                <i class="fas fa-wallet text-red-400 mr-1"></i> {{ $isAr ? 'المحفظة (الخصم منها)' : 'Wallet (Deduct from)' }} <span class="text-red-500">*</span>
+            </label>
+            <select name="wallet_id" required data-search class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
+                <option value="" disabled {{ old('wallet_id', $p?->wallet_id) ? '' : 'selected' }}>{{ $isAr ? '— اختر المحفظة —' : '— Choose wallet —' }}</option>
+                @foreach($wallets as $w)
+                    <option value="{{ $w->id }}" {{ old('wallet_id', $p?->wallet_id) == $w->id ? 'selected' : '' }}>{{ $w->name }} ({{ $w->currency }})</option>
+                @endforeach
+            </select>
+            @error('wallet_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
         </div>
 
         <div>

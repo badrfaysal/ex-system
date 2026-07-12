@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class SalesInvoice extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'invoice_number', 'sales_order_id', 'client_id', 'quotation_id', 'invoice_date', 'currency', 'notes',
+        'subtotal', 'total_discount', 'tax_amount', 'grand_total', 'created_by',
+    ];
+
+    protected $casts = [
+        'invoice_date' => 'date',
+    ];
+
+    public function salesOrder()
+    {
+        return $this->belongsTo(SalesOrder::class);
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function quotation()
+    {
+        return $this->belongsTo(Quotation::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(SalesInvoiceItem::class);
+    }
+
+    public function receipts()
+    {
+        return $this->hasMany(ClientReceipt::class);
+    }
+
+    public function getReceivedAmountAttribute(): float
+    {
+        return (float) $this->receipts()->sum('amount');
+    }
+
+    public function getBalanceDueAttribute(): float
+    {
+        return (float) $this->grand_total - $this->received_amount;
+    }
+}

@@ -57,8 +57,8 @@
         <i class="fas fa-info-circle text-amber-500 mt-0.5 shrink-0"></i>
         <p class="text-xs text-amber-700 leading-relaxed">
             {{ $isAr
-                ? 'اختر الأصناف وعدّل الكميات قبل الحفظ — الأصناف المفعّلة فقط هتتحول لأمر البيع.'
-                : 'Choose items and adjust quantities before saving — only checked items will be included in the sales order.' }}
+                ? 'تحويل عرض السعر لاعتماده كأمر بيع. البيانات غير قابلة للتعديل للحفاظ على تطابق أمر البيع مع عرض السعر.'
+                : 'Convert quotation to a confirmed sales order. Details are locked to maintain consistency with the quotation.' }}
         </p>
     </div>
 </div>
@@ -117,8 +117,8 @@
                             <input type="number"
                                 name="quantities[{{ $line->id }}]"
                                 value="{{ rtrim(rtrim(number_format($line->quantity, 4, '.', ''), '0'), '.') }}"
-                                min="0.001" step="any"
-                                class="qty-input w-20 text-center border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold text-gray-800 focus:outline-none focus:border-[#008A3B] focus:ring-1 focus:ring-[#008A3B]/30">
+                                readonly
+                                class="qty-input w-20 text-center border-0 bg-transparent text-xs font-bold text-gray-800 focus:outline-none">
                             @if($line->uom)
                             <span class="text-[10px] text-gray-400">{{ $line->uom }}</span>
                             @endif
@@ -128,8 +128,8 @@
                         <input type="number"
                             name="prices[{{ $line->id }}]"
                             value="{{ number_format($line->list_price, 4, '.', '') }}"
-                            min="0" step="any"
-                            class="price-input w-24 text-center border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold text-gray-800 focus:outline-none focus:border-[#008A3B] focus:ring-1 focus:ring-[#008A3B]/30">
+                            readonly
+                            class="price-input w-24 text-center border-0 bg-transparent text-xs font-bold text-gray-800 focus:outline-none">
                     </td>
                     <td class="px-3 py-2 text-center text-gray-400 text-xs" dir="ltr">
                         @if($line->discount_percent > 0)
@@ -146,40 +146,7 @@
         </table>
     </div>
 
-    {{-- أصناف إضافية --}}
-    <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 mb-5" dir="{{ $docDir }}">
-        <div class="px-6 py-3 border-b border-gray-100 font-bold text-gray-800 text-sm flex items-center gap-2">
-            <span class="w-1.5 h-5 bg-amber-500 rounded-full"></span> {{ $isAr ? 'أصناف إضافية (غير موجودة في عرض السعر)' : 'Extra Items (not in quotation)' }}
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full border-collapse min-w-[800px]" style="text-align:{{ $txtAlign }}">
-                <thead>
-                    <tr class="bg-gray-50 border-b border-gray-100 text-gray-600 text-[11px] font-bold">
-                        <th class="p-3 min-w-[220px]">{{ $isAr ? 'الوصف' : 'Description' }}</th>
-                        <th class="p-3 text-center w-24">{{ $isAr ? 'الكمية' : 'Qty' }}</th>
-                        <th class="p-3 text-center w-28">{{ $isAr ? 'السعر' : 'Price' }}</th>
-                        <th class="p-3 text-center w-20">{{ $isAr ? 'خصم%' : 'Disc%' }}</th>
-                        <th class="p-3 text-center w-20">{{ $isAr ? 'ضريبة%' : 'Tax%' }}</th>
-                        <th class="p-3 w-28">{{ $isAr ? 'الإجمالي' : 'Total' }}</th>
-                        <th class="p-3 w-10"></th>
-                    </tr>
-                </thead>
-                <tbody id="extraItemsBody"></tbody>
-            </table>
-        </div>
-        <div class="px-6 py-3 border-t border-gray-100 bg-gray-50/60 flex flex-wrap items-center gap-3">
-            <select id="itemPicker" data-search class="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm">
-                <option value="">{{ $isAr ? '— اختر صنفاً لإضافته —' : '— Pick an item to add —' }}</option>
-                @foreach($items as $it)
-                    @php $nm = $isAr ? ($it->name_ar ?: $it->name_en) : ($it->name_en ?: $it->name_ar); @endphp
-                    <option value="{{ $it->id }}">{{ $it->item_code }} — {{ $nm }}</option>
-                @endforeach
-            </select>
-            <button type="button" onclick="addBlankExtraRow()" class="px-4 py-2 border border-dashed border-gray-400 text-gray-600 rounded-lg text-sm hover:border-amber-500 hover:text-amber-600 flex items-center gap-2">
-                <i class="fas fa-plus"></i> {{ $isAr ? 'سطر يدوي' : 'Manual line' }}
-            </button>
-        </div>
-    </div>
+
 
     {{-- شريط الإجمالي + حفظ --}}
     <div class="max-w-5xl mx-auto mb-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -245,22 +212,7 @@
         row.querySelector('.row-net').textContent = (afterDisc + taxVal).toFixed(2);
     }
 
-    function extraRowsTotal() {
-        let subtotal = 0, disc = 0, tax = 0;
-        document.querySelectorAll('.extra-row').forEach(tr => {
-            const q = parseFloat(tr.querySelector('.ex-q').value || 0);
-            const p = parseFloat(tr.querySelector('.ex-p').value || 0);
-            const d = parseFloat(tr.querySelector('.ex-d').value || 0);
-            const t = parseFloat(tr.querySelector('.ex-t').value || 0);
-            const base = q * p;
-            const discVal = base * d / 100;
-            const afterDisc = base - discVal;
-            const taxVal = afterDisc * t / 100;
-            tr.querySelector('.ex-net').textContent = (afterDisc + taxVal).toFixed(2);
-            subtotal += base; disc += discVal; tax += taxVal;
-        });
-        return [subtotal, disc, tax];
-    }
+
 
     function recalc() {
         let subtotal = 0, disc = 0, tax = 0, count = 0;
@@ -279,62 +231,16 @@
             }
         });
 
-        const [exSub, exDisc, exTax] = extraRowsTotal();
-        const extraCount = document.querySelectorAll('.extra-row').length;
-        subtotal += exSub; disc += exDisc; tax += exTax;
-
         const grand = subtotal - disc + tax;
         totalEl.innerHTML = grand.toFixed(2) + ' <span class="text-xs font-normal text-gray-400">' + currency + '</span>';
-        countEl.textContent = (count + extraCount) + ' ' + (isAr ? 'صنف' : 'items');
+        countEl.textContent = count + ' ' + (isAr ? 'صنف' : 'items');
 
-        submitBtn.disabled = (count + extraCount) === 0;
+        submitBtn.disabled = count === 0;
         checkAll.indeterminate = count > 0 && count < checks.length;
         checkAll.checked = count === checks.length;
     }
 
-    let exIndex = 0;
-    function extraRowTemplate(data) {
-        const i = exIndex++;
-        const tr = document.createElement('tr');
-        tr.className = 'extra-row border-b border-gray-100 bg-amber-50/30';
-        tr.innerHTML = `
-            <td class="p-2">
-                <input type="text" name="extra_lines[${i}][description]" required value="${(data.description ?? '').replace(/"/g,'&quot;')}"
-                    class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-amber-500">
-                <input type="hidden" name="extra_lines[${i}][item_id]" value="${data.item_id ?? ''}">
-                <input type="hidden" name="extra_lines[${i}][uom]" value="${data.uom ?? ''}">
-            </td>
-            <td class="p-2"><input type="number" step="any" min="0.001" name="extra_lines[${i}][quantity]" value="1" class="ex-q w-full px-2 py-1.5 border border-gray-300 rounded text-center"></td>
-            <td class="p-2"><input type="number" step="0.01" min="0" name="extra_lines[${i}][list_price]" value="0" class="ex-p w-full px-2 py-1.5 border border-gray-300 rounded text-center"></td>
-            <td class="p-2"><input type="number" step="0.01" min="0" max="100" name="extra_lines[${i}][discount_percent]" value="0" class="ex-d w-full px-2 py-1.5 border border-gray-300 rounded text-center"></td>
-            <td class="p-2"><input type="number" step="0.01" min="0" max="100" name="extra_lines[${i}][tax_percent]" value="0" class="ex-t w-full px-2 py-1.5 border border-gray-300 rounded text-center"></td>
-            <td class="p-2 font-bold text-amber-700 ex-net" dir="ltr">0.00</td>
-            <td class="p-2 text-center"><button type="button" onclick="this.closest('tr').remove(); window.soRecalc()" class="text-gray-300 hover:text-red-500"><i class="fas fa-times-circle"></i></button></td>`;
-        document.getElementById('extraItemsBody').appendChild(tr);
-        tr.querySelectorAll('.ex-q,.ex-p,.ex-d,.ex-t').forEach(inp => inp.addEventListener('input', recalc));
-        recalc();
-    }
 
-    window.soRecalc = recalc;
-    window.addBlankExtraRow = function () { extraRowTemplate({ description: '' }); };
-    window.addExtraItemById = function (id) {
-        const found = EXTRA_ITEMS.find(x => String(x.id) === String(id));
-        if (!found) return;
-        extraRowTemplate({ item_id: found.id, description: found.name, uom: found.uom });
-    };
-
-    setTimeout(function () {
-        const picker = document.getElementById('itemPicker');
-        if (picker && picker.tomselect) {
-            picker.tomselect.on('item_add', function (value) {
-                addExtraItemById(value);
-                picker.tomselect.clear(true);
-                picker.tomselect.setTextboxValue('');
-            });
-        } else if (picker) {
-            picker.addEventListener('change', function () { if (this.value) addExtraItemById(this.value); this.value = ''; });
-        }
-    }, 150);
 
     qtyInputs.forEach((inp, i) => {
         inp.addEventListener('input', () => { rowRecalc(rows[i], i); recalc(); });
@@ -353,10 +259,9 @@
 
     document.getElementById('convertForm').addEventListener('submit', function (e) {
         const anyChecked = [...checks].some(c => c.checked);
-        const anyExtra   = document.querySelectorAll('.extra-row').length > 0;
-        if (!anyChecked && !anyExtra) {
+        if (!anyChecked) {
             e.preventDefault();
-            alert(isAr ? 'اختر صنفاً واحداً على الأقل أو أضف صنفاً إضافيًا.' : 'Select at least one item or add an extra item.');
+            alert(isAr ? 'اختر صنفاً واحداً على الأقل.' : 'Select at least one item.');
         }
     });
 

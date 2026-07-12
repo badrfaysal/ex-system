@@ -4,25 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Models\Item;
 use App\Models\PurchaseInvoice;
-use App\Models\Quotation;
+use App\Models\SalesOrder;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseInvoiceController extends Controller
 {
-    /**
-     * قائمة فواتير الشراء
-     */
     public function index(Request $request)
     {
-        $query = PurchaseInvoice::with('quotation');
+        $query = PurchaseInvoice::with(['salesOrder', 'vendor']);
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('invoice_number', 'like', "%{$search}%")
-                  ->orWhereHas('quotation', fn ($qq) => $qq->where('quote_number', 'like', "%{$search}%"));
+                  ->orWhereHas('vendor', fn ($v) => $v->where('name_ar', 'like', "%{$search}%"));
             });
         }
 
@@ -32,69 +30,62 @@ class PurchaseInvoiceController extends Controller
     }
 
     /**
-     * شاشة إنشاء فاتورة شراء من عرض سعر — أصناف العرض + إمكانية إضافة أصناف زيادة
+     * فاتورة شراء واحدة لكل مورد — بتتعمل من أمر بيع، والأصناف من كل الكتالوج
      */
     public function create(Request $request)
     {
-        $request->validate(['quotation_id' => 'required|exists:quotations,id']);
+        if (!$request->filled('sales_order_id')) {
+            $salesOrders = SalesOrder::with('client')->latest()->paginate(20);
 
-        $quotation = Quotation::with(['client', 'items.item.approvedVendors'])->findOrFail($request->quotation_id);
-
-        // فاتورة شراء واحدة بس لكل مركز تكلفة — لو موجودة نرجّع لها بدل ما نكرر
-        $existing = $quotation->purchaseInvoices()->latest()->first();
-        if ($existing) {
-            $isAr = app()->getLocale() === 'ar';
-            return redirect()->route('purchase-invoices.show', $existing)->with('error', $isAr
-                ? "تم إنشاء فاتورة شراء لعرض السعر ده قبل كده: {$existing->invoice_number} بتاريخ {$existing->invoice_date->format('Y-m-d')} بإجمالي " . number_format($existing->grand_total, 2) . ' ' . $existing->currency
-                : "A purchase invoice already exists for this quotation: {$existing->invoice_number} dated {$existing->invoice_date->format('Y-m-d')}, total " . number_format($existing->grand_total, 2) . ' ' . $existing->currency);
+            return view('purchase_invoices.select_order', compact('salesOrders'));
         }
 
-        $vendors = Vendor::orderBy('name_ar')->get(['id', 'name_ar', 'name_en']);
-        $items   = Item::where('status', 'active')->with('approvedVendors')->orderBy('name_ar')->get();
-        $nextInvoiceNumber = $this->nextNumber();
+        $request->validate(['sales_order_id' => 'required|exists:sales_orders,id']);
 
-        return view('purchase_invoices.create', compact('quotation', 'vendors', 'items', 'nextInvoiceNumber'));
+        $salesOrder = SalesOrder::with(['client', 'quotation', 'items.item'])->findOrFail($request->sales_order_id);
+
+        $vendors = Vendor::orderBy('name_ar')->get(['id', 'name_ar', 'name_en']);
+        $items   = Item::with('approvedVendors')->orderBy('name_ar')->get();
+
+        return view('purchase_invoices.create', [
+            'salesOrder'        => $salesOrder,
+            'vendors'           => $vendors,
+            'items'             => $items,
+            'nextInvoiceNumber' => $this->nextNumber(),
+        ]);
     }
 
-    /**
-     * حفظ فاتورة الشراء — بمجرد الحفظ تتحول لالتزام فوري لكل مورد في أسطرها
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
-            'quotation_id'              => 'required|exists:quotations,id',
-            'invoice_number'            => 'required|string|unique:purchase_invoices,invoice_number',
-            'invoice_date'              => 'required|date',
-            'currency'                  => 'required|string',
-            'notes'                     => 'nullable|string',
-            'lines'                     => 'required|array|min:1',
-            'lines.*.vendor_id'         => 'required|exists:vendors,id',
-            'lines.*.item_id'           => 'nullable|exists:items,id',
-            'lines.*.quotation_item_id' => 'nullable|exists:quotation_items,id',
-            'lines.*.description'       => 'required|string',
-            'lines.*.quantity'          => 'required|numeric|min:0.001',
-            'lines.*.uom'               => 'nullable|string',
-            'lines.*.unit_price'        => 'required|numeric|min:0',
-            'lines.*.discount_percent'  => 'nullable|numeric|min:0|max:100',
-            'lines.*.tax_percent'       => 'nullable|numeric|min:0|max:100',
+            'sales_order_id'           => 'required|exists:sales_orders,id',
+            'vendor_id'                => 'required|exists:vendors,id',
+            'invoice_number'           => 'required|string|unique:purchase_invoices,invoice_number',
+            'invoice_date'             => 'required|date',
+            'currency'                 => 'required|string',
+            'notes'                    => 'nullable|string',
+            'lines'                    => 'required|array|min:1',
+            'lines.*.item_id'          => 'nullable|exists:items,id',
+            'lines.*.description'      => 'required|string',
+            'lines.*.quantity'         => 'required|numeric|min:0.001',
+            'lines.*.uom'              => 'nullable|string',
+            'lines.*.unit_price'       => 'required|numeric|min:0',
+            'lines.*.discount_percent' => 'nullable|numeric|min:0|max:100',
+            'lines.*.tax_percent'      => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $quotation = Quotation::findOrFail($data['quotation_id']);
-        $existing  = $quotation->purchaseInvoices()->latest()->first();
-        if ($existing) {
-            return redirect()->route('purchase-invoices.show', $existing)
-                ->with('error', app()->getLocale() === 'ar'
-                    ? 'تم إنشاء فاتورة شراء لعرض السعر ده قبل كده بالفعل.'
-                    : 'A purchase invoice already exists for this quotation.');
-        }
+        $salesOrder = SalesOrder::findOrFail($data['sales_order_id']);
 
-        $invoice = DB::transaction(function () use ($data) {
+        $invoice = DB::transaction(function () use ($data, $salesOrder) {
             $invoice = PurchaseInvoice::create([
                 'invoice_number' => $data['invoice_number'],
-                'quotation_id'   => $data['quotation_id'],
+                'quotation_id'   => $salesOrder->quotation_id,
+                'sales_order_id' => $salesOrder->id,
+                'vendor_id'      => $data['vendor_id'],
                 'invoice_date'   => $data['invoice_date'],
                 'currency'       => $data['currency'],
                 'notes'          => $data['notes'] ?? null,
+                'created_by'     => Auth::id(),
                 'subtotal'       => 0,
                 'total_discount' => 0,
                 'tax_amount'     => 0,
@@ -104,10 +95,10 @@ class PurchaseInvoiceController extends Controller
             $subtotal = $lineDiscounts = $taxAmount = 0;
 
             foreach ($data['lines'] as $line) {
-                $qty       = (float) $line['quantity'];
-                $price     = (float) $line['unit_price'];
-                $discount  = (float) ($line['discount_percent'] ?? 0);
-                $tax       = (float) ($line['tax_percent'] ?? 0);
+                $qty      = (float) $line['quantity'];
+                $price    = (float) $line['unit_price'];
+                $discount = (float) ($line['discount_percent'] ?? 0);
+                $tax      = (float) ($line['tax_percent'] ?? 0);
 
                 $lineBase  = $qty * $price;
                 $discVal   = $lineBase * $discount / 100;
@@ -116,17 +107,15 @@ class PurchaseInvoiceController extends Controller
                 $netTotal  = round($afterDisc + $taxVal, 2);
 
                 $invoice->items()->create([
-                    'vendor_id'         => $line['vendor_id'],
-                    'item_id'           => $line['item_id'] ?? null,
-                    'quotation_item_id' => $line['quotation_item_id'] ?? null,
-                    'item_code'         => $line['item_code'] ?? null,
-                    'description'       => $line['description'],
-                    'quantity'          => $qty,
-                    'uom'               => $line['uom'] ?? null,
-                    'unit_price'        => $price,
-                    'discount_percent'  => $discount,
-                    'tax_percent'       => $tax,
-                    'net_total'         => $netTotal,
+                    'item_id'          => $line['item_id'] ?? null,
+                    'item_code'        => $line['item_code'] ?? null,
+                    'description'      => $line['description'],
+                    'quantity'         => $qty,
+                    'uom'              => $line['uom'] ?? null,
+                    'unit_price'       => $price,
+                    'discount_percent' => $discount,
+                    'tax_percent'      => $tax,
+                    'net_total'        => $netTotal,
                 ]);
 
                 $subtotal      += $lineBase;
@@ -146,7 +135,7 @@ class PurchaseInvoiceController extends Controller
 
         return redirect()->route('purchase-invoices.show', $invoice)
             ->with('success', app()->getLocale() === 'ar'
-                ? 'تم إنشاء فاتورة الشراء ' . $invoice->invoice_number . ' وأصبحت التزامًا فوريًا للموردين'
+                ? 'تم إنشاء فاتورة الشراء ' . $invoice->invoice_number . ' وأصبحت التزامًا فوريًا للمورد'
                 : 'Purchase invoice ' . $invoice->invoice_number . ' created and is now an immediate vendor liability');
     }
 
@@ -159,9 +148,8 @@ class PurchaseInvoiceController extends Controller
 
     public function show(PurchaseInvoice $purchaseInvoice)
     {
-        $purchaseInvoice->load(['quotation', 'items.vendor', 'items.item']);
-        $byVendor = $purchaseInvoice->items->groupBy('vendor_id');
+        $purchaseInvoice->load(['salesOrder', 'quotation', 'vendor', 'items.item', 'creator']);
 
-        return view('purchase_invoices.show', compact('purchaseInvoice', 'byVendor'));
+        return view('purchase_invoices.show', compact('purchaseInvoice'));
     }
 }

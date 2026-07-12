@@ -12,9 +12,12 @@
             </div>
             <div>
                 <h2 class="text-3xl font-bold text-gray-900">{{ $isAr ? 'فواتير الشراء' : 'Purchase Invoices' }}</h2>
-                <p class="text-sm text-gray-500 mt-0.5">{{ $isAr ? 'تُنشأ من داخل عرض السعر بعد اعتماده' : 'Created from within an approved quotation' }}</p>
+                <p class="text-sm text-gray-500 mt-0.5">{{ $isAr ? 'إدارة فواتير المشتريات المرتبطة بأوامر البيع' : 'Manage purchase invoices linked to sales orders' }}</p>
             </div>
         </div>
+        <a href="{{ route('purchase-invoices.create') }}" class="px-5 py-2.5 bg-[#008A3B] text-white rounded-lg font-bold text-sm hover:bg-[#007030] flex items-center gap-2 shadow-sm transition-colors">
+            <i class="fas fa-plus"></i> {{ $isAr ? 'إنشاء فاتورة شراء' : 'Create Purchase Invoice' }}
+        </a>
     </div>
 
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">

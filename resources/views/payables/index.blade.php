@@ -15,6 +15,16 @@
                 <p class="text-sm text-gray-500 mt-0.5">{{ $isAr ? 'الفلوس اللي عليك للموردين' : 'Money you owe to vendors' }}</p>
             </div>
         </div>
+        <div class="flex bg-gray-100 p-1 rounded-xl">
+            <a href="{{ route('payables.index', ['tab' => 'active', 'search' => request('search'), 'sort' => request('sort')]) }}"
+               class="px-5 py-2 text-sm font-bold rounded-lg transition-colors {{ request('tab', 'active') === 'active' ? 'bg-white shadow-sm text-red-600' : 'text-gray-500 hover:text-gray-700' }}">
+                {{ $isAr ? 'النشط' : 'Active' }}
+            </a>
+            <a href="{{ route('payables.index', ['tab' => 'paid', 'search' => request('search'), 'sort' => request('sort')]) }}"
+               class="px-5 py-2 text-sm font-bold rounded-lg transition-colors {{ request('tab') === 'paid' ? 'bg-white shadow-sm text-red-600' : 'text-gray-500 hover:text-gray-700' }}">
+                {{ $isAr ? 'المسدد' : 'Paid' }}
+            </a>
+        </div>
     </div>
 
     {{-- كروت الملخص --}}
@@ -36,6 +46,7 @@
     {{-- فلتر وترتيب --}}
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
         <form action="{{ route('payables.index') }}" method="GET" class="flex flex-wrap items-end gap-4">
+            <input type="hidden" name="tab" value="{{ request('tab', 'active') }}">
             <div class="flex-1 min-w-[220px]">
                 <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'بحث بالمورد' : 'Search Vendor' }}</label>
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ $isAr ? 'اسم المورد أو الكود' : 'Vendor name or code' }}"

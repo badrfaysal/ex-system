@@ -11,7 +11,7 @@ class Expense extends Model
 
     protected $fillable = [
         'expense_number', 'quotation_id', 'category', 'description',
-        'vendor_id', 'amount', 'currency', 'expense_date', 'notes',
+        'vendor_id', 'wallet_id', 'amount', 'currency', 'expense_date', 'notes', 'created_by',
     ];
 
     protected $casts = [
@@ -26,5 +26,15 @@ class Expense extends Model
     public function vendor()
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function wallet()
+    {
+        return $this->belongsTo(Wallet::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

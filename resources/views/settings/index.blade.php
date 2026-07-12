@@ -45,6 +45,10 @@
                 'users'         => ['icon' => 'fa-user-cog', 'custom' => true],
                 'notify_emails' => ['icon' => 'fa-bell', 'custom' => true],
             ],
+            'المالية والمحافظ' => [
+                'wallets'          => ['icon' => 'fa-wallet', 'custom' => true, 'title' => 'المحافظ والصناديق'],
+                'expense_category' => ['icon' => 'fa-file-invoice-dollar'],
+            ],
         ];
         $allUsers     = \App\Models\User::orderBy('name')->get();
         $notifyEmails = \App\Models\Setting::where('category', 'notify_email')->orderBy('display_name')->get();
@@ -63,7 +67,7 @@
                                 <button type="button" onclick="switchTab('{{ $key }}')" id="btn-{{ $key }}"
                                     class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-[#005B9F] transition-all text-right">
                                     <i class="fas {{ $data['icon'] }} w-5 text-center opacity-70"></i>
-                                    <span>{{ __('messages.settings.lk.'.$key.'.title') }}</span>
+                                    <span>{{ isset($data['title']) ? $data['title'] : __('messages.settings.lk.'.$key.'.title') }}</span>
                                 </button>
                             </li>
                         @endforeach
@@ -435,6 +439,97 @@
                         <p class="text-sm">لا توجد إيميلات للإشعارات بعد</p>
                     </div>
                     @endforelse
+                </div>
+
+            </div>
+
+            {{-- ===== panel المحافظ والصناديق (custom) ===== --}}
+            <div id="panel-wallets" class="tab-panel hidden p-6 animate-fade-in">
+
+                <div class="border-b border-gray-100 pb-4 mb-6 flex justify-between items-start">
+                    <div>
+                        <h3 class="text-xl font-bold text-[#008A3B] flex items-center gap-2">
+                            <i class="fas fa-wallet"></i> إعدادات المحافظ والصناديق
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1.5 leading-relaxed">
+                            أضف محافظ مالية (مثل: بنك، خزينة، عهدة) مع رصيد أول المدة.
+                        </p>
+                    </div>
+                </div>
+
+                @if($errors->any() && session('activeSettingTab') === 'wallets')
+                <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                    <i class="fas fa-exclamation-circle"></i> {{ $errors->first() }}
+                </div>
+                @endif
+
+                {{-- إضافة محفظة جديدة --}}
+                <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 mb-8">
+                    <p class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <i class="fas fa-plus-circle text-[#008A3B]"></i> إضافة محفظة جديدة
+                    </p>
+                    <form action="{{ route('wallets.store') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-3 gap-4" onsubmit="sessionStorage.setItem('activeSettingTab', 'wallets');">
+                        @csrf
+                        <input type="hidden" name="type" value="bank"> {{-- افتراضي لأنها مش هامة --}}
+                        <input type="hidden" name="currency" value="EGP"> {{-- عملة افتراضية --}}
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">اسم المحفظة / الخزينة <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" required placeholder="مثال: خزينة الشركة الرئيسية"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">رصيد أول المدة <span class="text-red-500">*</span></label>
+                            <input type="number" step="0.01" name="opening_balance" required placeholder="0.00" dir="ltr"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full py-2 bg-[#008A3B] text-white text-sm font-bold rounded-lg hover:bg-[#007030] flex items-center justify-center gap-2 h-[38px]">
+                                <i class="fas fa-save"></i> إضافة المحفظة
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- قائمة المحافظ الحالية --}}
+                <p class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <i class="fas fa-list text-gray-400"></i> قائمة المحافظ الحالية
+                </p>
+                <div class="border border-gray-200 rounded overflow-hidden">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-gray-100 text-gray-700">
+                            <tr>
+                                <th class="p-3 font-bold border-b border-gray-200">الاسم</th>
+                                <th class="p-3 font-bold border-b border-gray-200">رصيد أول المدة</th>
+                                <th class="p-3 font-bold border-b border-gray-200">الرصيد الحالي</th>
+                                <th class="p-3 font-bold border-b border-gray-200 w-20 text-center">إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                            @forelse($wallets as $wallet)
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="p-3 font-bold text-gray-900">{{ $wallet->name }}</td>
+                                    <td class="p-3 font-mono text-gray-600" dir="ltr">{{ number_format($wallet->opening_balance, 2) }}</td>
+                                    <td class="p-3 font-black text-[#005B9F]" dir="ltr">{{ number_format($wallet->current_balance, 2) }}</td>
+                                    <td class="p-3 text-center">
+                                        <form action="{{ route('wallets.destroy', $wallet->id ?? 0) }}" method="POST" onsubmit="sessionStorage.setItem('activeSettingTab', 'wallets'); return confirm('تأكيد الحذف؟');">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors" title="حذف">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="p-10 text-center text-gray-500 bg-gray-50/50">
+                                        <i class="fas fa-wallet text-3xl text-gray-300 mb-3 block"></i>
+                                        لا توجد محافظ مسجلة بعد.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
 
             </div>

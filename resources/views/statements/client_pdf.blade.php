@@ -65,7 +65,7 @@
             <td style="width:45%;">
                 <div class="block-label">{{ $isAr ? 'الملخص' : 'SUMMARY' }}</div>
                 <table class="summary-table">
-                    <tr><td class="summary-label">{{ $isAr ? 'إجمالي المستحق' : 'Total Due' }}</td><td class="summary-value">{{ number_format($timeline->where('type','order')->sum('amount'), 2) }}</td></tr>
+                    <tr><td class="summary-label">{{ $isAr ? 'إجمالي فواتير البيع' : 'Total Invoiced' }}</td><td class="summary-value">{{ number_format($timeline->where('type','invoice')->sum('amount'), 2) }}</td></tr>
                     <tr><td class="summary-label">{{ $isAr ? 'إجمالي المدفوع' : 'Total Paid' }}</td><td class="summary-value">{{ number_format(-1 * $timeline->where('type','receipt')->sum('amount'), 2) }}</td></tr>
                     <tr><td class="summary-label">{{ $isAr ? 'الباقي' : 'Remaining' }}</td><td class="summary-value-final">{{ number_format($balance, 2) }}</td></tr>
                 </table>
@@ -88,8 +88,8 @@
             <tr>
                 <td>{{ optional($entry['date'])->format('Y-m-d') }}</td>
                 <td>{{ $entry['ref'] }}</td>
-                <td class="{{ $entry['type'] === 'order' ? 'type-order' : 'type-receipt' }}">
-                    {{ $entry['type'] === 'order' ? ($isAr ? 'أمر بيع' : 'Sales Order') : ($isAr ? 'سند قبض' : 'Receipt') }}
+                <td class="{{ $entry['type'] === 'invoice' ? 'type-order' : 'type-receipt' }}">
+                    {{ $entry['type'] === 'invoice' ? ($isAr ? 'فاتورة بيع' : 'Sales Invoice') : ($isAr ? 'سند قبض' : 'Receipt') }}
                 </td>
                 <td class="col-center {{ $entry['amount'] >= 0 ? 'amt-positive' : 'amt-negative' }}">{{ $entry['amount'] >= 0 ? '+' : '' }}{{ number_format($entry['amount'], 2) }}</td>
                 <td class="col-center">{{ number_format($entry['balance'], 2) }}</td>

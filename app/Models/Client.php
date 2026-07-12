@@ -40,19 +40,24 @@ class Client extends Model
         return $this->hasMany(\App\Models\SalesOrder::class);
     }
 
+    public function salesInvoices()
+    {
+        return $this->hasMany(\App\Models\SalesInvoice::class);
+    }
+
     public function receipts()
     {
         return $this->hasMany(\App\Models\ClientReceipt::class);
     }
 
     /**
-     * الرصيد المستحق على العميل: إجمالي أوامر البيع - إجمالي المحصّل
+     * الرصيد المستحق على العميل: إجمالي فواتير البيع - إجمالي المحصّل
      */
     public function getBalanceDueAttribute(): float
     {
-        $ordered   = (float) $this->salesOrders()->sum('grand_total');
+        $invoiced  = (float) $this->salesInvoices()->sum('grand_total');
         $collected = (float) $this->receipts()->sum('amount');
-        return $ordered - $collected;
+        return $invoiced - $collected;
     }
 
     /**

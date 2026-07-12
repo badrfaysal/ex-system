@@ -10,8 +10,8 @@ class ClientReceipt extends Model
     use HasFactory;
 
     protected $fillable = [
-        'receipt_number', 'client_id', 'sales_order_id', 'quotation_id',
-        'amount', 'currency', 'receipt_date', 'payment_method', 'notes',
+        'receipt_number', 'client_id', 'sales_invoice_id', 'quotation_id', 'wallet_id',
+        'amount', 'currency', 'receipt_date', 'payment_method', 'notes', 'created_by',
     ];
 
     protected $casts = [
@@ -23,13 +23,23 @@ class ClientReceipt extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function salesOrder()
+    public function salesInvoice()
     {
-        return $this->belongsTo(SalesOrder::class);
+        return $this->belongsTo(SalesInvoice::class);
     }
 
     public function quotation()
     {
         return $this->belongsTo(Quotation::class);
+    }
+
+    public function wallet()
+    {
+        return $this->belongsTo(Wallet::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

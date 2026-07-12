@@ -21,7 +21,7 @@
                     <tr class="bg-gray-50 border-b border-gray-100 text-gray-600 text-sm font-bold">
                         <th class="p-4">{{ $isAr ? 'رقم السند' : 'No.' }}</th>
                         <th class="p-4">{{ $isAr ? 'العميل' : 'Client' }}</th>
-                        <th class="p-4">{{ $isAr ? 'أمر البيع' : 'Sales Order' }}</th>
+                        <th class="p-4">{{ $isAr ? 'فاتورة البيع' : 'Sales Invoice' }}</th>
                         <th class="p-4">{{ $isAr ? 'المبلغ' : 'Amount' }}</th>
                         <th class="p-4">{{ $isAr ? 'التاريخ' : 'Date' }}</th>
                     </tr>
@@ -36,9 +36,13 @@
                                 </a>
                             </td>
                             <td class="p-4">
-                                <a href="{{ route('sales-orders.show', $receipt->sales_order_id) }}" class="font-mono text-gray-600 hover:underline" dir="ltr">
-                                    {{ optional($receipt->salesOrder)->so_number }}
+                                @if($receipt->sales_invoice_id)
+                                <a href="{{ route('sales-invoices.show', $receipt->sales_invoice_id) }}" class="font-mono text-gray-600 hover:underline" dir="ltr">
+                                    {{ optional($receipt->salesInvoice)->invoice_number }}
                                 </a>
+                                @else
+                                <span class="text-gray-400">—</span>
+                                @endif
                             </td>
                             <td class="p-4 font-bold text-[#008A3B]" dir="ltr">{{ number_format($receipt->amount, 2) }} <span class="text-xs text-gray-400">{{ $receipt->currency }}</span></td>
                             <td class="p-4 text-gray-500" dir="ltr">{{ $receipt->receipt_date->format('Y-m-d') }}</td>

@@ -2,7 +2,18 @@
 
 namespace App\Providers;
 
+use App\Models\Client;
+use App\Models\Expense;
+use App\Models\Item;
+use App\Models\PurchaseInvoice;
 use App\Models\Quotation;
+use App\Models\SalesInvoice;
+use App\Models\SalesOrder;
+use App\Models\Vendor;
+use App\Models\VendorPayment;
+use App\Models\ClientReceipt;
+use App\Models\WalletTransfer;
+use App\Observers\ActivityObserver;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,23 +32,32 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // تنبيهات: عروض أسعار عندها فاتورة شراء من غير أمر بيع أو العكس
+        // سجل العمليات — يلقط إنشاء/تعديل/حذف على الموديلات الأساسية
+        foreach ([
+            Quotation::class, SalesOrder::class, SalesInvoice::class, PurchaseInvoice::class,
+            Expense::class, VendorPayment::class, ClientReceipt::class, WalletTransfer::class,
+            Client::class, Vendor::class, Item::class,
+        ] as $model) {
+            $model::observe(ActivityObserver::class);
+        }
+
+        // تنبيهات: أوامر بيع عندها فاتورة شراء من غير فاتورة بيع أو العكس
         View::composer('layouts.app', function ($view) {
-            $mismatches = Quotation::query()
-                ->withMismatchedDocs()
+            $mismatches = SalesOrder::query()
+                ->withMismatchedInvoices()
                 ->with('client')
-                ->withCount(['purchaseInvoices', 'salesOrders'])
+                ->withCount(['purchaseInvoices', 'salesInvoices'])
                 ->latest()
                 ->limit(20)
                 ->get()
-                ->map(function ($quotation) {
-                    $hasPurchase = $quotation->purchase_invoices_count > 0;
+                ->map(function ($salesOrder) {
+                    $hasPurchase = $salesOrder->purchase_invoices_count > 0;
                     return [
-                        'quotation'    => $quotation,
-                        'missing'      => $hasPurchase ? 'sales_order' : 'purchase_invoice',
+                        'sales_order'  => $salesOrder,
+                        'missing'      => $hasPurchase ? 'sales_invoice' : 'purchase_invoice',
                         'action_route' => $hasPurchase
-                            ? route('sales-orders.create', ['quotation_id' => $quotation->id])
-                            : route('purchase-invoices.create', ['quotation_id' => $quotation->id]),
+                            ? route('sales-invoices.create', ['sales_order_id' => $salesOrder->id])
+                            : route('purchase-invoices.create', ['sales_order_id' => $salesOrder->id]),
                     ];
                 });
 

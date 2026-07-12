@@ -122,40 +122,18 @@
             <a href="{{ route('sales-orders.create', ['quotation_id' => $quotation->id]) }}"
                class="px-5 py-2 bg-[#008A3B] hover:bg-[#007030] text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
                 <i class="fas fa-file-contract"></i>
-                {{ $isAr ? 'تحويل لأمر بيع وإنشاء فاتورة بيع' : 'Convert to Sales Order & Create Invoice' }}
+                {{ $isAr ? 'تحويل لأمر بيع' : 'Convert to Sales Order' }}
             </a>
         @else
             <button type="button" disabled
                 title="{{ $isAr ? 'يجب اعتماد العرض أولاً قبل التحويل' : 'Quotation must be approved before converting' }}"
                 class="px-5 py-2 bg-gray-200 text-gray-400 rounded-lg font-bold text-sm flex items-center gap-2 cursor-not-allowed">
                 <i class="fas fa-file-contract"></i>
-                {{ $isAr ? 'تحويل لأمر بيع وإنشاء فاتورة بيع' : 'Convert to Sales Order & Create Invoice' }}
+                {{ $isAr ? 'تحويل لأمر بيع' : 'Convert to Sales Order' }}
             </button>
         @endif
 
-        {{-- زر إنشاء فاتورة شراء — واحدة بس لكل عرض سعر --}}
-        @php $existingPurchaseInvoice = $quotation->purchaseInvoices->first(); @endphp
-        @if($existingPurchaseInvoice)
-            <a href="{{ route('purchase-invoices.show', $existingPurchaseInvoice) }}"
-               class="px-5 py-2 bg-green-600 text-white rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-green-700 transition-colors">
-                <i class="fas fa-check-double"></i>
-                {{ $isAr ? 'تم إنشاء فاتورة الشراء' : 'Purchase Invoice Created' }}
-                <span class="font-mono text-xs opacity-80">{{ $existingPurchaseInvoice->invoice_number }}</span>
-            </a>
-        @elseif(in_array($quotation->status, ['approved', 'sent', 'converted']))
-            <a href="{{ route('purchase-invoices.create', ['quotation_id' => $quotation->id]) }}"
-               class="px-5 py-2 bg-[#005B9F] hover:bg-blue-800 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
-                <i class="fas fa-file-invoice"></i>
-                {{ $isAr ? 'إنشاء فاتورة شراء' : 'Create Purchase Invoice' }}
-            </a>
-        @else
-            <button type="button" disabled
-                title="{{ $isAr ? 'يجب اعتماد العرض أولاً' : 'Quotation must be approved first' }}"
-                class="px-5 py-2 bg-gray-200 text-gray-400 rounded-lg font-bold text-sm flex items-center gap-2 cursor-not-allowed">
-                <i class="fas fa-file-invoice"></i>
-                {{ $isAr ? 'إنشاء فاتورة شراء' : 'Create Purchase Invoice' }}
-            </button>
-        @endif
+
 
         {{-- زر إرسال البريد — متاح فقط لو الحالة «معتمد» وللعميل إيميل --}}
         @if($canSend && optional($quotation->client)->email)
@@ -252,29 +230,7 @@
     @endif
 </div>
 
-{{-- ============ فواتير الشراء ============ --}}
-@if($quotation->purchaseInvoices->isNotEmpty())
-<div class="no-print mb-4 max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
-        <i class="fas fa-file-invoice text-[#005B9F]"></i>
-        <span class="font-bold text-gray-700 text-sm">{{ $isAr ? 'فواتير الشراء' : 'Purchase Invoices' }}</span>
-        <a href="{{ route('cost-centers.show', $quotation) }}" class="{{ $isAr ? 'mr-auto' : 'ml-auto' }} text-xs text-[#005B9F] hover:underline">
-            {{ $isAr ? 'تقرير مركز التكلفة' : 'Cost center report' }} <i class="fas fa-chart-line"></i>
-        </a>
-    </div>
-    <table class="w-full text-sm" style="text-align:{{ $txtAlign }}">
-        <tbody class="divide-y divide-gray-100">
-            @foreach($quotation->purchaseInvoices as $pi)
-            <tr class="hover:bg-gray-50/60">
-                <td class="px-5 py-2.5"><a href="{{ route('purchase-invoices.show', $pi) }}" class="font-mono font-bold text-[#005B9F] hover:underline">{{ $pi->invoice_number }}</a></td>
-                <td class="px-5 py-2.5 text-gray-500" dir="ltr">{{ $pi->invoice_date->format('Y-m-d') }}</td>
-                <td class="px-5 py-2.5 font-bold text-red-600 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($pi->grand_total, 2) }} {{ $pi->currency }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-</div>
-@endif
+
 
 {{-- ============ المستند ============ --}}
 <div class="print-doc bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-w-5xl mx-auto mb-8" dir="{{ $docDir }}">

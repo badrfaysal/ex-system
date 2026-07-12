@@ -143,74 +143,24 @@ class SalesOrderController extends Controller
      */
     public function show(SalesOrder $salesOrder)
     {
-        $salesOrder->load(['client', 'items.item', 'quotation', 'receipts']);
+        $salesOrder->load(['client', 'items.item', 'quotation', 'salesInvoices', 'purchaseInvoices']);
         return view('sales_orders.show', compact('salesOrder'));
     }
 
     /**
-     * صفحة تعديل أمر البيع
+     * صفحة تعديل أمر البيع (مغلق - أمر البيع غير قابل للتعديل)
      */
     public function edit(SalesOrder $salesOrder)
     {
-        $salesOrder->load(['client', 'items.item', 'quotation']);
-        return view('sales_orders.edit', compact('salesOrder'));
+        abort(403, app()->getLocale() === 'ar' ? 'أمر البيع غير قابل للتعديل بعد اعتماده.' : 'Sales order is not editable.');
     }
 
     /**
-     * حفظ تعديلات أمر البيع (كميات + حذف أصناف)
+     * حفظ تعديلات أمر البيع (مغلق)
      */
     public function update(Request $request, SalesOrder $salesOrder)
     {
-        $request->validate([
-            'selected_items'   => 'required|array|min:1',
-            'selected_items.*' => 'exists:sales_order_items,id',
-            'quantities'       => 'required|array',
-            'quantities.*'     => 'numeric|min:0.001',
-            'prices'           => 'required|array',
-            'prices.*'         => 'numeric|min:0',
-        ]);
-
-        $selectedIds = $request->input('selected_items', []);
-        $quantities  = $request->input('quantities', []);
-        $prices      = $request->input('prices', []);
-
-        DB::transaction(function () use ($salesOrder, $selectedIds, $quantities, $prices) {
-            // حذف الأصناف اللي اتشالت
-            $salesOrder->items()->whereNotIn('id', $selectedIds)->delete();
-
-            // تحديث كميات وأسعار الأصناف المتبقية
-            $items = $salesOrder->items()->whereIn('id', $selectedIds)->get();
-
-            $subtotal = $lineDiscounts = $taxAmount = 0;
-
-            foreach ($items as $item) {
-                $qty        = (float) ($quantities[$item->id] ?? $item->quantity);
-                $price      = (float) ($prices[$item->id]    ?? $item->list_price);
-                $lineBase   = $qty * $price;
-                $discVal    = $lineBase * $item->discount_percent / 100;
-                $afterDisc  = $lineBase - $discVal;
-                $taxVal     = $afterDisc * $item->tax_percent / 100;
-                $netTotal   = round($afterDisc + $taxVal, 2);
-
-                $item->update(['quantity' => $qty, 'list_price' => $price, 'net_total' => $netTotal]);
-
-                $subtotal      += $lineBase;
-                $lineDiscounts += $discVal;
-                $taxAmount     += $taxVal;
-            }
-
-            $salesOrder->update([
-                'subtotal'       => round($subtotal, 2),
-                'total_discount' => round($lineDiscounts, 2),
-                'tax_amount'     => round($taxAmount, 2),
-                'grand_total'    => round($subtotal - $lineDiscounts + $taxAmount, 2),
-            ]);
-        });
-
-        return redirect()->route('sales-orders.show', $salesOrder)
-            ->with('success', app()->getLocale() === 'ar'
-                ? 'تم تحديث أمر البيع بنجاح'
-                : 'Sales order updated successfully');
+        abort(403);
     }
 
     /* ===================== Helpers ===================== */

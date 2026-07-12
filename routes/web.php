@@ -18,6 +18,10 @@ use App\Http\Controllers\ClientReceiptController;
 use App\Http\Controllers\PayableController;
 use App\Http\Controllers\ReceivableController;
 use App\Http\Controllers\CostCenterController;
+use App\Http\Controllers\SalesInvoiceController;
+use App\Http\Controllers\WalletController;
+use App\Http\Controllers\WalletTransferController;
+use App\Http\Controllers\ActivityLogController;
 
 use App\Models\Client;
 use App\Models\Vendor;
@@ -53,36 +57,12 @@ Route::middleware('auth')->group(function () {
         $quotationsByStatus = Quotation::selectRaw('status, count(*) as total')
             ->groupBy('status')->pluck('total', 'status');
 
-        // آخر النشاطات — query واحدة لكل نوع بدل take(5) متكررة
-        $recentItems      = Item::latest()->take(3)->get();
-        $recentClients    = Client::latest()->take(3)->get();
-        $recentQuotations = Quotation::with('client')->latest()->take(3)->get();
-
-        $recentActivities = collect()
-            ->merge($recentItems->map(fn($r) => [
-                'type' => 'item', 'label' => 'صنف جديد',
-                'name' => $r->name_ar, 'sub' => $r->item_code ?? '',
-                'icon' => 'fa-box', 'color' => 'amber',
-                'url'  => route('items.edit', $r->id), 'time' => $r->created_at,
-            ]))
-            ->merge($recentClients->map(fn($r) => [
-                'type' => 'client', 'label' => 'عميل جديد',
-                'name' => $r->company_name, 'sub' => $r->contact_person ?? '',
-                'icon' => 'fa-users', 'color' => 'blue',
-                'url'  => route('clients.edit', $r->id), 'time' => $r->created_at,
-            ]))
-            ->merge($recentQuotations->map(fn($r) => [
-                'type' => 'quotation', 'label' => 'عرض سعر',
-                'name' => $r->quote_number, 'sub' => optional($r->client)->company_name ?? '',
-                'icon' => 'fa-file-invoice-dollar', 'color' => 'purple',
-                'url'  => route('quotations.show', $r->id), 'time' => $r->created_at,
-            ]))
-            ->sortByDesc('time')->take(4)->values();
+        $wallets = \App\Models\Wallet::orderBy('name')->get();
 
         return view('dashboard', compact(
             'clientsCount', 'vendorsCount', 'itemsCount', 'activeItems',
             'quotationsCount', 'priceListsCount', 'quotationsByStatus',
-            'recentActivities'
+            'wallets'
         ));
     });
 
@@ -159,6 +139,34 @@ Route::middleware('auth')->group(function () {
     Route::get('cost-centers', [CostCenterController::class, 'index'])->name('cost-centers.index');
     Route::get('cost-centers/{quotation}', [CostCenterController::class, 'show'])->name('cost-centers.show');
     Route::patch('cost-centers/{quotation}', [CostCenterController::class, 'update'])->name('cost-centers.update');
+
+    // فواتير البيع
+    Route::get('sales-invoices', [SalesInvoiceController::class, 'index'])->name('sales-invoices.index');
+    Route::get('sales-invoices/create', [SalesInvoiceController::class, 'create'])->name('sales-invoices.create');
+    Route::post('sales-invoices', [SalesInvoiceController::class, 'store'])->name('sales-invoices.store');
+    Route::get('sales-invoices/{salesInvoice}', [SalesInvoiceController::class, 'show'])->name('sales-invoices.show');
+    Route::get('sales-invoices/{salesInvoice}/print', [SalesInvoiceController::class, 'print'])->name('sales-invoices.print');
+    Route::post('sales-invoices/{salesInvoice}/send-email', [SalesInvoiceController::class, 'sendEmail'])->name('sales-invoices.send-email');
+
+    // المحافظ النقدية/البنكية
+    Route::get('wallets', [WalletController::class, 'index'])->name('wallets.index');
+    Route::get('wallets/create', [WalletController::class, 'create'])->name('wallets.create');
+    Route::post('wallets', [WalletController::class, 'store'])->name('wallets.store');
+    Route::get('wallets/{wallet}/edit', [WalletController::class, 'edit'])->name('wallets.edit');
+    Route::put('wallets/{wallet}', [WalletController::class, 'update'])->name('wallets.update');
+    Route::delete('wallets/{wallet}', [WalletController::class, 'destroy'])->name('wallets.destroy');
+    Route::get('wallets/{wallet}', [WalletController::class, 'show'])->name('wallets.show');
+    Route::get('wallets/{wallet}/print', [WalletController::class, 'print'])->name('wallets.print');
+
+    Route::get('wallet-transfers/create', [WalletTransferController::class, 'create'])->name('wallet-transfers.create');
+    Route::post('wallet-transfers', [WalletTransferController::class, 'store'])->name('wallet-transfers.store');
+    
+    // إيرادات مباشرة للمحافظ
+    Route::post('revenues', [App\Http\Controllers\RevenueController::class, 'store'])->name('revenues.store');
+
+    // سجل العمليات
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+    Route::get('financial-logs', [\App\Http\Controllers\FinancialLogController::class, 'index'])->name('financial-logs.index');
 
     // تبديل اللغة
     Route::get('/lang/{locale}', function (string $locale) {

@@ -84,11 +84,21 @@
         </a>
         @endif
 
-        <a href="{{ route('client-receipts.create', ['sales_order_id' => $salesOrder->id]) }}"
-            class="px-5 py-2 bg-[#008A3B] text-white rounded-lg font-bold text-sm hover:bg-[#007030] flex items-center gap-2">
-            <i class="fas fa-hand-holding-usd"></i>
-            {{ $isAr ? 'تسجيل سند قبض' : 'Record Receipt' }}
+        {{-- إنشاء فاتورة بيع --}}
+        <a href="{{ route('sales-invoices.create', ['sales_order_id' => $salesOrder->id]) }}"
+            class="px-5 py-2 bg-[#008A3B] text-white rounded-lg font-bold text-sm hover:bg-[#007030] flex items-center gap-2 transition-colors">
+            <i class="fas fa-file-invoice"></i>
+            {{ $isAr ? 'إنشاء فاتورة بيع' : 'Create Sales Invoice' }}
         </a>
+
+        {{-- إنشاء فاتورة شراء --}}
+        <a href="{{ route('purchase-invoices.create', ['sales_order_id' => $salesOrder->id]) }}"
+            class="px-5 py-2 bg-[#005B9F] hover:bg-blue-800 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
+            <i class="fas fa-file-invoice-dollar"></i>
+            {{ $isAr ? 'إنشاء فاتورة شراء' : 'Create Purchase Invoice' }}
+        </a>
+
+
 
         <button onclick="window.print()"
             class="px-5 py-2 bg-[#005B9F] text-white rounded-lg font-bold text-sm hover:bg-blue-800 flex items-center gap-2">
@@ -99,7 +109,11 @@
 </div>
 
 {{-- ============ التحصيلات ============ --}}
-@php $received = $salesOrder->receipts->sum('amount'); $due = $salesOrder->grand_total - $received; @endphp
+@php 
+    $allReceipts = $salesOrder->salesInvoices->flatMap->receipts;
+    $received = $allReceipts->sum('amount'); 
+    $due = $salesOrder->grand_total - $received; 
+@endphp
 <div class="no-print mb-4 max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
         <i class="fas fa-hand-holding-usd text-[#008A3B]"></i>
@@ -113,10 +127,10 @@
             <span class="text-xs text-gray-400">{{ $cur }}</span>
         </span>
     </div>
-    @if($salesOrder->receipts->isNotEmpty())
+    @if($allReceipts->isNotEmpty())
     <table class="w-full text-sm" style="text-align:{{ $txtAlign }}">
         <tbody class="divide-y divide-gray-100">
-            @foreach($salesOrder->receipts as $r)
+            @foreach($allReceipts as $r)
             <tr>
                 <td class="px-5 py-2.5 font-mono text-gray-700">{{ $r->receipt_number }}</td>
                 <td class="px-5 py-2.5 text-gray-500" dir="ltr">{{ $r->receipt_date->format('Y-m-d') }}</td>
@@ -125,10 +139,55 @@
             @endforeach
         </tbody>
     </table>
-    @else
-    <p class="px-5 py-4 text-sm text-gray-400">{{ $isAr ? 'لا توجد تحصيلات بعد' : 'No receipts yet' }}</p>
     @endif
 </div>
+
+{{-- ============ فواتير البيع ============ --}}
+@if($salesOrder->salesInvoices->isNotEmpty())
+<div class="no-print mb-4 max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
+        <i class="fas fa-file-invoice text-[#008A3B]"></i>
+        <span class="font-bold text-gray-700 text-sm">{{ $isAr ? 'فواتير البيع' : 'Sales Invoices' }}</span>
+    </div>
+    <table class="w-full text-sm" style="text-align:{{ $txtAlign }}">
+        <tbody class="divide-y divide-gray-100">
+            @foreach($salesOrder->salesInvoices as $si)
+            <tr class="hover:bg-gray-50/60">
+                <td class="px-5 py-2.5"><a href="{{ route('sales-invoices.show', $si) }}" class="font-mono font-bold text-[#008A3B] hover:underline">{{ $si->invoice_number }}</a></td>
+                <td class="px-5 py-2.5 text-gray-500" dir="ltr">{{ $si->invoice_date->format('Y-m-d') }}</td>
+                <td class="px-5 py-2.5 font-bold text-green-600 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($si->grand_total, 2) }} {{ $si->currency }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+@endif
+
+{{-- ============ فواتير الشراء ============ --}}
+@if($salesOrder->purchaseInvoices->isNotEmpty())
+<div class="no-print mb-4 max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
+        <i class="fas fa-file-invoice-dollar text-[#005B9F]"></i>
+        <span class="font-bold text-gray-700 text-sm">{{ $isAr ? 'فواتير الشراء' : 'Purchase Invoices' }}</span>
+        @if($salesOrder->quotation)
+        <a href="{{ route('cost-centers.show', $salesOrder->quotation) }}" class="{{ $isAr ? 'mr-auto' : 'ml-auto' }} text-xs text-[#005B9F] hover:underline">
+            {{ $isAr ? 'تقرير مركز التكلفة' : 'Cost center report' }} <i class="fas fa-chart-line"></i>
+        </a>
+        @endif
+    </div>
+    <table class="w-full text-sm" style="text-align:{{ $txtAlign }}">
+        <tbody class="divide-y divide-gray-100">
+            @foreach($salesOrder->purchaseInvoices as $pi)
+            <tr class="hover:bg-gray-50/60">
+                <td class="px-5 py-2.5"><a href="{{ route('purchase-invoices.show', $pi) }}" class="font-mono font-bold text-[#005B9F] hover:underline">{{ $pi->invoice_number }}</a></td>
+                <td class="px-5 py-2.5 text-gray-500" dir="ltr">{{ $pi->invoice_date->format('Y-m-d') }}</td>
+                <td class="px-5 py-2.5 font-bold text-red-600 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($pi->grand_total, 2) }} {{ $pi->currency }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+@endif
 
 {{-- ============ المستند ============ --}}
 <div class="print-doc bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-w-5xl mx-auto mb-8" dir="{{ $docDir }}">
