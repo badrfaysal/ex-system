@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\EnforcesPeriodLock;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Quotation extends Model
 {
-    use HasFactory;
+    use HasFactory, EnforcesPeriodLock;
+
+    protected $periodLockDateColumn = 'quote_date';
 
     protected $fillable = [
         'quote_number', 'quote_date', 'expiry_date', 'opportunity_ref', 'cost_center_name',

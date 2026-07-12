@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\EnforcesPeriodLock;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PurchaseInvoice extends Model
 {
-    use HasFactory;
+    use HasFactory, EnforcesPeriodLock;
+
+    protected $periodLockDateColumn = 'invoice_date';
 
     protected $fillable = [
         'invoice_number', 'vendor_invoice_number', 'quotation_id', 'sales_order_id', 'vendor_id', 'invoice_date', 'currency', 'notes',

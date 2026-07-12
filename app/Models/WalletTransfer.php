@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\EnforcesPeriodLock;
 use App\Models\Concerns\Reversible;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class WalletTransfer extends Model
 {
-    use HasFactory, Reversible;
+    use HasFactory, Reversible, EnforcesPeriodLock;
+
+    protected $periodLockDateColumn = 'transfer_date';
 
     protected $fillable = [
         'transfer_number', 'from_wallet_id', 'to_wallet_id',

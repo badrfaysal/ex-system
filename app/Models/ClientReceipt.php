@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\EnforcesPeriodLock;
 use App\Models\Concerns\Reversible;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ClientReceipt extends Model
 {
-    use HasFactory, Reversible;
+    use HasFactory, Reversible, EnforcesPeriodLock;
+
+    protected $periodLockDateColumn = 'receipt_date';
 
     protected $fillable = [
         'receipt_number', 'client_id', 'sales_invoice_id', 'quotation_id', 'wallet_id',

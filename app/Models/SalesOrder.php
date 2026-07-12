@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\EnforcesPeriodLock;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class SalesOrder extends Model
 {
-    use HasFactory;
+    use HasFactory, EnforcesPeriodLock;
+
+    protected $periodLockDateColumn = 'so_date';
 
     protected $fillable = [
         'so_number', 'quotation_id', 'client_id',

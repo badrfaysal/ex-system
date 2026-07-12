@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\EnforcesPeriodLock;
 use App\Models\Concerns\Reversible;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Expense extends Model
 {
-    use HasFactory, Reversible;
+    use HasFactory, Reversible, EnforcesPeriodLock;
+
+    protected $periodLockDateColumn = 'expense_date';
 
     protected $fillable = [
         'expense_number', 'quotation_id', 'category', 'description',

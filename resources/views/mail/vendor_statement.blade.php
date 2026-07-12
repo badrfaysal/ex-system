@@ -2,9 +2,10 @@
 <html lang="{{ $isAr ? 'ar' : 'en' }}" dir="{{ $isAr ? 'rtl' : 'ltr' }}">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   body { font-family: Arial, sans-serif; background: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; direction: {{ $isAr ? 'rtl' : 'ltr' }}; }
-  .card { background: #ffffff; border-radius: 12px; max-width: 600px; margin: 0 auto; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .card { background: #ffffff; border-radius: 12px; max-width: 600px; width: 100%; margin: 0 auto; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); box-sizing: border-box; }
   .top-bar { height: 5px; background: linear-gradient(90deg, #dc2626, #991b1b); }
   .header  { background: #1e293b; padding: 22px 30px; color: #fff; }
   .header h1 { font-size: 18px; margin: 0 0 4px; }
@@ -14,7 +15,10 @@
   .highlight { background: #fef2f2; border-{{ $isAr ? 'right' : 'left' }}: 4px solid #dc2626; border-radius: 4px; padding: 14px 18px; margin: 20px 0; }
   .highlight p { margin: 4px 0; font-size: 13px; color: #1e293b; }
   .grand { display: inline-block; background: #dc2626; color: #fff; border-radius: 6px; padding: 6px 16px; font-size: 15px; font-weight: bold; margin-top: 4px; }
-  .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 30px; font-size: 11px; color: #94a3b8; text-align: center; }
+  @media only screen and (max-width: 480px) {
+    body { padding: 10px; }
+    .header, .body { padding: 18px 16px; }
+  }
 </style>
 </head>
 <body>
@@ -46,9 +50,6 @@
       <p>Please find the detailed statement attached as a PDF file.</p>
       <p>Best regards,<br><strong>{{ config('mail.from.name') }}</strong></p>
     @endif
-  </div>
-  <div class="footer">
-    {{ config('mail.from.address') }} &mdash; {{ config('mail.from.name') }}
   </div>
 </div>
 </body>

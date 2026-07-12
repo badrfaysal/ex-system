@@ -404,6 +404,16 @@
 
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
+                        <i class="fas fa-lock sb-group-icon text-pink-600"></i>
+                        <span>{{ $rtl ? 'إغلاق الفترات المحاسبية' : 'Period Locks' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('period-locks.index') }}" class="sb-sub {{ request()->routeIs('period-locks.*') ? 'active' : '' }}">{{ $rtl ? 'إدارة الفترات' : 'Manage Periods' }}</a>
+                    </div>
+                </div>
+
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
                         <i class="fas fa-cogs sb-group-icon text-gray-500"></i>
                         <span>{{ __('messages.nav.settings') }}</span>
                     </div>
@@ -560,6 +570,36 @@
                 @endif
 
                 @yield('content')
+
+                {{-- بوبب: فترة محاسبية مقفولة --}}
+                @if (session('period_locked_message'))
+                <div id="periodLockedModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="document.getElementById('periodLockedModal').remove()"></div>
+                    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in" dir="{{ $rtl ? 'rtl' : 'ltr' }}">
+                        <div class="bg-red-600 px-6 py-5 flex items-center gap-3">
+                            <div class="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center shrink-0">
+                                <i class="fas fa-lock text-white text-xl"></i>
+                            </div>
+                            <p class="text-white font-extrabold text-lg">{{ $rtl ? 'فترة محاسبية مقفولة' : 'Period Locked' }}</p>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-700 text-sm leading-relaxed">{{ session('period_locked_message') }}</p>
+                        </div>
+                        <div class="px-6 pb-6 flex justify-end">
+                            <button type="button" onclick="document.getElementById('periodLockedModal').remove()"
+                                class="px-6 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-lg font-bold text-sm transition-colors">
+                                {{ $rtl ? 'تمام' : 'OK' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    document.addEventListener('keydown', function (e) {
+                        var m = document.getElementById('periodLockedModal');
+                        if (m && e.key === 'Escape') m.remove();
+                    });
+                </script>
+                @endif
             </div>
 
         </main>

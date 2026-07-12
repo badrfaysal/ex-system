@@ -70,13 +70,14 @@ class SalesInvoiceController extends Controller
                 'invoiced'  => $invoiced,
                 'remaining' => $remaining,
             ];
-        })->filter(fn ($row) => $row['remaining'] > 0)->values();
+        })->values();
 
-        if ($lines->isEmpty()) {
-            return redirect()->route('sales-orders.show', $salesOrder)
-                ->with('error', app()->getLocale() === 'ar'
-                    ? 'كل أصناف أمر البيع اتفوترت بالفعل — لا يمكن إنشاء فاتورة بيع جديدة.'
-                    : 'All sales order items are already invoiced.');
+        $fullyInvoiced = $lines->isNotEmpty() && $lines->every(fn($row) => $row['remaining'] == 0);
+
+        if ($fullyInvoiced) {
+            session()->now('warning', app()->getLocale() === 'ar'
+                ? 'ملاحظة: كل أصناف أمر البيع اتفوترت بالكامل مسبقاً. يمكنك إنشاء فاتورة بأصناف إضافية إذا أردت.'
+                : 'Note: All sales order items are already fully invoiced. You can still add extra lines.');
         }
 
         $itemsList = \App\Models\Item::orderBy('name_ar')->get();
@@ -98,7 +99,7 @@ class SalesInvoiceController extends Controller
         $data = $request->validate([
             'sales_order_id'           => 'required|exists:sales_orders,id',
             'invoice_date'             => 'required|date',
-            'due_date'                 => 'nullable|date|after_or_equal:invoice_date',
+            'due_date'                 => 'required|date|after_or_equal:invoice_date',
             'currency'                 => 'required|string',
             'notes'                    => 'nullable|string',
             'selected_items'           => 'nullable|array',

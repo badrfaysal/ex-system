@@ -17,6 +17,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // فترة محاسبية مقفولة: بدل الصفحة العامة، ارجع للصفحة السابقة مع رسالة واضحة
+        // (لازم يتسجل قبل الـ Throwable العام تحت عشان ياخد الأولوية).
+        $exceptions->render(function (\App\Exceptions\PeriodLockedException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 423);
+            }
+
+            return back()->withInput()->with('period_locked_message', $e->getMessage());
+        });
+
         // كل خطأ (404 / 403 / 419 / 500 ... إلخ) يظهر بصفحة عربية موحّدة بدل صفحات
         // لارافيل الافتراضية. الأخطاء غير المتوقعة (باجات حقيقية) بتفضل تظهر بتفاصيلها
         // الكاملة في وضع التطوير المحلي (APP_DEBUG=true) عشان التشخيص يفضل ممكن.

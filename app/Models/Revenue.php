@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\EnforcesPeriodLock;
 use App\Models\Concerns\Reversible;
 use Illuminate\Database\Eloquent\Model;
 
 class Revenue extends Model
 {
-    use Reversible;
+    use Reversible, EnforcesPeriodLock;
+
+    protected $periodLockDateColumn = 'revenue_date';
 
     protected $fillable = [
         'revenue_number', 'wallet_id', 'category', 'description',

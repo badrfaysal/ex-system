@@ -22,6 +22,23 @@
 @if(session('error'))
 <div class="max-w-5xl mx-auto mb-4 bg-red-50 border border-red-300 text-red-800 rounded-xl p-4 text-sm">{{ session('error') }}</div>
 @endif
+@if(session('warning'))
+<div class="max-w-5xl mx-auto mb-4 bg-amber-50 border border-amber-300 text-amber-800 rounded-xl p-4 text-sm">{{ session('warning') }}</div>
+@endif
+
+@if($errors->any())
+<div class="max-w-5xl mx-auto mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-xl p-5 shadow-sm animate-fade-in">
+    <div class="flex items-center gap-3 mb-3">
+        <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+        <h3 class="text-red-800 font-bold text-lg">{{ $isAr ? 'عفواً، راجع الأخطاء التالية:' : 'Please review the following errors:' }}</h3>
+    </div>
+    <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+        @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
 
 <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-5">
     <div class="h-1.5 bg-gradient-to-r from-[#008A3B] to-[#005B9F]"></div>
@@ -53,8 +70,8 @@
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
             </div>
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'موعد الاستحقاق' : 'Due Date' }}</label>
-                <input type="date" name="due_date" value="{{ old('due_date') }}"
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'موعد الاستحقاق' : 'Due Date' }} <span class="text-red-500">*</span></label>
+                <input type="date" name="due_date" required value="{{ old('due_date') }}"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">
                 <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'لو العميل ما سددش قبل هذا التاريخ هتظهر الفاتورة في التنبيهات' : "If the client hasn't paid by this date, the invoice will show up in alerts" }}</p>
             </div>
@@ -94,24 +111,29 @@
                 </thead>
                 <tbody>
                     @foreach($lines as $row)
-                        @php $item = $row['item']; @endphp
-                        <tr class="border-b border-gray-100 si-line" data-id="{{ $item->id }}">
+                        @php 
+                            $item = $row['item']; 
+                            $isZero = $row['remaining'] == 0;
+                        @endphp
+                        <tr class="border-b border-gray-100 si-line {{ $isZero ? 'opacity-50' : '' }}" data-id="{{ $item->id }}">
                             <td class="p-3 text-center">
-                                <input type="checkbox" name="selected_items[]" value="{{ $item->id }}" class="si-check w-4 h-4 rounded" checked>
+                                <input type="checkbox" name="selected_items[]" value="{{ $item->id }}" class="si-check w-4 h-4 rounded" {{ $isZero ? '' : 'checked' }}>
                             </td>
                             <td class="p-3 text-gray-800">{{ $item->displayDescription($isAr ? 'ar' : 'en') }}</td>
                             <td class="p-3 text-center" dir="ltr">{{ rtrim(rtrim(number_format($item->quantity, 2), '0'), '.') }}</td>
                             <td class="p-3 text-center font-bold text-amber-600" dir="ltr">{{ rtrim(rtrim(number_format($row['remaining'], 2), '0'), '.') }}</td>
                             <td class="p-3">
                                 <input type="number" step="any" min="0.001" name="quantities[{{ $item->id }}]"
-                                    value="{{ old('quantities.'.$item->id, $row['remaining']) }}"
+                                    value="{{ old('quantities.'.$item->id, $isZero ? '' : $row['remaining']) }}"
                                     class="si-qty w-full px-2 py-1.5 border border-gray-300 rounded text-center"
-                                    data-discount="{{ $item->discount_percent }}" data-tax="{{ $item->tax_percent }}">
+                                    data-discount="{{ $item->discount_percent }}" data-tax="{{ $item->tax_percent }}"
+                                    {{ $isZero ? 'disabled' : '' }}>
                             </td>
                             <td class="p-3 text-center" dir="ltr">
                                 <input type="number" step="any" min="0" name="prices[{{ $item->id }}]"
                                     value="{{ old('prices.'.$item->id, $item->list_price) }}"
-                                    class="si-price w-full px-2 py-1.5 border border-gray-300 rounded text-center">
+                                    class="si-price w-full px-2 py-1.5 border border-gray-300 rounded text-center"
+                                    {{ $isZero ? 'disabled' : '' }}>
                             </td>
                             <td class="p-3 font-bold text-[#008A3B] si-net" dir="ltr">0.00</td>
                         </tr>
@@ -229,7 +251,29 @@
     }
 
     document.querySelectorAll('.si-check, .si-qty, .si-price').forEach(el => el.addEventListener('input', recalc));
-    document.querySelectorAll('.si-check').forEach(el => el.addEventListener('change', recalc));
+    document.querySelectorAll('.si-check').forEach(el => {
+        el.addEventListener('change', function() {
+            const tr = this.closest('tr');
+            const qty = tr.querySelector('.si-qty');
+            const price = tr.querySelector('.si-price');
+            qty.disabled = !this.checked;
+            price.disabled = !this.checked;
+            
+            // If checked and qty is empty, default it to 1 just to prevent validation errors if they want to invoice it again
+            if (this.checked && !qty.value) {
+                qty.value = 1;
+            } else if (!this.checked) {
+                qty.value = '';
+            }
+            
+            if(this.checked) {
+                tr.classList.remove('opacity-50');
+            } else {
+                tr.classList.add('opacity-50');
+            }
+            recalc();
+        });
+    });
     recalc();
 
     const invoiceCurrencySel = document.getElementById('invoiceCurrency');

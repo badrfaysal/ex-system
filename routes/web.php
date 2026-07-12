@@ -23,6 +23,7 @@ use App\Http\Controllers\WalletController;
 use App\Http\Controllers\WalletTransferController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\PeriodLockController;
 
 use App\Models\Quotation;
 
@@ -61,6 +62,12 @@ Route::middleware('auth')->group(function () {
     Route::post('settings', [SettingController::class, 'store'])->name('settings.store');
     Route::delete('settings/{setting}', [SettingController::class, 'destroy'])->name('settings.destroy');
     Route::post('settings/reset-database', [SettingController::class, 'resetDatabase'])->name('settings.reset-database');
+
+    // إغلاق الفترات المحاسبية
+    Route::get('period-locks', [PeriodLockController::class, 'index'])->name('period-locks.index');
+    Route::post('period-locks', [PeriodLockController::class, 'store'])->name('period-locks.store');
+    Route::patch('period-locks/{periodLock}/toggle', [PeriodLockController::class, 'toggle'])->name('period-locks.toggle');
+    Route::delete('period-locks/{periodLock}', [PeriodLockController::class, 'destroy'])->name('period-locks.destroy');
 
     // إدارة المستخدمين (من الإعدادات)
     Route::post('users', [UserController::class, 'store'])->name('users.store');
