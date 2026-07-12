@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Revenue;
 use App\Models\Wallet;
+use App\Services\SequenceGenerator;
+use Illuminate\Support\Facades\DB;
 
 class RevenueController extends Controller
 {
@@ -21,10 +23,12 @@ class RevenueController extends Controller
 
         // العملة ترث من المحفظة — المحفظة تعمل بعملة واحدة فقط
         $validated['currency'] = Wallet::findOrFail($validated['wallet_id'])->currency;
-        $validated['revenue_number'] = 'REV-' . date('Ym') . '-' . str_pad(Revenue::count() + 1, 4, '0', STR_PAD_LEFT);
         $validated['created_by'] = auth()->id();
 
-        Revenue::create($validated);
+        DB::transaction(function () use (&$validated) {
+            $validated['revenue_number'] = SequenceGenerator::next('REV');
+            Revenue::create($validated);
+        });
 
         return redirect()->back()->with('success', app()->getLocale() === 'ar' ? 'تم إضافة الإيراد المباشر بنجاح' : 'Direct revenue added successfully');
     }

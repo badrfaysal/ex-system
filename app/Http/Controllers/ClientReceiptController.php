@@ -7,8 +7,10 @@ use App\Models\SalesInvoice;
 use App\Models\Setting;
 use App\Models\Wallet;
 use App\Rules\MatchesWalletCurrency;
+use App\Services\SequenceGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ClientReceiptController extends Controller
 {
@@ -43,7 +45,6 @@ class ClientReceiptController extends Controller
             'salesInvoice'   => $salesInvoice,
             'paymentMethods' => $lookups->get('payment_method') ?? collect(),
             'wallets'        => Wallet::orderBy('name')->get(['id', 'name', 'currency']),
-            'nextNumber'     => $this->nextNumber(),
         ]);
     }
 
@@ -51,7 +52,6 @@ class ClientReceiptController extends Controller
     {
         $data = $request->validate([
             'sales_invoice_id' => 'required|exists:sales_invoices,id',
-            'receipt_number'   => 'required|string|unique:client_receipts,receipt_number',
             'wallet_id'        => 'required|exists:wallets,id',
             'amount'           => 'required|numeric|min:0.01',
             'currency'         => ['required', 'string', new MatchesWalletCurrency],
@@ -62,28 +62,23 @@ class ClientReceiptController extends Controller
 
         $salesInvoice = SalesInvoice::findOrFail($data['sales_invoice_id']);
 
-        ClientReceipt::create([
-            'receipt_number'   => $data['receipt_number'],
-            'client_id'        => $salesInvoice->client_id,
-            'sales_invoice_id' => $salesInvoice->id,
-            'quotation_id'     => $salesInvoice->quotation_id,
-            'wallet_id'        => $data['wallet_id'],
-            'amount'           => $data['amount'],
-            'currency'         => $data['currency'],
-            'receipt_date'     => $data['receipt_date'],
-            'payment_method'   => $data['payment_method'] ?? null,
-            'notes'            => $data['notes'] ?? null,
-            'created_by'       => auth()->id(),
-        ]);
+        DB::transaction(function () use ($data, $salesInvoice) {
+            ClientReceipt::create([
+                'receipt_number'   => SequenceGenerator::next('RC'),
+                'client_id'        => $salesInvoice->client_id,
+                'sales_invoice_id' => $salesInvoice->id,
+                'quotation_id'     => $salesInvoice->quotation_id,
+                'wallet_id'        => $data['wallet_id'],
+                'amount'           => $data['amount'],
+                'currency'         => $data['currency'],
+                'receipt_date'     => $data['receipt_date'],
+                'payment_method'   => $data['payment_method'] ?? null,
+                'notes'            => $data['notes'] ?? null,
+                'created_by'       => auth()->id(),
+            ]);
+        });
 
         return redirect()->route('sales-invoices.show', $salesInvoice)
             ->with('success', app()->getLocale() === 'ar' ? 'تم تسجيل سند القبض بنجاح' : 'Receipt recorded successfully');
-    }
-
-    private function nextNumber(): string
-    {
-        $last = ClientReceipt::latest('id')->first();
-        $seq  = $last ? $last->id + 1 : 1;
-        return 'RC-' . now()->format('Y-m') . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
     }
 }

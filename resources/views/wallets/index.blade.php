@@ -113,7 +113,6 @@
         <form action="{{ route('expenses.store') }}" method="POST" class="p-6 space-y-4">
             @csrf
             <input type="hidden" name="expense_date" value="{{ date('Y-m-d') }}">
-            <input type="hidden" name="expense_number" value="{{ $nextExpenseNumber }}">
             <input type="hidden" name="redirect_to" value="{{ route('wallets.index') }}">
             <!-- Note: currency will be deduced from wallet or hardcoded if needed. We'll set it to EGP for now as a fallback -->
             <input type="hidden" name="currency" value="EGP">

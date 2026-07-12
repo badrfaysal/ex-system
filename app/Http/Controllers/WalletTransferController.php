@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\InsufficientBalanceException;
 use App\Models\Wallet;
 use App\Models\WalletTransfer;
 use App\Rules\MatchesWalletCurrency;
+use App\Services\SequenceGenerator;
+use App\Services\WalletLedger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +18,6 @@ class WalletTransferController extends Controller
     {
         return view('wallet_transfers.create', [
             'wallets'          => Wallet::orderBy('name')->get(),
-            'nextNumber'       => $this->nextNumber(),
             'selectedFromId'   => $request->integer('from_wallet_id') ?: null,
         ]);
     }
@@ -25,7 +27,6 @@ class WalletTransferController extends Controller
         $isAr = app()->getLocale() === 'ar';
 
         $data = $request->validate([
-            'transfer_number' => 'required|string|unique:wallet_transfers,transfer_number',
             'from_wallet_id'  => 'required|exists:wallets,id|different:to_wallet_id',
             'to_wallet_id'    => [
                 'required',
@@ -50,16 +51,23 @@ class WalletTransferController extends Controller
 
         $data['created_by'] = Auth::id();
 
-        $transfer = DB::transaction(fn () => WalletTransfer::create($data));
+        try {
+            $transfer = DB::transaction(function () use ($data) {
+                // نقفل المحفظتين بترتيب ثابت (حسب id) لتفادي deadlock مع تحويل عكسي متزامن
+                WalletLedger::lockMany([$data['from_wallet_id'], $data['to_wallet_id']]);
+
+                // التحقق من كفاية رصيد محفظة المصدر — آمن حتى مع طلبات متزامنة على نفس المحفظة
+                WalletLedger::lockAndCheck($data['from_wallet_id'], $data['amount']);
+
+                $data['transfer_number'] = SequenceGenerator::next('TR');
+
+                return WalletTransfer::create($data);
+            });
+        } catch (InsufficientBalanceException $e) {
+            return back()->withErrors(['amount' => $e->getMessage()])->withInput();
+        }
 
         return redirect()->route('wallets.show', $transfer->from_wallet_id)
             ->with('success', app()->getLocale() === 'ar' ? 'تم التحويل بنجاح' : 'Transfer completed successfully');
-    }
-
-    private function nextNumber(): string
-    {
-        $last = WalletTransfer::latest('id')->first();
-        $seq  = $last ? $last->id + 1 : 1;
-        return 'TR-' . now()->format('Y-m') . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
     }
 }

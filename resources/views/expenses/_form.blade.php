@@ -1,15 +1,20 @@
 @php
     $isAr = app()->getLocale() === 'ar';
     $e = $expense ?? null;
+    $isEdit = $e && $e->exists;
 @endphp
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
 
     <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'رقم المصروف' : 'Expense No.' }} <span class="text-red-500">*</span></label>
-        <input type="text" name="expense_number" value="{{ old('expense_number', $e?->expense_number) }}" required dir="ltr"
-            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono focus:outline-none focus:border-[#008A3B] focus:ring-1 focus:ring-[#008A3B] bg-gray-50 focus:bg-white">
-        @error('expense_number') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'رقم المصروف' : 'Expense No.' }}</label>
+        @if($isEdit)
+            <input type="text" value="{{ $e->expense_number }}" disabled dir="ltr"
+                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-500 cursor-not-allowed">
+        @else
+            <input type="text" value="{{ $isAr ? '— يُولَّد تلقائيًا عند الحفظ —' : '— Generated automatically on save —' }}" disabled dir="ltr"
+                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-400 italic cursor-not-allowed">
+        @endif
     </div>
 
     <div>

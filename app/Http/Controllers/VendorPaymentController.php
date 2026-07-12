@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\InsufficientBalanceException;
 use App\Models\Setting;
 use App\Models\Vendor;
 use App\Models\VendorPayment;
 use App\Models\Wallet;
 use App\Rules\MatchesWalletCurrency;
+use App\Services\SequenceGenerator;
+use App\Services\WalletLedger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class VendorPaymentController extends Controller
 {
@@ -41,14 +45,12 @@ class VendorPaymentController extends Controller
             'currencies'     => $lookups->get('currency') ?? collect(),
             'wallets'        => Wallet::orderBy('name')->get(['id', 'name', 'currency']),
             'selectedVendorId' => $request->integer('vendor_id') ?: null,
-            'nextNumber'     => $this->nextNumber(),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'payment_number'      => 'required|string|unique:vendor_payments,payment_number',
             'vendor_id'           => 'required|exists:vendors,id',
             'purchase_invoice_id' => 'nullable|exists:purchase_invoices,id',
             'wallet_id'           => 'required|exists:wallets,id',
@@ -60,7 +62,19 @@ class VendorPaymentController extends Controller
         ]);
 
         $data['created_by'] = auth()->id();
-        VendorPayment::create($data);
+
+        try {
+            DB::transaction(function () use (&$data) {
+                // قفل صف المحفظة والتحقق من كفاية الرصيد — آمن حتى مع طلبات متزامنة
+                WalletLedger::lockAndCheck($data['wallet_id'], $data['amount']);
+
+                $data['payment_number'] = SequenceGenerator::next('VP');
+
+                VendorPayment::create($data);
+            });
+        } catch (InsufficientBalanceException $e) {
+            return back()->withErrors(['amount' => $e->getMessage()])->withInput();
+        }
 
         return redirect()->route('payables.show', $data['vendor_id'])
             ->with('success', app()->getLocale() === 'ar' ? 'تم تسجيل سند الدفع بنجاح' : 'Payment recorded successfully');
@@ -79,14 +93,12 @@ class VendorPaymentController extends Controller
             'currencies'     => $lookups->get('currency') ?? collect(),
             'wallets'        => Wallet::orderBy('name')->get(['id', 'name', 'currency']),
             'selectedVendorId' => $vendorPayment->vendor_id,
-            'nextNumber'     => $vendorPayment->payment_number,
         ]);
     }
 
     public function update(Request $request, VendorPayment $vendorPayment)
     {
         $data = $request->validate([
-            'payment_number'      => 'required|string|unique:vendor_payments,payment_number,' . $vendorPayment->id,
             'vendor_id'           => 'required|exists:vendors,id',
             'purchase_invoice_id' => 'nullable|exists:purchase_invoices,id',
             'wallet_id'           => 'required|exists:wallets,id',
@@ -98,16 +110,19 @@ class VendorPaymentController extends Controller
         ]);
 
         $data['created_by'] = auth()->id();
-        $vendorPayment->update($data);
+
+        try {
+            DB::transaction(function () use ($data, $vendorPayment) {
+                // رجّع المبلغ القديم للمتاح قبل ما نتحقق من الجديد
+                WalletLedger::lockAndCheck($data['wallet_id'], $data['amount'], excludeAmount: (float) $vendorPayment->amount);
+
+                $vendorPayment->update($data);
+            });
+        } catch (InsufficientBalanceException $e) {
+            return back()->withErrors(['amount' => $e->getMessage()])->withInput();
+        }
 
         return redirect()->route('payables.show', $data['vendor_id'])
             ->with('success', app()->getLocale() === 'ar' ? 'تم تحديث سند الدفع بنجاح' : 'Payment updated successfully');
-    }
-
-    private function nextNumber(): string
-    {
-        $last = VendorPayment::latest('id')->first();
-        $seq  = $last ? $last->id + 1 : 1;
-        return 'VP-' . now()->format('Y-m') . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
     }
 }

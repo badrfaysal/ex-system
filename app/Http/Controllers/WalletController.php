@@ -13,13 +13,12 @@ class WalletController extends Controller
     {
         $wallets = Wallet::withBalanceSums()->orderBy('name')->get();
 
-        $lastExp = \App\Models\Expense::latest('id')->first();
-        $seqExp  = $lastExp ? $lastExp->id + 1 : 1;
-        $nextExpenseNumber = 'EXP-' . now()->format('Y-m') . '-' . str_pad($seqExp, 4, '0', STR_PAD_LEFT);
+        $lookups = Cache::remember('system_settings', 60 * 60 * 24, function () {
+            return Setting::all()->groupBy('category');
+        });
+        $categories = $lookups->get('expense_category') ?? collect();
 
-        $categories = \App\Models\Setting::where('category', 'expense_category')->get();
-
-        return view('wallets.index', compact('wallets', 'nextExpenseNumber', 'categories'));
+        return view('wallets.index', compact('wallets', 'categories'));
     }
 
     public function create()

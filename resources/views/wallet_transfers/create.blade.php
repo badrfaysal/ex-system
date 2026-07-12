@@ -23,10 +23,9 @@
             @csrf
             <div class="grid grid-cols-1 gap-6">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'رقم التحويل' : 'Transfer No.' }} <span class="text-red-500">*</span></label>
-                    <input type="text" name="transfer_number" required dir="ltr" value="{{ old('transfer_number', $nextNumber) }}"
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono focus:outline-none focus:border-amber-500 bg-gray-50 focus:bg-white">
-                    @error('transfer_number') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'رقم التحويل' : 'Transfer No.' }}</label>
+                    <input type="text" value="{{ $isAr ? '— يُولَّد تلقائيًا عند الحفظ —' : '— Generated automatically on save —' }}" disabled dir="ltr"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-400 italic cursor-not-allowed">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 items-end">

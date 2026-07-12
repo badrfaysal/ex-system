@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\InsufficientBalanceException;
 use App\Models\Expense;
 use App\Models\Quotation;
 use App\Models\Setting;
 use App\Models\Wallet;
 use App\Rules\MatchesWalletCurrency;
+use App\Services\SequenceGenerator;
+use App\Services\WalletLedger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ExpenseController extends Controller
 {
@@ -36,10 +40,9 @@ class ExpenseController extends Controller
     public function create(Request $request)
     {
         $expense = new Expense([
-            'expense_number' => $this->nextNumber(),
-            'expense_date'   => now()->toDateString(),
-            'currency'       => 'EGP',
-            'quotation_id'   => $request->integer('quotation_id') ?: null,
+            'expense_date' => now()->toDateString(),
+            'currency'     => 'EGP',
+            'quotation_id' => $request->integer('quotation_id') ?: null,
         ]);
 
         return view('expenses.create', $this->formData() + ['expense' => $expense]);
@@ -48,9 +51,20 @@ class ExpenseController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateData($request);
-
         $data['created_by'] = auth()->id();
-        $expense = Expense::create($data);
+
+        try {
+            $expense = DB::transaction(function () use ($data) {
+                // قفل صف المحفظة والتحقق من كفاية الرصيد — آمن حتى مع طلبات متزامنة
+                WalletLedger::lockAndCheck($data['wallet_id'], $data['amount']);
+
+                $data['expense_number'] = SequenceGenerator::next('EXP');
+
+                return Expense::create($data);
+            });
+        } catch (InsufficientBalanceException $e) {
+            return back()->withErrors(['amount' => $e->getMessage()])->withInput();
+        }
 
         $msg = app()->getLocale() === 'ar' ? 'تم حفظ المصروف بنجاح' : 'Expense saved successfully';
 
@@ -68,10 +82,19 @@ class ExpenseController extends Controller
 
     public function update(Request $request, Expense $expense)
     {
-        $data = $this->validateData($request, $expense->id);
-
+        $data = $this->validateData($request);
         $data['created_by'] = auth()->id();
-        $expense->update($data);
+
+        try {
+            DB::transaction(function () use ($data, $expense) {
+                // رجّع المبلغ القديم للمتاح قبل ما نتحقق من الجديد — عشان التعديل بنفس القيمة أو بمبلغ أقل ميترفضش غلط
+                WalletLedger::lockAndCheck($data['wallet_id'], $data['amount'], excludeAmount: (float) $expense->amount);
+
+                $expense->update($data);
+            });
+        } catch (InsufficientBalanceException $e) {
+            return back()->withErrors(['amount' => $e->getMessage()])->withInput();
+        }
 
         return redirect()->route('expenses.index')
             ->with('success', app()->getLocale() === 'ar' ? 'تم تحديث المصروف بنجاح' : 'Expense updated successfully');
@@ -93,25 +116,17 @@ class ExpenseController extends Controller
         ];
     }
 
-    private function nextNumber(): string
-    {
-        $last = Expense::latest('id')->first();
-        $seq  = $last ? $last->id + 1 : 1;
-        return 'EXP-' . now()->format('Y-m') . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-    }
-
-    private function validateData(Request $request, $ignoreId = null): array
+    private function validateData(Request $request): array
     {
         return $request->validate([
-            'expense_number' => 'required|string|unique:expenses,expense_number' . ($ignoreId ? ",$ignoreId" : ''),
-            'quotation_id'   => 'nullable|exists:quotations,id',
-            'category'       => 'required|string',
-            'description'    => 'nullable|string',
-            'wallet_id'      => 'required|exists:wallets,id',
-            'amount'         => 'required|numeric|min:0.01',
-            'currency'       => ['required', 'string', new MatchesWalletCurrency],
-            'expense_date'   => 'required|date',
-            'notes'          => 'nullable|string',
+            'quotation_id' => 'nullable|exists:quotations,id',
+            'category'     => 'required|string',
+            'description'  => 'nullable|string',
+            'wallet_id'    => 'required|exists:wallets,id',
+            'amount'       => 'required|numeric|min:0.01',
+            'currency'     => ['required', 'string', new MatchesWalletCurrency],
+            'expense_date' => 'required|date',
+            'notes'        => 'nullable|string',
         ]);
     }
 }

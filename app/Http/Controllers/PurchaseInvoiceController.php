@@ -6,6 +6,7 @@ use App\Models\Item;
 use App\Models\PurchaseInvoice;
 use App\Models\SalesOrder;
 use App\Models\Vendor;
+use App\Services\SequenceGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +52,6 @@ class PurchaseInvoiceController extends Controller
             'salesOrder'        => $salesOrder,
             'vendors'           => $vendors,
             'items'             => $items,
-            'nextInvoiceNumber' => $this->nextNumber(),
         ]);
     }
 
@@ -60,7 +60,6 @@ class PurchaseInvoiceController extends Controller
         $data = $request->validate([
             'sales_order_id'           => 'required|exists:sales_orders,id',
             'vendor_id'                => 'required|exists:vendors,id',
-            'invoice_number'           => 'required|string|unique:purchase_invoices,invoice_number',
             'invoice_date'             => 'required|date',
             'currency'                 => 'required|string',
             'notes'                    => 'nullable|string',
@@ -78,7 +77,7 @@ class PurchaseInvoiceController extends Controller
 
         $invoice = DB::transaction(function () use ($data, $salesOrder) {
             $invoice = PurchaseInvoice::create([
-                'invoice_number' => $data['invoice_number'],
+                'invoice_number' => SequenceGenerator::next('PI'),
                 'quotation_id'   => $salesOrder->quotation_id,
                 'sales_order_id' => $salesOrder->id,
                 'vendor_id'      => $data['vendor_id'],
@@ -137,13 +136,6 @@ class PurchaseInvoiceController extends Controller
             ->with('success', app()->getLocale() === 'ar'
                 ? 'تم إنشاء فاتورة الشراء ' . $invoice->invoice_number . ' وأصبحت التزامًا فوريًا للمورد'
                 : 'Purchase invoice ' . $invoice->invoice_number . ' created and is now an immediate vendor liability');
-    }
-
-    private function nextNumber(): string
-    {
-        $last = PurchaseInvoice::latest('id')->first();
-        $seq  = $last ? $last->id + 1 : 1;
-        return 'PI-' . now()->format('Y-m') . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
     }
 
     public function show(PurchaseInvoice $purchaseInvoice)

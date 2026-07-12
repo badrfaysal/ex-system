@@ -10,10 +10,14 @@
     @if($isEdit) @method('PUT') @endif
     <div class="grid grid-cols-1 gap-6">
         <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'رقم السند' : 'Payment No.' }} <span class="text-red-500">*</span></label>
-            <input type="text" name="payment_number" required dir="ltr" value="{{ old('payment_number', $p?->payment_number ?? $nextNumber) }}"
-                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono focus:outline-none focus:border-red-500 bg-gray-50 focus:bg-white">
-            @error('payment_number') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'رقم السند' : 'Payment No.' }}</label>
+            @if($isEdit)
+                <input type="text" value="{{ $p->payment_number }}" disabled dir="ltr"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-500 cursor-not-allowed">
+            @else
+                <input type="text" value="{{ $isAr ? '— يُولَّد تلقائيًا عند الحفظ —' : '— Generated automatically on save —' }}" disabled dir="ltr"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-400 italic cursor-not-allowed">
+            @endif
         </div>
 
         <div>

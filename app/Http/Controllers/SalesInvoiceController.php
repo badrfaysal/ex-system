@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SalesInvoice;
 use App\Models\SalesOrder;
+use App\Services\SequenceGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -65,7 +66,6 @@ class SalesInvoiceController extends Controller
         return view('sales_invoices.create', [
             'salesOrder'        => $salesOrder,
             'lines'             => $lines,
-            'nextInvoiceNumber' => $this->nextNumber(),
             'itemsList'         => $itemsList,
         ]);
     }
@@ -74,7 +74,6 @@ class SalesInvoiceController extends Controller
     {
         $data = $request->validate([
             'sales_order_id'           => 'required|exists:sales_orders,id',
-            'invoice_number'           => 'required|string|unique:sales_invoices,invoice_number',
             'invoice_date'             => 'required|date',
             'currency'                 => 'required|string',
             'notes'                    => 'nullable|string',
@@ -108,7 +107,7 @@ class SalesInvoiceController extends Controller
 
         $invoice = DB::transaction(function () use ($data, $salesOrder, $selectedItems, $extraLines) {
             $invoice = SalesInvoice::create([
-                'invoice_number' => $data['invoice_number'],
+                'invoice_number' => SequenceGenerator::next('SI'),
                 'sales_order_id' => $salesOrder->id,
                 'client_id'      => $salesOrder->client_id,
                 'quotation_id'   => $salesOrder->quotation_id,
@@ -250,11 +249,4 @@ class SalesInvoiceController extends Controller
         return view('sales_invoices.print', compact('salesInvoice'));
     }
 
-    private function nextNumber(): string
-    {
-        $last = SalesInvoice::latest('id')->first();
-        $seq  = $last ? $last->id + 1 : 1;
-
-        return 'SI-' . now()->format('Y-m') . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-    }
 }

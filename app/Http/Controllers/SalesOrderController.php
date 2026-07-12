@@ -6,6 +6,7 @@ use App\Models\Item;
 use App\Models\Quotation;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
+use App\Services\SequenceGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -98,7 +99,7 @@ class SalesOrderController extends Controller
 
         $salesOrder = DB::transaction(function () use ($quotation, $selectedItems, $quantities, $prices, $extraLines) {
             $so = SalesOrder::create([
-                'so_number'      => $this->nextNumber(),
+                'so_number'      => SequenceGenerator::next('SO'),
                 'quotation_id'   => $quotation->id,
                 'client_id'      => $quotation->client_id,
                 'so_date'        => now()->toDateString(),
@@ -241,12 +242,5 @@ class SalesOrderController extends Controller
         }
 
         return [$subtotal, $lineDiscounts, $taxAmount];
-    }
-
-    private function nextNumber(): string
-    {
-        $last = SalesOrder::latest('id')->lockForUpdate()->first();
-        $seq  = $last ? $last->id + 1 : 1;
-        return 'SO-' . now()->format('Y-m') . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
     }
 }
