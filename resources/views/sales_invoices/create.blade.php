@@ -52,7 +52,7 @@
     </div>
 </div>
 
-<form action="{{ route('sales-invoices.store') }}" method="POST" id="siForm">
+<form action="{{ route('sales-invoices.store') }}" method="POST" enctype="multipart/form-data" id="siForm">
     @csrf
     <input type="hidden" name="sales_order_id" value="{{ $salesOrder->id }}">
 
@@ -86,8 +86,17 @@
                 <p class="text-[11px] text-amber-600 mt-1">{{ $isAr ? 'تنبيه: العملة نهائية بعد الحفظ ولا يمكن تغييرها — وهتبقى إلزامية عند تحصيل أي سند قبض لهذه الفاتورة.' : 'Note: the currency is final once saved and cannot be changed later — it will be enforced on any receipt collected against this invoice.' }}</p>
             </div>
             <div class="md:col-span-2">
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'ملاحظات' : 'Notes' }}</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'الملاحظات' : 'Notes' }}</label>
                 <textarea name="notes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">{{ old('notes') }}</textarea>
+            </div>
+            <div class="md:col-span-3 mt-2">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المرفقات (اختياري)' : 'Attachments (Optional)' }}</label>
+                <div class="relative">
+                    <input type="file" name="attachments[]" id="attachmentsInput" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                        class="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#005B9F]/10 file:text-[#005B9F] hover:file:bg-[#005B9F]/20 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer transition-colors">
+                </div>
+                <div id="attachmentsList" class="mt-2 text-sm text-gray-600 font-bold hidden"></div>
+                @error('attachments.*') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
         </div>
     </div>
@@ -364,6 +373,68 @@
             alert(@json($isAr ? 'اختر صنفاً واحداً على الأقل أو أضف صنفاً إضافياً.' : 'Select at least one item or add an extra line.'));
         }
     });
+
+    // Accumulate attachments and show visual list with remove buttons
+    const fileInput = document.getElementById('attachmentsInput');
+    const filesList = document.getElementById('attachmentsList');
+    if (fileInput) {
+        const dt = new DataTransfer();
+        
+        function updateFilesUI() {
+            if (dt.files.length > 0) {
+                filesList.classList.remove('hidden');
+                let html = `<p class="mb-2 text-green-600"><i class="fas fa-check-circle"></i> ${dt.files.length} ${isAr ? 'ملفات تم تحديدها:' : 'files selected:'}</p><div class="flex flex-wrap gap-2">`;
+                
+                for (let i = 0; i < dt.files.length; i++) {
+                    const file = dt.files[i];
+                    html += `
+                    <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm text-xs font-normal">
+                        <span class="truncate max-w-[150px]" title="${file.name}">${file.name}</span>
+                        <button type="button" class="text-gray-400 hover:text-red-500 remove-file-btn" data-index="${i}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>`;
+                }
+                html += `</div>`;
+                filesList.innerHTML = html;
+                
+                // Add click events to remove buttons
+                const removeBtns = filesList.querySelectorAll('.remove-file-btn');
+                removeBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const idx = parseInt(this.getAttribute('data-index'));
+                        
+                        // Create a new DataTransfer because we can't remove directly from dt.items by index in all browsers easily
+                        const newDt = new DataTransfer();
+                        for (let j = 0; j < dt.files.length; j++) {
+                            if (j !== idx) newDt.items.add(dt.files[j]);
+                        }
+                        
+                        // Clear current dt and repopulate
+                        dt.items.clear();
+                        for (let j = 0; j < newDt.files.length; j++) {
+                            dt.items.add(newDt.files[j]);
+                        }
+                        
+                        fileInput.files = dt.files;
+                        updateFilesUI();
+                    });
+                });
+            } else {
+                filesList.classList.add('hidden');
+                filesList.innerHTML = '';
+            }
+        }
+        
+        fileInput.addEventListener('change', function(e) {
+            for (let i = 0; i < this.files.length; i++) {
+                dt.items.add(this.files[i]);
+            }
+            this.files = dt.files; // Update the actual input
+            updateFilesUI();
+        });
+    }
+
 })();
 </script>
 @endsection

@@ -24,8 +24,22 @@ class SalesInvoiceController extends Controller
                   ->orWhereHas('salesOrder', fn ($so) => $so->where('so_number', 'like', "%{$search}%"));
             });
         }
+        if ($request->filled('sort')) {
+            $sort = $request->sort;
+            if ($sort === 'oldest') {
+                $query->oldest();
+            } elseif ($sort === 'highest') {
+                $query->orderBy('grand_total', 'desc');
+            } elseif ($sort === 'lowest') {
+                $query->orderBy('grand_total', 'asc');
+            } else {
+                $query->latest();
+            }
+        } else {
+            $query->latest();
+        }
 
-        $invoices = $query->latest()->paginate(15)->withQueryString();
+        $invoices = $query->paginate(15)->withQueryString();
 
         return view('sales_invoices.index', compact('invoices'));
     }
@@ -116,6 +130,8 @@ class SalesInvoiceController extends Controller
             'extra_lines.*.unit_price' => 'required_with:extra_lines|numeric|min:0',
             'extra_lines.*.discount_percent' => 'nullable|numeric|min:0|max:100',
             'extra_lines.*.tax_percent'      => 'nullable|numeric|min:0|max:100',
+            'attachments'                    => 'nullable|array|max:10',
+            'attachments.*'                  => 'file|mimes:jpeg,png,jpg,pdf,doc,docx,xls,xlsx,zip|max:10240',
         ]);
 
         $salesOrder = SalesOrder::with(['items.salesInvoiceItems'])->findOrFail($data['sales_order_id']);
@@ -224,6 +240,19 @@ class SalesInvoiceController extends Controller
 
             return $invoice;
         });
+
+        $attachments = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store('attachments/sales_invoices', 'public');
+                $attachments[] = [
+                    'path' => $path,
+                    'name' => $file->getClientOriginalName(),
+                    'type' => $file->getClientMimeType(),
+                ];
+            }
+            $invoice->update(['attachments' => $attachments]);
+        }
 
         return redirect()->route('sales-invoices.show', $invoice)
             ->with('success', app()->getLocale() === 'ar'

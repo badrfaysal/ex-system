@@ -21,15 +21,21 @@
     </div>
 
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
-        <form action="{{ route('sales-invoices.index') }}" method="GET" class="flex flex-wrap items-end gap-4">
+        <form action="{{ route('sales-invoices.index') }}" method="GET" class="flex flex-wrap items-end gap-4" id="filterForm">
             <div class="flex-1 min-w-[200px]">
                 <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'بحث' : 'Search' }}</label>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ $isAr ? 'رقم الفاتورة / أمر البيع / العميل' : 'Invoice / SO / client' }}"
+                <input type="text" name="search" id="searchInput" value="{{ request('search') }}" placeholder="{{ $isAr ? 'رقم الفاتورة / أمر البيع / العميل' : 'Invoice / SO / client' }}"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
             </div>
-            <button type="submit" class="px-6 py-2 bg-[#008A3B] text-white rounded-lg text-sm font-bold hover:bg-[#007030] transition-colors flex items-center gap-2">
-                <i class="fas fa-filter"></i> {{ $isAr ? 'تطبيق' : 'Apply' }}
-            </button>
+            <div class="w-48">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'ترتيب حسب' : 'Sort By' }}</label>
+                <select name="sort" onchange="document.getElementById('filterForm').submit();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
+                    <option value="newest" {{ request('sort') === 'newest' ? 'selected' : '' }}>{{ $isAr ? 'الأحدث' : 'Newest' }}</option>
+                    <option value="oldest" {{ request('sort') === 'oldest' ? 'selected' : '' }}>{{ $isAr ? 'الأقدم' : 'Oldest' }}</option>
+                    <option value="highest" {{ request('sort') === 'highest' ? 'selected' : '' }}>{{ $isAr ? 'المبلغ (الأعلى)' : 'Highest Amount' }}</option>
+                    <option value="lowest" {{ request('sort') === 'lowest' ? 'selected' : '' }}>{{ $isAr ? 'المبلغ (الأقل)' : 'Lowest Amount' }}</option>
+                </select>
+            </div>
         </form>
     </div>
 
@@ -70,4 +76,6 @@
         @if($invoices->hasPages()) <div class="p-4 border-t border-gray-100 bg-white">{{ $invoices->links() }}</div> @endif
     </div>
 </div>
+
+
 @endsection

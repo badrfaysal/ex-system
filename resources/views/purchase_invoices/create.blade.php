@@ -43,19 +43,9 @@
 </div>
 @endif
 
-<div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-5">
-    <div class="h-1.5 bg-gradient-to-r from-[#005B9F] to-[#008A3B]"></div>
-    <div class="px-6 py-3 bg-amber-50 border-b border-amber-100 flex items-start gap-2">
-        <i class="fas fa-info-circle text-amber-500 mt-0.5 shrink-0"></i>
-        <p class="text-xs text-amber-700 leading-relaxed">
-            {{ $isAr
-                ? 'فاتورة الشراء دي لمورد واحد بس. اختر المورد أولاً وأدخل الأسعار يدويًا. تقدر تضيف أي صنف من الكتالوج. بمجرد الحفظ تصبح التزامًا فوريًا للمورد.'
-                : 'This purchase invoice is for a single vendor. Choose the vendor first and enter prices manually. You can add any catalog item. Once saved, it becomes an immediate liability.' }}
-        </p>
-    </div>
-</div>
 
-<form action="{{ route('purchase-invoices.store') }}" method="POST" id="piForm">
+
+<form action="{{ route('purchase-invoices.store') }}" method="POST" enctype="multipart/form-data" id="piForm">
     @csrf
     <input type="hidden" name="sales_order_id" value="{{ $salesOrder->id }}">
 
@@ -101,6 +91,15 @@
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'ملاحظات' : 'Notes' }}</label>
                 <textarea name="notes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">{{ old('notes') }}</textarea>
+            </div>
+            <div class="md:col-span-3 mt-2">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المرفقات (اختياري)' : 'Attachments (Optional)' }}</label>
+                <div class="relative">
+                    <input type="file" name="attachments[]" id="attachmentsInput" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                        class="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#008A3B]/10 file:text-[#008A3B] hover:file:bg-[#008A3B]/20 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer transition-colors">
+                </div>
+                <div id="attachmentsList" class="mt-2 text-sm text-gray-600 font-bold hidden"></div>
+                @error('attachments.*') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
         </div>
     </div>
@@ -234,6 +233,67 @@
             ts.on('item_add', function (value) { addItemById(value); ts.clear(true); ts.setTextboxValue(''); });
         } else if (picker) {
             picker.addEventListener('change', function () { if (this.value) addItemById(this.value); this.value = ''; });
+        }
+
+        // Accumulate attachments and show visual list with remove buttons
+        const fileInput = document.getElementById('attachmentsInput');
+        const filesList = document.getElementById('attachmentsList');
+        if (fileInput) {
+            const dt = new DataTransfer();
+            
+            function updateFilesUI() {
+                if (dt.files.length > 0) {
+                    filesList.classList.remove('hidden');
+                    let html = `<p class="mb-2 text-green-600"><i class="fas fa-check-circle"></i> ${dt.files.length} ${isAr ? 'ملفات تم تحديدها:' : 'files selected:'}</p><div class="flex flex-wrap gap-2">`;
+                    
+                    for (let i = 0; i < dt.files.length; i++) {
+                        const file = dt.files[i];
+                        html += `
+                        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm text-xs font-normal">
+                            <span class="truncate max-w-[150px]" title="${file.name}">${file.name}</span>
+                            <button type="button" class="text-gray-400 hover:text-red-500 remove-file-btn" data-index="${i}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>`;
+                    }
+                    html += `</div>`;
+                    filesList.innerHTML = html;
+                    
+                    // Add click events to remove buttons
+                    const removeBtns = filesList.querySelectorAll('.remove-file-btn');
+                    removeBtns.forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const idx = parseInt(this.getAttribute('data-index'));
+                            
+                            // Create a new DataTransfer because we can't remove directly from dt.items by index in all browsers easily
+                            const newDt = new DataTransfer();
+                            for (let j = 0; j < dt.files.length; j++) {
+                                if (j !== idx) newDt.items.add(dt.files[j]);
+                            }
+                            
+                            // Clear current dt and repopulate
+                            dt.items.clear();
+                            for (let j = 0; j < newDt.files.length; j++) {
+                                dt.items.add(newDt.files[j]);
+                            }
+                            
+                            fileInput.files = dt.files;
+                            updateFilesUI();
+                        });
+                    });
+                } else {
+                    filesList.classList.add('hidden');
+                    filesList.innerHTML = '';
+                }
+            }
+            
+            fileInput.addEventListener('change', function(e) {
+                for (let i = 0; i < this.files.length; i++) {
+                    dt.items.add(this.files[i]);
+                }
+                this.files = dt.files; // Update the actual input
+                updateFilesUI();
+            });
         }
     }, 150);
 

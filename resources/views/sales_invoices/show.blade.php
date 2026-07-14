@@ -99,6 +99,36 @@
         </div>
     </div>
 
+    @if(!empty($salesInvoice->attachments) && count($salesInvoice->attachments) > 0)
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-paperclip text-[#005B9F]"></i> {{ $isAr ? 'المرفقات' : 'Attachments' }}
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            @foreach($salesInvoice->attachments as $attach)
+                @php
+                    $isImage = str_starts_with($attach['type'] ?? '', 'image/');
+                    $url = asset('storage/' . $attach['path']);
+                @endphp
+                <a href="{{ $url }}" target="_blank" class="group relative block bg-gray-50 border border-gray-100 rounded-xl overflow-hidden hover:border-[#005B9F] transition-colors" title="{{ $attach['name'] ?? '' }}">
+                    @if($isImage)
+                        <div class="aspect-square bg-gray-100 w-full overflow-hidden">
+                            <img src="{{ $url }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" alt="{{ $attach['name'] ?? '' }}">
+                        </div>
+                    @else
+                        <div class="aspect-square bg-gray-100 w-full flex items-center justify-center text-gray-400 group-hover:text-[#005B9F] transition-colors">
+                            <i class="fas fa-file-alt text-4xl"></i>
+                        </div>
+                    @endif
+                    <div class="p-2 text-center bg-white">
+                        <p class="text-[10px] text-gray-600 truncate font-semibold">{{ $attach['name'] ?? 'File' }}</p>
+                    </div>
+                </a>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
         <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
             <i class="fas fa-hand-holding-usd text-[#008A3B]"></i> {{ $isAr ? 'التحصيل على هذه الفاتورة' : 'Collection on this invoice' }}

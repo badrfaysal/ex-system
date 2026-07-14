@@ -8,17 +8,31 @@ class PeriodLock extends Model
 {
     protected $fillable = [
         'label', 'start_date', 'end_date', 'is_active', 'created_by',
+        'opened_at', 'opened_by', 'open_reason',
+        'reclosed_at', 'reclosed_by',
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date'   => 'date',
-        'is_active'  => 'boolean',
+        'start_date'  => 'date',
+        'end_date'    => 'date',
+        'is_active'   => 'boolean',
+        'opened_at'   => 'datetime',
+        'reclosed_at' => 'datetime',
     ];
 
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function opener()
+    {
+        return $this->belongsTo(User::class, 'opened_by');
+    }
+
+    public function recloser()
+    {
+        return $this->belongsTo(User::class, 'reclosed_by');
     }
 
     public function scopeActive($query)

@@ -32,23 +32,33 @@ class PeriodLockController extends Controller
         return back()->with('success', $isAr ? 'تم إنشاء الفترة المقفولة بنجاح.' : 'Period lock created successfully.');
     }
 
-    public function toggle(PeriodLock $periodLock)
+    public function toggle(Request $request, PeriodLock $periodLock)
     {
         $isAr = app()->getLocale() === 'ar';
 
-        $periodLock->update(['is_active' => !$periodLock->is_active]);
+        if ($periodLock->is_active) {
+            // It is currently locked, we are OPENING it.
+            $request->validate([
+                'open_reason' => 'required|string|max:1000',
+            ]);
 
-        return back()->with('success', $periodLock->is_active
-            ? ($isAr ? 'تم إغلاق الفترة — أي عملية بداخلها هتتقفل.' : 'Period closed — operations within it are now locked.')
-            : ($isAr ? 'تم فتح الفترة — العمليات بداخلها بقت متاحة تاني.' : 'Period opened — operations within it are available again.'));
-    }
+            $periodLock->update([
+                'is_active'   => false,
+                'opened_at'   => now(),
+                'opened_by'   => auth()->id(),
+                'open_reason' => $request->open_reason,
+            ]);
 
-    public function destroy(PeriodLock $periodLock)
-    {
-        $isAr = app()->getLocale() === 'ar';
+            return back()->with('success', $isAr ? 'تم فتح الفترة - العمليات متاحة الآن.' : 'Period opened - operations are available again.');
+        } else {
+            // It is currently open, we are CLOSING it.
+            $periodLock->update([
+                'is_active'   => true,
+                'reclosed_at' => now(),
+                'reclosed_by' => auth()->id(),
+            ]);
 
-        $periodLock->delete();
-
-        return back()->with('success', $isAr ? 'تم حذف الفترة المقفولة.' : 'Period lock deleted.');
+            return back()->with('success', $isAr ? 'تم إغلاق الفترة - العمليات بداخلها مقفلة الآن.' : 'Period closed - operations within it are now locked.');
+        }
     }
 }
