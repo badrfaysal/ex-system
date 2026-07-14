@@ -30,7 +30,7 @@ class SourcingController extends Controller
             })
             ->orderBy('name_ar')
             ->limit(20)
-            ->get(['id', 'name_ar', 'item_code']);
+            ->get(['id', 'name_ar', 'item_code', 'base_uom']);
 
         return response()->json($items);
     }
@@ -80,20 +80,29 @@ class SourcingController extends Controller
 
     public function attach(Request $request)
     {
-        // دالة لربط مورد بصنف من نفس الشاشة
+        // دالة لربط مصفوفة (تقاطعات) من الأصناف والموردين بأسعار منفصلة لكل حالة
         $request->validate([
-            'item_id' => 'required|exists:items,id',
-            'vendor_id' => 'required|exists:vendors,id',
-            'last_purchase_price' => 'nullable|numeric',
+            'matrix' => 'required|array',
         ]);
 
-        $item = Item::findOrFail($request->item_id);
-        $item->approvedVendors()->syncWithoutDetaching([
-            $request->vendor_id => [
-                'last_purchase_price' => $request->last_purchase_price,
-            ]
-        ]);
+        foreach ($request->matrix as $itemId => $vendors) {
+            $item = Item::find($itemId);
+            if (!$item) continue;
 
-        return back()->with('success', 'تم اعتماد المورد لتوريد هذا الصنف بنجاح.');
+            $syncData = [];
+            foreach ($vendors as $vendorId => $price) {
+                if ($vendorId) {
+                    $syncData[$vendorId] = [
+                        'last_purchase_price' => $price !== null && $price !== '' ? $price : null,
+                    ];
+                }
+            }
+
+            if (!empty($syncData)) {
+                $item->approvedVendors()->syncWithoutDetaching($syncData);
+            }
+        }
+
+        return back()->with('success', 'تم اعتماد وربط كافة الموردين والأصناف بأسعارهم بنجاح.');
     }
 }
