@@ -686,11 +686,16 @@
             });
         }
 
-        const savedTab = sessionStorage.getItem('activeSettingTab');
-        if (savedTab && document.getElementById('panel-' + savedTab)) {
-            switchTab(savedTab);
+        const hash = window.location.hash.replace('#', '');
+        if (hash && document.getElementById('panel-' + hash)) {
+            switchTab(hash);
         } else {
-            switchTab('client_type');
+            const savedTab = sessionStorage.getItem('activeSettingTab');
+            if (savedTab && document.getElementById('panel-' + savedTab)) {
+                switchTab(savedTab);
+            } else {
+                switchTab('client_type');
+            }
         }
     };
 

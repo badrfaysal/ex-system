@@ -68,7 +68,11 @@
                             <td class="p-4 font-bold text-gray-900" dir="ltr">{{ number_format($expense->amount, 2) }} <span class="text-xs text-gray-400">{{ $expense->currency }}</span></td>
                             <td class="p-4 text-gray-500" dir="ltr">{{ $expense->expense_date->format('Y-m-d') }}</td>
                             <td class="p-4 text-left">
-                                <a href="{{ route('expenses.edit', $expense) }}" onclick="event.stopPropagation()" class="text-gray-400 hover:text-[#008A3B]"><i class="fas fa-pen"></i></a>
+                                @if(\App\Models\PeriodLock::isDateLocked($expense->expense_date))
+                                    <span class="text-red-400 text-xs px-2 py-1 bg-red-50 rounded" title="{{ $isAr ? 'مغلق مالياً' : 'Locked' }}"><i class="fas fa-lock"></i></span>
+                                @else
+                                    <a href="{{ route('expenses.edit', $expense) }}" onclick="event.stopPropagation()" class="text-gray-400 hover:text-[#008A3B]"><i class="fas fa-pen"></i></a>
+                                @endif
                             </td>
                         </tr>
                     @empty

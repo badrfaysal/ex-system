@@ -120,6 +120,7 @@
                         @php
                             $t = $typeLabels[$log->type] ?? $typeLabels['revenue'];
                             $isReversed = !is_null($log->reversed_at);
+                            $isLocked = \App\Models\PeriodLock::isDateLocked($log->transaction_date);
                         @endphp
                         <tr class="hover:bg-[#005B9F]/5 transition-colors cursor-pointer {{ $isReversed ? 'opacity-60' : '' }}"
                             data-ref="{{ $log->ref }}"
@@ -161,6 +162,10 @@
                             <td class="p-4 text-center">
                                 @if($isReversed)
                                     <span class="text-[11px] text-gray-400">—</span>
+                                @elseif($isLocked)
+                                    <span class="text-[11px] text-red-500 font-bold bg-red-50 px-2 py-1 rounded border border-red-100" title="{{ $isAr ? 'الفترة مغلقة' : 'Period Locked' }}">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
                                 @else
                                     <button type="button" onclick="event.stopPropagation(); openReverseModal('{{ $log->source_type }}', {{ $log->id }}, {{ Js::from($log->ref) }})"
                                         class="text-[11px] px-2.5 py-1 rounded-md border border-amber-300 text-amber-700 hover:bg-amber-50 font-bold transition-colors whitespace-nowrap">

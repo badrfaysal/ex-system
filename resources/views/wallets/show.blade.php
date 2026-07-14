@@ -69,7 +69,7 @@
             <tbody class="divide-y divide-gray-100">
                 @forelse ($timeline as $entry)
                     @php $t = $typeLabels[$entry['type']]; @endphp
-                    <tr class="hover:bg-gray-50/60">
+                    <tr class="hover:bg-gray-50/60 {{ !empty($entry['is_reversed']) ? 'line-through opacity-50' : '' }} {{ !empty($entry['is_reversal']) ? 'bg-amber-50/40 text-amber-900' : '' }}">
                         <td class="p-4 text-gray-500" dir="ltr">{{ optional($entry['date'])->format('Y-m-d') }}</td>
                         <td class="p-4 font-mono text-gray-700">{{ $entry['ref'] }}</td>
                         <td class="p-4"><span class="px-2.5 py-1 rounded-md text-xs font-bold {{ $t['color'] }}">{{ $isAr ? $t['ar'] : $t['en'] }}</span></td>

@@ -72,6 +72,9 @@ class ReportsController extends Controller
                 'active' => PriceList::where('status', 'active')->count(),
             ],
             'activity'          => $this->activityStats($from, $to),
+            'settings'          => \Illuminate\Support\Facades\Cache::remember('system_settings', 60 * 60 * 24, function () {
+                return \App\Models\Setting::all()->groupBy('category');
+            }),
         ]);
     }
 

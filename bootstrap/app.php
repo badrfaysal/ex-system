@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // تطبيق اللغة المختارة على كل صفحات الويب
         $middleware->web(append: [
             \App\Http\Middleware\SetLocale::class,
+            \App\Http\Middleware\PreventLockedPeriodActions::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

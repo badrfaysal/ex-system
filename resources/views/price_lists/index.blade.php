@@ -54,8 +54,9 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-sm">
                     @forelse ($priceLists as $list)
+                        @php $isLocked = \App\Models\PeriodLock::isDateLocked($list->valid_from); @endphp
                         <tr class="hover:bg-blue-50/40 transition-colors group cursor-pointer"
-                            onclick="openPriceListModal({{ $list->id }}, '{{ route('price-lists.data', $list) }}')">
+                            onclick="openPriceListModal({{ $list->id }}, '{{ route('price-lists.data', $list) }}', {{ $isLocked ? 'true' : 'false' }})">
                             <td class="p-4 font-mono font-bold text-[#005B9F]">{{ $list->code }}</td>
                             <td class="p-4 font-bold text-gray-900">{{ $list->name }}</td>
                             <td class="p-4 text-gray-600">{{ $list->default_currency }}</td>
@@ -74,7 +75,11 @@
                             </td>
                             <td class="p-4" onclick="event.stopPropagation()">
                                 <div class="flex items-center gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <a href="{{ route('price-lists.edit', $list) }}" class="p-2 rounded-lg text-gray-400 hover:text-[#008A3B] hover:bg-green-50" title="{{ __('messages.common.edit') }}"><i class="fas fa-pen"></i></a>
+                                    @if($isLocked)
+                                        <span class="p-2 rounded-lg text-red-400 cursor-not-allowed" title="{{ app()->getLocale() === 'ar' ? 'مغلق مالياً' : 'Locked' }}"><i class="fas fa-lock"></i></span>
+                                    @else
+                                        <a href="{{ route('price-lists.edit', $list) }}" class="p-2 rounded-lg text-gray-400 hover:text-[#008A3B] hover:bg-green-50" title="{{ __('messages.common.edit') }}"><i class="fas fa-pen"></i></a>
+                                    @endif
                                     <form action="{{ route('price-lists.destroy', $list) }}" method="POST" onsubmit="return confirm('{{ __('messages.price_lists.del_confirm') }}')">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50" title="{{ __('messages.common.delete') }}"><i class="fas fa-trash"></i></button>
@@ -185,7 +190,7 @@
 
     let _currentPL = null;
 
-    function openPriceListModal(id, url) {
+    function openPriceListModal(id, url, isLocked = false) {
         const modal = document.getElementById('plModal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -218,7 +223,16 @@
                 }
 
                 // زر التعديل
-                document.getElementById('plModalEditBtn').href = PRICELISTS_URL + '/' + data.id + '/edit';
+                const editBtn = document.getElementById('plModalEditBtn');
+                if (isLocked) {
+                    editBtn.href = '#';
+                    editBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none', '!bg-gray-400');
+                    editBtn.innerHTML = '<i class="fas fa-lock"></i> مغلق';
+                } else {
+                    editBtn.href = PRICELISTS_URL + '/' + data.id + '/edit';
+                    editBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none', '!bg-gray-400');
+                    editBtn.innerHTML = '<i class="fas fa-pen"></i> تعديل';
+                }
 
                 // الأصناف
                 document.getElementById('plModalLoading').classList.add('hidden');

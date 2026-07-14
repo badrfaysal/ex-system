@@ -118,40 +118,6 @@
     </div>
 </div>
 
-{{-- ============ التحصيلات ============ --}}
-@php 
-    $allReceipts = $salesOrder->salesInvoices->flatMap->receipts;
-    $received = $allReceipts->sum('amount'); 
-    $due = $salesOrder->grand_total - $received; 
-@endphp
-<div class="no-print mb-4 max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
-        <i class="fas fa-hand-holding-usd text-[#008A3B]"></i>
-        <span class="font-bold text-gray-700 text-sm">{{ $isAr ? 'التحصيل' : 'Collection' }}</span>
-        <span class="{{ $isAr ? 'mr-auto' : 'ml-auto' }} text-sm">
-            <span class="text-gray-400">{{ $isAr ? 'المحصّل:' : 'Received:' }}</span>
-            <span class="font-bold text-green-600" dir="ltr">{{ number_format($received, 2) }}</span>
-            <span class="text-gray-300 mx-1">/</span>
-            <span class="text-gray-400">{{ $isAr ? 'المتبقي:' : 'Due:' }}</span>
-            <span class="font-bold {{ $due > 0 ? 'text-red-600' : 'text-green-600' }}" dir="ltr">{{ number_format($due, 2) }}</span>
-            <span class="text-xs text-gray-400">{{ $cur }}</span>
-        </span>
-    </div>
-    @if($allReceipts->isNotEmpty())
-    <table class="w-full text-sm" style="text-align:{{ $txtAlign }}">
-        <tbody class="divide-y divide-gray-100">
-            @foreach($allReceipts as $r)
-            <tr>
-                <td class="px-5 py-2.5 font-mono text-gray-700">{{ $r->receipt_number }}</td>
-                <td class="px-5 py-2.5 text-gray-500" dir="ltr">{{ $r->receipt_date->format('Y-m-d') }}</td>
-                <td class="px-5 py-2.5 font-bold text-green-600 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($r->amount, 2) }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    @endif
-</div>
-
 {{-- ============ فواتير البيع / أمر البيع / فواتير الشراء ============ --}}
 <div class="so-grid max-w-[1500px] mx-auto mb-8">
 
@@ -417,6 +383,40 @@
         @endif
     </div>
 
+</div>
+
+{{-- ============ التحصيلات ============ --}}
+@php 
+    $allReceipts = $salesOrder->salesInvoices->flatMap->receipts;
+    $received = $allReceipts->sum('amount'); 
+    $due = $salesOrder->grand_total - $received; 
+@endphp
+<div class="no-print mt-6 max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
+        <i class="fas fa-hand-holding-usd text-[#008A3B]"></i>
+        <span class="font-bold text-gray-700 text-sm">{{ $isAr ? 'التحصيل' : 'Collection' }}</span>
+        <span class="{{ $isAr ? 'mr-auto' : 'ml-auto' }} text-sm">
+            <span class="text-gray-400">{{ $isAr ? 'المحصّل:' : 'Received:' }}</span>
+            <span class="font-bold text-green-600" dir="ltr">{{ number_format($received, 2) }}</span>
+            <span class="text-gray-300 mx-1">/</span>
+            <span class="text-gray-400">{{ $isAr ? 'المتبقي:' : 'Due:' }}</span>
+            <span class="font-bold {{ $due > 0 ? 'text-red-600' : 'text-green-600' }}" dir="ltr">{{ number_format($due, 2) }}</span>
+            <span class="text-xs text-gray-400">{{ $cur }}</span>
+        </span>
+    </div>
+    @if($allReceipts->isNotEmpty())
+    <table class="w-full text-sm" style="text-align:{{ $txtAlign }}">
+        <tbody class="divide-y divide-gray-100">
+            @foreach($allReceipts as $r)
+            <tr>
+                <td class="px-5 py-2.5 font-mono text-gray-700">{{ $r->receipt_number }}</td>
+                <td class="px-5 py-2.5 text-gray-500" dir="ltr">{{ $r->receipt_date->format('Y-m-d') }}</td>
+                <td class="px-5 py-2.5 font-bold text-green-600 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($r->amount, 2) }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>

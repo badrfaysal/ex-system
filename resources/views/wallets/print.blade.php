@@ -220,7 +220,7 @@
 
             @forelse($timeline as $idx => $entry)
             @php $t = $typeLabels[$entry['type']]; @endphp
-            <tr>
+            <tr style="{{ !empty($entry['is_reversed']) ? 'text-decoration: line-through; opacity: 0.5;' : '' }} {{ !empty($entry['is_reversal']) ? 'background-color: #fef3c7;' : '' }}">
                 <td class="col-center" style="color: #94a3b8;">{{ $idx + 1 }}</td>
                 <td class="col-center">{{ optional($entry['date'])->format('Y-m-d') }}</td>
                 <td class="col-center" style="font-family: monospace;">{{ $entry['ref'] }}</td>

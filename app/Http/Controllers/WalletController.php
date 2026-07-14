@@ -91,27 +91,45 @@ class WalletController extends Controller
 
     private function buildTimeline(Wallet $wallet): array
     {
-        $wallet->load(['receipts.client', 'receipts.creator', 'revenues.creator', 'expenses.creator', 'vendorPayments.vendor', 'vendorPayments.creator', 'transfersOut.toWallet', 'transfersOut.creator', 'transfersIn.fromWallet', 'transfersIn.creator']);
+        $wallet->load(['receipts.client', 'receipts.creator', 'receipts.reversedByUser', 'revenues.creator', 'revenues.reversedByUser', 'expenses.creator', 'expenses.reversedByUser', 'vendorPayments.vendor', 'vendorPayments.creator', 'vendorPayments.reversedByUser', 'transfersOut.toWallet', 'transfersOut.creator', 'transfersOut.reversedByUser', 'transfersIn.fromWallet', 'transfersIn.creator', 'transfersIn.reversedByUser']);
 
         $entries = collect();
 
         foreach ($wallet->receipts as $r) {
-            $entries->push(['date' => $r->receipt_date, 'created_at' => $r->created_at, 'type' => 'receipt', 'ref' => $r->receipt_number, 'detail' => optional($r->client)->displayName(), 'amount' => $r->amount, 'user' => optional($r->creator)->name, 'link' => null]);
+            $entries->push(['date' => $r->receipt_date, 'created_at' => $r->created_at, 'type' => 'receipt', 'ref' => $r->receipt_number, 'detail' => optional($r->client)->displayName(), 'amount' => $r->amount, 'user' => optional($r->creator)->name, 'link' => null, 'is_reversed' => $r->reversed_at !== null]);
+            if ($r->reversed_at) {
+                $entries->push(['date' => \Carbon\Carbon::parse($r->reversed_at), 'created_at' => $r->reversed_at, 'type' => 'receipt', 'ref' => 'REV-' . $r->receipt_number, 'detail' => 'عكس سند قبض: ' . $r->reversal_reason, 'amount' => -$r->amount, 'user' => optional($r->reversedByUser)->name ?? 'System', 'link' => null, 'is_reversal' => true]);
+            }
         }
         foreach ($wallet->revenues as $rev) {
-            $entries->push(['date' => $rev->revenue_date, 'created_at' => $rev->created_at, 'type' => 'revenue', 'ref' => $rev->revenue_number, 'detail' => $rev->category, 'amount' => $rev->amount, 'user' => optional($rev->creator)->name, 'link' => null]);
+            $entries->push(['date' => $rev->revenue_date, 'created_at' => $rev->created_at, 'type' => 'revenue', 'ref' => $rev->revenue_number, 'detail' => $rev->category, 'amount' => $rev->amount, 'user' => optional($rev->creator)->name, 'link' => null, 'is_reversed' => $rev->reversed_at !== null]);
+            if ($rev->reversed_at) {
+                $entries->push(['date' => \Carbon\Carbon::parse($rev->reversed_at), 'created_at' => $rev->reversed_at, 'type' => 'revenue', 'ref' => 'REV-' . $rev->revenue_number, 'detail' => 'عكس إيراد: ' . $rev->reversal_reason, 'amount' => -$rev->amount, 'user' => optional($rev->reversedByUser)->name ?? 'System', 'link' => null, 'is_reversal' => true]);
+            }
         }
         foreach ($wallet->expenses as $e) {
-            $entries->push(['date' => $e->expense_date, 'created_at' => $e->created_at, 'type' => 'expense', 'ref' => $e->expense_number, 'detail' => $e->category, 'amount' => -1 * $e->amount, 'user' => optional($e->creator)->name, 'link' => null]);
+            $entries->push(['date' => $e->expense_date, 'created_at' => $e->created_at, 'type' => 'expense', 'ref' => $e->expense_number, 'detail' => $e->category, 'amount' => -1 * $e->amount, 'user' => optional($e->creator)->name, 'link' => null, 'is_reversed' => $e->reversed_at !== null]);
+            if ($e->reversed_at) {
+                $entries->push(['date' => \Carbon\Carbon::parse($e->reversed_at), 'created_at' => $e->reversed_at, 'type' => 'expense', 'ref' => 'REV-' . $e->expense_number, 'detail' => 'عكس مصروف: ' . $e->reversal_reason, 'amount' => $e->amount, 'user' => optional($e->reversedByUser)->name ?? 'System', 'link' => null, 'is_reversal' => true]);
+            }
         }
         foreach ($wallet->vendorPayments as $p) {
-            $entries->push(['date' => $p->payment_date, 'created_at' => $p->created_at, 'type' => 'vendor_payment', 'ref' => $p->payment_number, 'detail' => optional($p->vendor)->name_ar, 'amount' => -1 * $p->amount, 'user' => optional($p->creator)->name, 'link' => null]);
+            $entries->push(['date' => $p->payment_date, 'created_at' => $p->created_at, 'type' => 'vendor_payment', 'ref' => $p->payment_number, 'detail' => optional($p->vendor)->name_ar, 'amount' => -1 * $p->amount, 'user' => optional($p->creator)->name, 'link' => null, 'is_reversed' => $p->reversed_at !== null]);
+            if ($p->reversed_at) {
+                $entries->push(['date' => \Carbon\Carbon::parse($p->reversed_at), 'created_at' => $p->reversed_at, 'type' => 'vendor_payment', 'ref' => 'REV-' . $p->payment_number, 'detail' => 'عكس دفعة مورد: ' . $p->reversal_reason, 'amount' => $p->amount, 'user' => optional($p->reversedByUser)->name ?? 'System', 'link' => null, 'is_reversal' => true]);
+            }
         }
         foreach ($wallet->transfersOut as $t) {
-            $entries->push(['date' => $t->transfer_date, 'created_at' => $t->created_at, 'type' => 'transfer_out', 'ref' => $t->transfer_number, 'detail' => optional($t->toWallet)->name, 'amount' => -1 * $t->amount, 'user' => optional($t->creator)->name, 'link' => null]);
+            $entries->push(['date' => $t->transfer_date, 'created_at' => $t->created_at, 'type' => 'transfer_out', 'ref' => $t->transfer_number, 'detail' => optional($t->toWallet)->name, 'amount' => -1 * $t->amount, 'user' => optional($t->creator)->name, 'link' => null, 'is_reversed' => $t->reversed_at !== null]);
+            if ($t->reversed_at) {
+                $entries->push(['date' => \Carbon\Carbon::parse($t->reversed_at), 'created_at' => $t->reversed_at, 'type' => 'transfer_out', 'ref' => 'REV-' . $t->transfer_number, 'detail' => 'عكس تحويل صادر: ' . $t->reversal_reason, 'amount' => $t->amount, 'user' => optional($t->reversedByUser)->name ?? 'System', 'link' => null, 'is_reversal' => true]);
+            }
         }
         foreach ($wallet->transfersIn as $t) {
-            $entries->push(['date' => $t->transfer_date, 'created_at' => $t->created_at, 'type' => 'transfer_in', 'ref' => $t->transfer_number, 'detail' => optional($t->fromWallet)->name, 'amount' => $t->amount, 'user' => optional($t->creator)->name, 'link' => null]);
+            $entries->push(['date' => $t->transfer_date, 'created_at' => $t->created_at, 'type' => 'transfer_in', 'ref' => $t->transfer_number, 'detail' => optional($t->fromWallet)->name, 'amount' => $t->amount, 'user' => optional($t->creator)->name, 'link' => null, 'is_reversed' => $t->reversed_at !== null]);
+            if ($t->reversed_at) {
+                $entries->push(['date' => \Carbon\Carbon::parse($t->reversed_at), 'created_at' => $t->reversed_at, 'type' => 'transfer_in', 'ref' => 'REV-' . $t->transfer_number, 'detail' => 'عكس تحويل وارد: ' . $t->reversal_reason, 'amount' => -$t->amount, 'user' => optional($t->reversedByUser)->name ?? 'System', 'link' => null, 'is_reversal' => true]);
+            }
         }
 
         $timeline = $entries->sortBy('created_at')->values();

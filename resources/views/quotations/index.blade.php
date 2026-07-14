@@ -91,7 +91,9 @@
                             <td class="p-4">
                                 <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation()">
                                     <a href="{{ route('quotations.show', $q) }}" class="p-2 rounded-lg text-gray-400 hover:text-[#005B9F] hover:bg-blue-50" title="{{ __('messages.quotations.sl_view') }}"><i class="fas fa-eye"></i></a>
-                                    @if($q->status === 'draft')
+                                    @if(\App\Models\PeriodLock::isDateLocked($q->quote_date))
+                                        <span class="p-2 rounded-lg text-red-400 cursor-not-allowed" title="مغلق مالياً"><i class="fas fa-lock"></i></span>
+                                    @elseif($q->status === 'draft')
                                         <a href="{{ route('quotations.edit', $q) }}" class="p-2 rounded-lg text-gray-400 hover:text-[#008A3B] hover:bg-green-50" title="{{ __('messages.common.edit') }}"><i class="fas fa-pen"></i></a>
                                     @else
                                         <span class="p-2 rounded-lg text-gray-300 cursor-not-allowed" title="{{ __('messages.quotations.lock_draft_only') }}"><i class="fas fa-lock"></i></span>

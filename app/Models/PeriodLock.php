@@ -26,6 +26,24 @@ class PeriodLock extends Model
         return $query->where('is_active', true);
     }
 
+    protected static function boot()
+    {
+        parent::boot();
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('active_period_locks');
+        });
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('active_period_locks');
+        });
+    }
+
+    public static function getCachedLocks()
+    {
+        return \Illuminate\Support\Facades\Cache::rememberForever('active_period_locks', function () {
+            return static::active()->get();
+        });
+    }
+
     /**
      * فيه فترة مقفولة نشطة بتغطي التاريخ ده؟
      */
@@ -37,10 +55,13 @@ class PeriodLock extends Model
 
         $date = \Illuminate\Support\Carbon::parse($date)->toDateString();
 
-        return static::active()
-            ->whereDate('start_date', '<=', $date)
-            ->whereDate('end_date', '>=', $date)
-            ->exists();
+        foreach (static::getCachedLocks() as $lock) {
+            if ($date >= $lock->start_date->toDateString() && $date <= $lock->end_date->toDateString()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -54,9 +75,12 @@ class PeriodLock extends Model
 
         $date = \Illuminate\Support\Carbon::parse($date)->toDateString();
 
-        return static::active()
-            ->whereDate('start_date', '<=', $date)
-            ->whereDate('end_date', '>=', $date)
-            ->first();
+        foreach (static::getCachedLocks() as $lock) {
+            if ($date >= $lock->start_date->toDateString() && $date <= $lock->end_date->toDateString()) {
+                return $lock;
+            }
+        }
+
+        return null;
     }
 }

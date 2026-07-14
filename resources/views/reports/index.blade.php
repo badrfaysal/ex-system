@@ -2,6 +2,10 @@
 @php
     $isAr = app()->getLocale() === 'ar';
     $fmt = fn($n) => number_format((float) $n, 2);
+    
+    $itemGroupMap = ($settings->get('item_group') ?? collect())->keyBy('key_value');
+    $clientTypeMap = ($settings->get('client_type') ?? collect())->keyBy('key_value');
+    $expenseCatMap = ($settings->get('expense_category') ?? collect())->keyBy('key_value');
 @endphp
 @section('header_title', $isAr ? 'التقارير والتحليلات' : 'Reports & Analytics')
 
@@ -146,7 +150,7 @@
     {{-- ===== أكتر العملاء والموردين برصيد مستحق حالي ===== --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100"><p class="font-bold text-gray-800 text-sm flex items-center gap-2"><i class="fas fa-hand-holding-usd text-[#005B9F] text-xs"></i> {{ $isAr ? 'أكتر عملاء ليهم مستحق حالي (يدينوا لنا)' : 'Top Clients by Outstanding Balance (Owe Us)' }}</p></div>
+            <div class="px-6 py-4 border-b border-gray-100"><p class="font-bold text-gray-800 text-sm flex items-center gap-2"><i class="fas fa-hand-holding-usd text-[#005B9F] text-xs"></i> {{ $isAr ? 'أكتر عملاء عليهم مستحق حالي ' : 'Top Clients by Outstanding Balance (Owe Us)' }}</p></div>
             <div class="p-4">
                 @forelse($topReceivables as $c)
                     <a href="{{ route('receivables.show', $c->id) }}" class="flex justify-between items-center text-sm py-2 px-2 rounded-lg hover:bg-blue-50/50 transition-colors border-b border-gray-50 last:border-0">
@@ -159,7 +163,7 @@
             </div>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100"><p class="font-bold text-gray-800 text-sm flex items-center gap-2"><i class="fas fa-file-invoice-dollar text-red-500 text-xs"></i> {{ $isAr ? 'أكتر موردين ليهم عندنا فلوس (التزامات علينا)' : 'Top Vendors by Outstanding Balance (We Owe Them)' }}</p></div>
+            <div class="px-6 py-4 border-b border-gray-100"><p class="font-bold text-gray-800 text-sm flex items-center gap-2"><i class="fas fa-file-invoice-dollar text-red-500 text-xs"></i> {{ $isAr ? '     التزامات علينا للموردين ' : 'Top Vendors by Outstanding Balance (We Owe Them)' }}</p></div>
             <div class="p-4">
                 @forelse($topPayables as $v)
                     <a href="{{ route('payables.show', $v->id) }}" class="flex justify-between items-center text-sm py-2 px-2 rounded-lg hover:bg-red-50/50 transition-colors border-b border-gray-50 last:border-0">
@@ -224,8 +228,9 @@
             @php $maxGroup = $itemsByGroup->max('cnt') ?: 1; @endphp
             <div class="space-y-2">
                 @forelse($itemsByGroup as $g)
+                    @php $gName = $itemGroupMap->has($g->item_group) ? $itemGroupMap->get($g->item_group)->display_name : ($g->item_group ?? ($isAr ? 'غير مصنف' : 'Uncategorized')); @endphp
                     <div>
-                        <div class="flex justify-between text-[11px] text-gray-600 mb-0.5"><span>{{ $g->item_group ?? ($isAr ? 'غير مصنف' : 'Uncategorized') }}</span><span class="font-bold">{{ $g->cnt }}</span></div>
+                        <div class="flex justify-between text-[11px] text-gray-600 mb-0.5"><span>{{ $gName }}</span><span class="font-bold">{{ $g->cnt }}</span></div>
                         <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-amber-400" style="width: {{ $g->cnt / $maxGroup * 100 }}%"></div></div>
                     </div>
                 @empty
@@ -252,8 +257,9 @@
             @php $cTypeLabels = ['wholesale'=>$isAr?'جملة':'Wholesale','retail'=>$isAr?'تجزئة':'Retail','international'=>$isAr?'دولي':'International']; @endphp
             <div class="space-y-2">
                 @forelse($clientsByType as $t)
+                    @php $tName = $clientTypeMap->has($t->client_type) ? $clientTypeMap->get($t->client_type)->display_name : ($cTypeLabels[$t->client_type] ?? $t->client_type); @endphp
                     <div class="flex justify-between items-center text-xs py-1.5 px-3 rounded-lg bg-gray-50">
-                        <span class="font-semibold text-gray-600">{{ $cTypeLabels[$t->client_type] ?? $t->client_type }}</span>
+                        <span class="font-semibold text-gray-600">{{ $tName }}</span>
                         <span class="font-black text-gray-800">{{ $t->cnt }}</span>
                     </div>
                 @empty
@@ -270,8 +276,9 @@
             @php $maxExp = $expenseByCategory->max('total') ?: 1; @endphp
             <div class="space-y-2.5">
                 @forelse($expenseByCategory as $e)
+                    @php $eName = $expenseCatMap->has($e->category) ? $expenseCatMap->get($e->category)->display_name : ($e->category ?? ($isAr ? 'غير مصنف' : 'Uncategorized')); @endphp
                     <div>
-                        <div class="flex justify-between text-xs text-gray-600 mb-1"><span>{{ $e->category ?? ($isAr ? 'غير مصنف' : 'Uncategorized') }}</span><span class="font-bold font-mono" dir="ltr">{{ $fmt($e->total) }} ({{ $e->cnt }})</span></div>
+                        <div class="flex justify-between text-xs text-gray-600 mb-1"><span>{{ $eName }}</span><span class="font-bold font-mono" dir="ltr">{{ $fmt($e->total) }} ({{ $e->cnt }})</span></div>
                         <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-red-400" style="width: {{ $e->total / $maxExp * 100 }}%"></div></div>
                     </div>
                 @empty

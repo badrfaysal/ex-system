@@ -791,5 +791,66 @@
         })();
     </script>
 
+    {{-- منع إدخال حركات في فترات مقفولة (Client-side validation) --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const lockedPeriods = @json(\App\Models\PeriodLock::getCachedLocks()->map(fn($l) => ['start' => $l->start_date->toDateString(), 'end' => $l->end_date->toDateString()]));
+            
+            function isDateLocked(dateStr) {
+                if (!dateStr) return false;
+                const d = new Date(dateStr);
+                for (let p of lockedPeriods) {
+                    let start = new Date(p.start);
+                    let end = new Date(p.end);
+                    if (d >= start && d <= end) return true;
+                }
+                return false;
+            }
+
+            const dateInputs = document.querySelectorAll('input[type="date"]');
+            
+            dateInputs.forEach(input => {
+                const checkLock = () => {
+                    const form = input.closest('form');
+                    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+                    
+                    if (isDateLocked(input.value)) {
+                        input.classList.add('!border-red-500', '!bg-red-50', '!text-red-700');
+                        
+                        let errorMsg = input.parentNode.querySelector('.locked-period-msg');
+                        if (!errorMsg) {
+                            errorMsg = document.createElement('div');
+                            errorMsg.className = 'locked-period-msg text-xs text-red-600 mt-1.5 font-bold flex items-center gap-1';
+                            errorMsg.innerHTML = '<i class="fas fa-lock"></i> {{ $rtl ? "التاريخ يقع في فترة محاسبية مغلقة، لا يمكن إتمام العملية." : "Date is within a closed period, operation cannot be completed." }}';
+                            input.parentNode.insertBefore(errorMsg, input.nextSibling);
+                        }
+                        
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        }
+                    } else {
+                        input.classList.remove('!border-red-500', '!bg-red-50', '!text-red-700');
+                        const errorMsg = input.parentNode.querySelector('.locked-period-msg');
+                        if (errorMsg) errorMsg.remove();
+                        
+                        // Only re-enable if there are no other locked dates in the same form
+                        if (form) {
+                            const anyLocked = Array.from(form.querySelectorAll('input[type="date"]')).some(inp => isDateLocked(inp.value));
+                            if (!anyLocked && submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                            }
+                        }
+                    }
+                };
+                
+                input.addEventListener('change', checkLock);
+                // Check on load in case a locked date is pre-filled
+                if (input.value) checkLock();
+            });
+        });
+    </script>
+
 </body>
 </html>
