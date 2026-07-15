@@ -27,6 +27,14 @@
                 <input type="text" name="search" id="searchInput" value="{{ request('search') }}" placeholder="{{ $isAr ? 'رقم الفاتورة / المورد' : 'Invoice no. / Vendor' }}"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
             </div>
+            <div class="w-36">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'من تاريخ' : 'Date From' }}</label>
+                <input type="date" name="date_from" value="{{ request('date_from') }}" onchange="document.getElementById('filterForm').submit();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
+            </div>
+            <div class="w-36">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'إلى تاريخ' : 'Date To' }}</label>
+                <input type="date" name="date_to" value="{{ request('date_to') }}" onchange="document.getElementById('filterForm').submit();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
+            </div>
             <div class="w-48">
                 <label class="block text-xs font-bold text-gray-500 mb-1">{{ $isAr ? 'ترتيب حسب' : 'Sort By' }}</label>
                 <select name="sort" onchange="document.getElementById('filterForm').submit();" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">

@@ -27,6 +27,14 @@ class SalesOrderController extends Controller
             });
         }
 
+        if ($request->filled('date_from')) {
+            $query->whereDate('so_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('so_date', '<=', $request->date_to);
+        }
+
         $orders = $query->latest()->paginate(10)->withQueryString();
 
         return view('sales_orders.index', compact('orders'));

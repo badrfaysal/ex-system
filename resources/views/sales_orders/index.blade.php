@@ -19,7 +19,9 @@
         <i class="fas fa-file-contract text-[#008A3B]"></i>
         {{ $isAr ? 'أوامر البيع' : 'Sales Orders' }}
     </h1>
-    <form method="GET" class="flex items-center gap-2">
+    <form method="GET" class="flex flex-wrap items-center gap-2">
+        <input type="date" name="date_from" value="{{ request('date_from') }}" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#005B9F]" title="{{ $isAr ? 'من تاريخ' : 'Date From' }}">
+        <input type="date" name="date_to" value="{{ request('date_to') }}" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#005B9F]" title="{{ $isAr ? 'إلى تاريخ' : 'Date To' }}">
         <input type="text" name="search" value="{{ request('search') }}"
             placeholder="{{ $isAr ? 'بحث برقم الأمر أو العميل...' : 'Search by SO# or client...' }}"
             class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-64 focus:outline-none focus:border-[#005B9F]">
@@ -31,7 +33,8 @@
 
 {{-- جدول --}}
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <table class="w-full text-sm" dir="{{ $isAr ? 'rtl' : 'ltr' }}">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm" dir="{{ $isAr ? 'rtl' : 'ltr' }}">
         <thead style="background:#1e293b;color:#fff;">
             <tr>
                 <th class="px-4 py-3 text-{{ $isAr ? 'right' : 'left' }} font-bold text-xs">{{ $isAr ? 'رقم الأمر' : 'SO#' }}</th>
@@ -90,6 +93,7 @@
             @endforelse
         </tbody>
     </table>
+    </div>
 </div>
 
 {{-- Pagination --}}

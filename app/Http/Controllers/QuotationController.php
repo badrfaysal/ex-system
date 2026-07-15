@@ -36,6 +36,14 @@ class QuotationController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('date_from')) {
+            $query->whereDate('quote_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('quote_date', '<=', $request->date_to);
+        }
+
         $quotations = $query->latest()->paginate(10)->withQueryString();
 
         return view('quotations.index', compact('quotations'));

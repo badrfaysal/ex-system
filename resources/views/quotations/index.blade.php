@@ -28,6 +28,14 @@
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('messages.quotations.f_number') }} / {{ __('messages.quotations.col_client') }}"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
             </div>
+            <div class="w-36">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ __('messages.common.date_from') ?? 'Date From' }}</label>
+                <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
+            </div>
+            <div class="w-36">
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ __('messages.common.date_to') ?? 'Date To' }}</label>
+                <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
+            </div>
             <div>
                 <label class="block text-xs font-bold text-gray-500 mb-1">{{ __('messages.quotations.status') }}</label>
                 <select name="status" class="w-44 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50">

@@ -24,6 +24,14 @@ class SalesInvoiceController extends Controller
                   ->orWhereHas('salesOrder', fn ($so) => $so->where('so_number', 'like', "%{$search}%"));
             });
         }
+        if ($request->filled('date_from')) {
+            $query->whereDate('invoice_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('invoice_date', '<=', $request->date_to);
+        }
+
         if ($request->filled('sort')) {
             $sort = $request->sort;
             if ($sort === 'oldest') {

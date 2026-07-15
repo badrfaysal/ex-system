@@ -175,8 +175,8 @@
         </style>
 
         {{-- 1. القائمة الجانبية (Sidebar) --}}
-        <aside class="w-64 bg-white shadow-xl flex flex-col fixed top-0 {{ $rtl ? 'right-0 border-l' : 'left-0 border-r' }} h-full z-40 border-gray-100">
-
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
+        <aside id="sidebar" class="w-64 bg-white shadow-xl flex-col fixed top-0 {{ $rtl ? 'right-0 border-l' : 'left-0 border-r' }} h-full z-50 border-gray-100 hidden md:flex">
             {{-- ترويسة اللوجو --}}
             <div class="px-4 py-4 border-b border-gray-100 flex flex-col items-center gap-2 bg-white">
                 <img src="{{ asset('images/EFC-.png') }}" alt="EFC Logo" class="h-16 w-auto object-contain">
@@ -483,13 +483,18 @@
         </aside>
 
         {{-- 2. منطقة المحتوى الرئيسي --}}
-        <main class="flex-1 {{ $rtl ? 'pr-64' : 'pl-64' }} min-h-screen">
+        <main class="flex-1 {{ $rtl ? 'md:pr-64' : 'md:pl-64' }} min-h-screen w-full flex flex-col transition-all duration-300">
 
             {{-- بار علوي بسيط (Topbar) --}}
             <header class="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-30">
-                <div class="px-6 py-4 flex justify-between items-center gap-4">
-                    <div class="text-sm text-gray-500 whitespace-nowrap">
-                        {{ __('messages.home') }} / <span class="text-gray-900 font-medium">@yield('header_title', __('messages.nav.dashboard'))</span>
+                <div class="px-4 md:px-6 py-4 flex justify-between items-center gap-2 md:gap-4">
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleSidebar()" class="md:hidden text-gray-500 hover:text-[#005B9F] transition-colors p-1">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <div class="text-xs md:text-sm text-gray-500 whitespace-nowrap hidden sm:block">
+                            {{ __('messages.home') }} / <span class="text-gray-900 font-medium">@yield('header_title', __('messages.nav.dashboard'))</span>
+                        </div>
                     </div>
 
                     <div class="flex-1"></div>
@@ -567,13 +572,13 @@
                             });
                         </script>
                         <div class="h-8 w-px bg-gray-200"></div>
-                        <span class="text-sm font-medium whitespace-nowrap">{{ __('messages.welcome') }}</span>
+                        <span class="text-sm font-medium whitespace-nowrap hidden sm:inline">{{ __('messages.welcome') }}</span>
                     </div>
                 </div>
             </header>
 
             {{-- المحتوى المتغير --}}
-            <div class="p-8">
+            <div class="p-4 md:p-8 flex-1">
                 {{-- رسائل النجاح / الخطأ العامة --}}
                 @if (session('success'))
                     <div class="max-w-7xl mx-auto mb-6 flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-3.5 shadow-sm animate-fade-in">
@@ -636,6 +641,16 @@
                 icon.className = 'fas fa-moon text-lg';
             }
         }
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('flex');
+            
+            overlay.classList.toggle('hidden');
+        }
+
         function toggleDarkMode() {
             document.documentElement.classList.toggle('dark');
             try {
