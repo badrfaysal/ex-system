@@ -169,7 +169,15 @@ class SalesOrderController extends Controller
      */
     public function update(Request $request, SalesOrder $salesOrder)
     {
-        abort(403);
+        $request->validate([
+            'status' => 'required|in:confirmed,cancelled,completed',
+        ]);
+        
+        $salesOrder->update(['status' => $request->status]);
+
+        return back()->with('success', app()->getLocale() === 'ar'
+            ? 'تم تحديث حالة أمر البيع بنجاح.'
+            : 'Sales order status updated successfully.');
     }
 
     /* ===================== Helpers ===================== */

@@ -58,7 +58,7 @@ class SalesInvoiceController extends Controller
     public function create(Request $request)
     {
         if (!$request->filled('sales_order_id')) {
-            $query = SalesOrder::with('client');
+            $query = SalesOrder::with('client')->where('status', '!=', 'cancelled');
 
             if ($request->filled('search')) {
                 $search = $request->search;
@@ -82,6 +82,17 @@ class SalesInvoiceController extends Controller
 
         $salesOrder = SalesOrder::with(['client', 'quotation', 'items.item', 'items.salesInvoiceItems'])
             ->findOrFail($request->sales_order_id);
+
+        if ($salesOrder->status === 'cancelled') {
+            return redirect()->route('sales-orders.show', $salesOrder->id)
+                ->with('error', app()->getLocale() === 'ar' ? 'أمر البيع ملغي، لا يمكن إنشاء فاتورة بيع.' : 'Sales order is cancelled, cannot create invoice.');
+        }
+
+        if ($salesOrder->status === 'completed') {
+            session()->now('warning', app()->getLocale() === 'ar' 
+                ? 'تنبيه: تم اكمال امر البيع واتمام الصفقه مع العميل مسبقا' 
+                : 'Notice: Sales order is completed and closed.');
+        }
 
         $lines = $salesOrder->items->map(function ($item) {
             $invoiced = (float) $item->salesInvoiceItems->sum('quantity');
@@ -273,6 +284,32 @@ class SalesInvoiceController extends Controller
         $salesInvoice->load(['salesOrder', 'quotation', 'client', 'items.item', 'receipts.wallet', 'creator']);
 
         return view('sales_invoices.show', compact('salesInvoice'));
+    }
+
+    public function addAttachments(Request $request, SalesInvoice $salesInvoice)
+    {
+        $request->validate([
+            'attachments'   => 'required|array|max:10',
+            'attachments.*' => 'file|mimes:jpeg,png,jpg,pdf,doc,docx,xls,xlsx,zip|max:10240',
+        ]);
+
+        $existingAttachments = $salesInvoice->attachments ?? [];
+        
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store('attachments/sales_invoices', 'public');
+                $existingAttachments[] = [
+                    'path' => $path,
+                    'name' => $file->getClientOriginalName(),
+                    'type' => $file->getClientMimeType(),
+                ];
+            }
+            $salesInvoice->update(['attachments' => $existingAttachments]);
+        }
+
+        return back()->with('success', app()->getLocale() === 'ar' 
+            ? 'تم إضافة المرفقات بنجاح.' 
+            : 'Attachments added successfully.');
     }
 
     public function sendEmail(Request $request, SalesInvoice $salesInvoice)

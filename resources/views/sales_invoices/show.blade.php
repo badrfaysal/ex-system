@@ -99,12 +99,13 @@
         </div>
     </div>
 
-    @if(!empty($salesInvoice->attachments) && count($salesInvoice->attachments) > 0)
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8 no-print">
         <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
             <i class="fas fa-paperclip text-[#005B9F]"></i> {{ $isAr ? 'المرفقات' : 'Attachments' }}
         </h3>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        
+        @if(!empty($salesInvoice->attachments) && count($salesInvoice->attachments) > 0)
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
             @foreach($salesInvoice->attachments as $attach)
                 @php
                     $isImage = str_starts_with($attach['type'] ?? '', 'image/');
@@ -126,8 +127,23 @@
                 </a>
             @endforeach
         </div>
+        @else
+        <p class="text-sm text-gray-400 mb-4">{{ $isAr ? 'لا توجد مرفقات' : 'No attachments' }}</p>
+        @endif
+
+        <form action="{{ route('sales-invoices.attachments', $salesInvoice) }}" method="POST" enctype="multipart/form-data" class="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-gray-100">
+            @csrf
+            <input type="file" name="attachments[]" multiple class="block w-full sm:w-auto text-sm text-slate-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-[#005B9F]/10 file:text-[#005B9F]
+                hover:file:bg-[#005B9F]/20 cursor-pointer border border-gray-200 rounded-full pr-3 py-0.5" required>
+            <button type="submit" class="px-5 py-2 bg-[#008A3B] text-white rounded-full font-bold text-sm hover:bg-[#007030] whitespace-nowrap transition-colors w-full sm:w-auto">
+                <i class="fas fa-upload {{ $isAr ? 'ml-1' : 'mr-1' }}"></i> {{ $isAr ? 'إضافة مرفقات' : 'Upload' }}
+            </button>
+        </form>
     </div>
-    @endif
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
         <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">

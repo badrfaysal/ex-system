@@ -592,6 +592,12 @@
                         <span class="font-bold">{{ session('error') }}</span>
                     </div>
                 @endif
+                @if (session('warning'))
+                    <div class="max-w-7xl mx-auto mb-6 flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-5 py-3.5 shadow-sm animate-fade-in">
+                        <i class="fas fa-exclamation-triangle text-amber-500 text-lg"></i>
+                        <span class="font-bold">{{ session('warning') }}</span>
+                    </div>
+                @endif
 
                 @yield('content')
 

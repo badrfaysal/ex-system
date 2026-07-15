@@ -65,9 +65,19 @@
                     {{ number_format($so->grand_total, 2) }}
                 </td>
                 <td class="px-4 py-3 text-center">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border
-                        {{ $so->status === 'confirmed' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-200' }}">
-                        {{ $so->status === 'confirmed' ? ($isAr ? 'مؤكد' : 'Confirmed') : ($isAr ? 'ملغي' : 'Cancelled') }}
+                    @php
+                        $badgeClasses = 'bg-green-50 text-green-700 border-green-200';
+                        $badgeText = $isAr ? 'مؤكد' : 'Confirmed';
+                        if ($so->status === 'cancelled') {
+                            $badgeClasses = 'bg-red-50 text-red-600 border-red-200';
+                            $badgeText = $isAr ? 'ملغي' : 'Cancelled';
+                        } elseif ($so->status === 'completed') {
+                            $badgeClasses = 'bg-blue-50 text-blue-700 border-blue-200';
+                            $badgeText = $isAr ? 'مكتمل' : 'Completed';
+                        }
+                    @endphp
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border {{ $badgeClasses }}">
+                        {{ $badgeText }}
                     </span>
                 </td>
                 <td class="px-4 py-3 text-center">

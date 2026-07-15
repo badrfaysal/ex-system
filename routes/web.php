@@ -140,6 +140,7 @@ Route::middleware('auth')->group(function () {
     Route::get('sales-invoices/{salesInvoice}', [SalesInvoiceController::class, 'show'])->name('sales-invoices.show');
     Route::get('sales-invoices/{salesInvoice}/print', [SalesInvoiceController::class, 'print'])->name('sales-invoices.print');
     Route::post('sales-invoices/{salesInvoice}/send-email', [SalesInvoiceController::class, 'sendEmail'])->name('sales-invoices.send-email');
+    Route::post('sales-invoices/{salesInvoice}/attachments', [SalesInvoiceController::class, 'addAttachments'])->name('sales-invoices.attachments');
 
     // المحافظ النقدية/البنكية
     Route::get('wallets', [WalletController::class, 'index'])->name('wallets.index');

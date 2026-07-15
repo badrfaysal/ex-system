@@ -60,7 +60,7 @@ class PurchaseInvoiceController extends Controller
     public function create(Request $request)
     {
         if (!$request->filled('sales_order_id')) {
-            $query = SalesOrder::with('client');
+            $query = SalesOrder::with('client')->where('status', '!=', 'cancelled');
 
             if ($request->filled('search')) {
                 $search = $request->search;
@@ -84,7 +84,19 @@ class PurchaseInvoiceController extends Controller
 
         $request->validate(['sales_order_id' => 'required|exists:sales_orders,id']);
 
-        $salesOrder = SalesOrder::with(['client', 'quotation', 'items.item'])->findOrFail($request->sales_order_id);
+        $salesOrder = SalesOrder::with(['client', 'quotation', 'items.item'])
+            ->findOrFail($request->sales_order_id);
+
+        if ($salesOrder->status === 'cancelled') {
+            return redirect()->route('sales-orders.show', $salesOrder->id)
+                ->with('error', app()->getLocale() === 'ar' ? 'أمر البيع ملغي، لا يمكن إنشاء فاتورة شراء.' : 'Sales order is cancelled, cannot create invoice.');
+        }
+
+        if ($salesOrder->status === 'completed') {
+            session()->now('warning', app()->getLocale() === 'ar' 
+                ? 'تنبيه: تم اكمال امر البيع واتمام الصفقه مع العميل مسبقا' 
+                : 'Notice: Sales order is completed and closed.');
+        }
 
         $vendors = Vendor::orderBy('name_ar')->get(['id', 'name_ar', 'name_en']);
         $items   = Item::with('approvedVendors')->orderBy('name_ar')->get();

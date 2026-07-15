@@ -94,21 +94,43 @@
         </a>
         @endif
 
-        {{-- إنشاء فاتورة بيع --}}
-        <a href="{{ route('sales-invoices.create', ['sales_order_id' => $salesOrder->id]) }}"
-            class="px-5 py-2 bg-[#008A3B] text-white rounded-lg font-bold text-sm hover:bg-[#007030] flex items-center gap-2 transition-colors">
-            <i class="fas fa-file-invoice"></i>
-            {{ $isAr ? 'إنشاء فاتورة بيع' : 'Create Sales Invoice' }}
-        </a>
+        @if($salesOrder->status !== 'cancelled')
+            {{-- إنشاء فاتورة بيع --}}
+            <a href="{{ route('sales-invoices.create', ['sales_order_id' => $salesOrder->id]) }}"
+                class="px-5 py-2 bg-[#008A3B] text-white rounded-lg font-bold text-sm hover:bg-[#007030] flex items-center gap-2 transition-colors">
+                <i class="fas fa-file-invoice"></i>
+                {{ $isAr ? 'إنشاء فاتورة بيع' : 'Create Sales Invoice' }}
+            </a>
 
-        {{-- إنشاء فاتورة شراء --}}
-        <a href="{{ route('purchase-invoices.create', ['sales_order_id' => $salesOrder->id]) }}"
-            class="px-5 py-2 bg-[#005B9F] hover:bg-blue-800 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
-            <i class="fas fa-file-invoice-dollar"></i>
-            {{ $isAr ? 'إنشاء فاتورة شراء' : 'Create Purchase Invoice' }}
-        </a>
+            {{-- إنشاء فاتورة شراء --}}
+            <a href="{{ route('purchase-invoices.create', ['sales_order_id' => $salesOrder->id]) }}"
+                class="px-5 py-2 bg-[#005B9F] hover:bg-blue-800 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-colors">
+                <i class="fas fa-file-invoice-dollar"></i>
+                {{ $isAr ? 'إنشاء فاتورة شراء' : 'Create Purchase Invoice' }}
+            </a>
+        @else
+            <button disabled class="px-5 py-2 bg-gray-200 text-gray-400 rounded-lg font-bold text-sm flex items-center gap-2 cursor-not-allowed" title="{{ $isAr ? 'أمر البيع ملغي' : 'Sales Order Cancelled' }}">
+                <i class="fas fa-file-invoice"></i>
+                {{ $isAr ? 'إنشاء فاتورة بيع' : 'Create Sales Invoice' }}
+            </button>
+            <button disabled class="px-5 py-2 bg-gray-200 text-gray-400 rounded-lg font-bold text-sm flex items-center gap-2 cursor-not-allowed" title="{{ $isAr ? 'أمر البيع ملغي' : 'Sales Order Cancelled' }}">
+                <i class="fas fa-file-invoice-dollar"></i>
+                {{ $isAr ? 'إنشاء فاتورة شراء' : 'Create Purchase Invoice' }}
+            </button>
+        @endif
 
 
+
+        {{-- تحديث الحالة --}}
+        <form action="{{ route('sales-orders.update', $salesOrder) }}" method="POST" class="flex items-center gap-2">
+            @csrf
+            @method('PATCH')
+            <select name="status" onchange="this.form.submit()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50 focus:outline-none focus:border-[#005B9F]">
+                <option value="confirmed" {{ $salesOrder->status === 'confirmed' ? 'selected' : '' }}>{{ $isAr ? 'مؤكد' : 'Confirmed' }}</option>
+                <option value="cancelled" {{ $salesOrder->status === 'cancelled' ? 'selected' : '' }}>{{ $isAr ? 'ملغي' : 'Cancelled' }}</option>
+                <option value="completed" {{ $salesOrder->status === 'completed' ? 'selected' : '' }}>{{ $isAr ? 'مكتمل' : 'Completed' }}</option>
+            </select>
+        </form>
 
         <button onclick="window.print()"
             class="px-5 py-2 bg-[#005B9F] text-white rounded-lg font-bold text-sm hover:bg-blue-800 flex items-center gap-2">
@@ -167,11 +189,19 @@
                 {{ $isAr ? 'أمر البيع' : 'Sales Order' }}
             </p>
             <p class="font-mono font-bold text-gray-600 mt-1 text-sm" dir="ltr">{{ $salesOrder->so_number }}</p>
-            <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border
-                {{ $salesOrder->status === 'confirmed' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-200' }}">
-                {{ $salesOrder->status === 'confirmed'
-                    ? ($isAr ? 'مؤكد' : 'Confirmed')
-                    : ($isAr ? 'ملغي' : 'Cancelled') }}
+            @php
+                $badgeClasses = 'bg-green-50 text-green-700 border-green-200';
+                $badgeText = $isAr ? 'مؤكد' : 'Confirmed';
+                if ($salesOrder->status === 'cancelled') {
+                    $badgeClasses = 'bg-red-50 text-red-600 border-red-200';
+                    $badgeText = $isAr ? 'ملغي' : 'Cancelled';
+                } elseif ($salesOrder->status === 'completed') {
+                    $badgeClasses = 'bg-blue-50 text-blue-700 border-blue-200';
+                    $badgeText = $isAr ? 'مكتمل' : 'Completed';
+                }
+            @endphp
+            <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $badgeClasses }}">
+                {{ $badgeText }}
             </span>
         </div>
     </div>
