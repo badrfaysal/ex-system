@@ -22,37 +22,46 @@ class ReceivableController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where('company_name', 'like', "%{$search}%")
+            $query->where(function($q) use ($search) {
+                $q->where('company_name', 'like', "%{$search}%")
                   ->orWhere('company_name_en', 'like', "%{$search}%");
-        }
-
-        $clients = $query->get()
-            ->map(function ($client) {
-                $client->balance = (float) $client->invoiced_total - (float) $client->collected_total;
-                return $client;
             });
+        }
 
         $tab = $request->input('tab', 'active');
         if ($tab === 'paid') {
-            $clients = $clients->filter(fn ($c) => $c->balance <= 0);
+            $query->havingRaw('(COALESCE(invoiced_total, 0) - COALESCE(collected_total, 0)) <= 0');
         } else {
-            $clients = $clients->filter(fn ($c) => $c->balance > 0);
+            $query->havingRaw('(COALESCE(invoiced_total, 0) - COALESCE(collected_total, 0)) > 0');
         }
 
         $sort = $request->input('sort', 'balance_desc');
-        $clients = match ($sort) {
-            'balance_asc' => $clients->sortBy('balance'),
-            'newest'      => $clients->sortByDesc('created_at'),
-            'oldest'      => $clients->sortBy('created_at'),
-            default       => $clients->sortByDesc('balance'), // balance_desc
+        match ($sort) {
+            'balance_asc' => $query->orderByRaw('(COALESCE(invoiced_total, 0) - COALESCE(collected_total, 0)) ASC'),
+            'newest'      => $query->orderByDesc('created_at'),
+            'oldest'      => $query->orderBy('created_at'),
+            default       => $query->orderByRaw('(COALESCE(invoiced_total, 0) - COALESCE(collected_total, 0)) DESC'), // balance_desc
         };
-        $clients = $clients->values();
+
+        // Summary
+        $summaryData = \Illuminate\Support\Facades\DB::query()
+            ->fromSub(clone $query, 'sub')
+            ->selectRaw('SUM(invoiced_total) as sum_invoiced, SUM(collected_total) as sum_collected, SUM(COALESCE(invoiced_total, 0) - COALESCE(collected_total, 0)) as sum_balance')
+            ->first();
 
         $summary = [
-            'invoiced'  => $clients->sum('invoiced_total'),
-            'collected' => $clients->sum('collected_total'),
-            'balance'   => $clients->sum('balance'),
+            'invoiced'  => $summaryData->sum_invoiced ?? 0,
+            'collected' => $summaryData->sum_collected ?? 0,
+            'balance'   => $summaryData->sum_balance ?? 0,
         ];
+
+        $clients = $query->paginate(50)->withQueryString();
+
+        // Calculate balance for each model in the paginated collection
+        $clients->getCollection()->transform(function ($client) {
+            $client->balance = (float) $client->invoiced_total - (float) $client->collected_total;
+            return $client;
+        });
 
         return view('receivables.index', compact('clients', 'summary', 'sort'));
     }

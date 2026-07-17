@@ -34,10 +34,10 @@ class FinancialLogController extends Controller
             ->select('client_receipts.id', 'receipt_date as transaction_date', 'client_receipts.created_at', DB::raw("'receipt' as type"), DB::raw("'receipt' as source_type"), 'receipt_number as ref', 'amount', 'wallet_id', 'created_by as user_id', 'clients.company_name as detail', 'client_receipts.reversed_at', 'client_receipts.reversal_reason');
 
         $revenues = DB::table('revenues')
-            ->select('id', 'revenue_date as transaction_date', 'created_at', DB::raw("'revenue' as type"), DB::raw("'revenue' as source_type"), 'revenue_number as ref', 'amount', 'wallet_id', 'created_by as user_id', 'category as detail', 'reversed_at', 'reversal_reason');
+            ->select('id', 'revenue_date as transaction_date', 'created_at', DB::raw("'revenue' as type"), DB::raw("'revenue' as source_type"), 'revenue_number as ref', 'amount', 'wallet_id', 'created_by as user_id', DB::raw('COALESCE(description, category) as detail'), 'reversed_at', 'reversal_reason');
 
         $expenses = DB::table('expenses')
-            ->select('id', 'expense_date as transaction_date', 'created_at', DB::raw("'expense' as type"), DB::raw("'expense' as source_type"), 'expense_number as ref', DB::raw('amount * -1 as amount'), 'wallet_id', 'created_by as user_id', 'category as detail', 'reversed_at', 'reversal_reason');
+            ->select('id', 'expense_date as transaction_date', 'created_at', DB::raw("'expense' as type"), DB::raw("'expense' as source_type"), 'expense_number as ref', DB::raw('amount * -1 as amount'), 'wallet_id', 'created_by as user_id', DB::raw('COALESCE(description, category) as detail'), 'reversed_at', 'reversal_reason');
 
         $payments = DB::table('vendor_payments')
             ->leftJoin('vendors', 'vendor_payments.vendor_id', '=', 'vendors.id')

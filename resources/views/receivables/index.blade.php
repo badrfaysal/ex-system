@@ -97,6 +97,11 @@
                 </tbody>
             </table>
         </div>
+        @if($clients->hasPages())
+        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+            {{ $clients->links() }}
+        </div>
+        @endif
     </div>
 </div>
 @endsection
