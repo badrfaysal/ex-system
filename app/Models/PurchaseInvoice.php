@@ -14,7 +14,7 @@ class PurchaseInvoice extends Model
 
     protected $fillable = [
         'invoice_number', 'vendor_invoice_number', 'quotation_id', 'sales_order_id', 'vendor_id', 'invoice_date', 'currency', 'notes',
-        'subtotal', 'total_discount', 'tax_amount', 'grand_total', 'created_by', 'attachments',
+        'subtotal', 'extra_discount', 'total_discount', 'tax_amount', 'grand_total', 'created_by', 'attachments',
     ];
 
     protected $casts = [

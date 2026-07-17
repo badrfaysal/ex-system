@@ -412,9 +412,24 @@
                 <span class="text-gray-500">{{ __('messages.quotations.show_subtotal') }}</span>
                 <span class="font-bold text-gray-800" dir="ltr">{{ number_format($quotation->subtotal, 2) }} <span class="text-gray-400">{{ $cur }}</span></span>
             </div>
-            @if($quotation->total_discount > 0)
+            @php
+                $itemDiscounts = $quotation->total_discount - $quotation->extra_discount;
+            @endphp
+            @if($itemDiscounts > 0)
+            <div class="tot-row flex justify-between items-center px-4 py-2.5 border-b border-gray-100 bg-red-50/10">
+                <span class="text-gray-500">{{ $isAr ? 'خصم الأصناف' : 'Item Discounts' }}</span>
+                <span class="font-bold text-red-600" dir="ltr">- {{ number_format($itemDiscounts, 2) }} <span class="text-red-300">{{ $cur }}</span></span>
+            </div>
+            @endif
+            @if($quotation->extra_discount > 0)
+            <div class="tot-row flex justify-between items-center px-4 py-2.5 border-b border-gray-100 bg-red-50/20">
+                <span class="text-gray-500">{{ $isAr ? 'خصم إضافي' : 'Extra Discount' }}</span>
+                <span class="font-bold text-red-600" dir="ltr">- {{ number_format($quotation->extra_discount, 2) }} <span class="text-red-300">{{ $cur }}</span></span>
+            </div>
+            @endif
+            @if($itemDiscounts > 0 && $quotation->extra_discount > 0)
             <div class="tot-row flex justify-between items-center px-4 py-2.5 border-b border-gray-100 bg-red-50/30">
-                <span class="text-gray-500">{{ __('messages.quotations.show_discount') }}</span>
+                <span class="text-gray-500">{{ $isAr ? 'إجمالي الخصومات' : 'Total Discounts' }}</span>
                 <span class="font-bold text-red-600" dir="ltr">- {{ number_format($quotation->total_discount, 2) }} <span class="text-red-300">{{ $cur }}</span></span>
             </div>
             @endif

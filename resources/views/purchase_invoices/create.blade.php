@@ -140,9 +140,17 @@
 
     <div class="max-w-6xl mx-auto mb-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-                <div class="text-xs text-gray-500">{{ $isAr ? 'إجمالي الفاتورة:' : 'Invoice total:' }}</div>
-                <div class="font-extrabold text-[#005B9F] text-xl" dir="ltr" id="grandTotal">0.00 <span class="text-xs font-normal text-gray-400" id="grandTotalCur">{{ $cur }}</span></div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2 border-r border-gray-200 pr-4">
+                    <span class="text-sm font-bold text-gray-700">{{ $isAr ? 'الخصم الإضافي:' : 'Extra Discount:' }}</span>
+                    <input type="number" step="0.01" min="0" name="extra_discount" id="extraDiscount" value="{{ old('extra_discount', '') }}"
+                        oninput="window.piRecalc()" class="w-24 px-2 py-1 border border-gray-300 rounded text-left text-red-600 font-bold" dir="ltr">
+                    <span class="text-xs text-gray-400">{{ $cur ?? 'EGP' }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="text-xs text-gray-500">{{ $isAr ? 'إجمالي الفاتورة:' : 'Invoice total:' }}</div>
+                    <div class="font-extrabold text-[#005B9F] text-xl" dir="ltr" id="grandTotal">0.00 <span class="text-xs font-normal text-gray-400" id="grandTotalCur">{{ $cur }}</span></div>
+                </div>
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('sales-orders.show', $salesOrder) }}" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium">{{ $isAr ? 'إلغاء' : 'Cancel' }}</a>
@@ -183,7 +191,12 @@
 
     function recalcAll() {
         let grand = 0;
+        let extraDisc = parseFloat(document.getElementById('extraDiscount').value) || 0;
+
         document.querySelectorAll('#itemsBody tr').forEach(tr => grand += rowNet(tr));
+        
+        grand = grand - extraDisc;
+        
         document.getElementById('grandTotal').childNodes[0].textContent = fmt(grand) + ' ';
     }
 

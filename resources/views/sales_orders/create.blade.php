@@ -153,7 +153,14 @@
         <div class="px-6 py-4 flex flex-wrap items-center justify-between gap-4">
             {{-- الإجمالي المحسوب --}}
             <div class="flex items-center gap-4">
-                <div class="text-xs text-gray-500">{{ $isAr ? 'إجمالي المحدد:' : 'Selected total:' }}</div>
+                <div class="flex items-center gap-2 border-r border-gray-200 pr-4">
+                    <span class="text-sm font-bold text-gray-700">{{ $isAr ? 'الخصم الإضافي:' : 'Extra Discount:' }}</span>
+                    <input type="number" step="0.01" min="0" name="extra_discount" id="extraDiscount" value="{{ old('extra_discount', !empty($quotation->extra_discount) ? $quotation->extra_discount : '') }}"
+                        oninput="window.recalcSO()" class="w-24 px-2 py-1 border border-gray-300 rounded text-left text-red-600 font-bold" dir="ltr">
+                    <span class="text-xs text-gray-400">{{ $cur }}</span>
+                </div>
+                
+                <div class="text-xs text-gray-500 pl-4">{{ $isAr ? 'إجمالي المحدد:' : 'Selected total:' }}</div>
                 <div class="font-extrabold text-[#005B9F] text-xl" dir="ltr" id="selectedTotal">
                     {{ number_format($quotation->grand_total, 2) }}
                     <span class="text-xs font-normal text-gray-400">{{ $cur }}</span>
@@ -216,6 +223,7 @@
 
     function recalc() {
         let subtotal = 0, disc = 0, tax = 0, count = 0;
+        let extraDisc = parseFloat(document.getElementById('extraDiscount').value) || 0;
 
         rows.forEach((row, i) => {
             const checked = checks[i].checked;
@@ -231,7 +239,7 @@
             }
         });
 
-        const grand = subtotal - disc + tax;
+        const grand = subtotal - (disc + extraDisc) + tax;
         totalEl.innerHTML = grand.toFixed(2) + ' <span class="text-xs font-normal text-gray-400">' + currency + '</span>';
         countEl.textContent = count + ' ' + (isAr ? 'صنف' : 'items');
 
@@ -239,6 +247,8 @@
         checkAll.indeterminate = count > 0 && count < checks.length;
         checkAll.checked = count === checks.length;
     }
+
+    window.recalcSO = recalc;
 
 
 

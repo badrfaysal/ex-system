@@ -115,6 +115,8 @@
                         <th class="p-3 text-center">{{ $isAr ? 'متبقي للفوترة' : 'Remaining' }}</th>
                         <th class="p-3 text-center">{{ $isAr ? 'كمية الفاتورة' : 'Invoice Qty' }}</th>
                         <th class="p-3 text-center">{{ $isAr ? 'السعر' : 'Price' }}</th>
+                        <th class="p-3 text-center">{{ $isAr ? 'خصم %' : 'Disc %' }}</th>
+                        <th class="p-3 text-center">{{ $isAr ? 'ضريبة %' : 'Tax %' }}</th>
                         <th class="p-3">{{ $isAr ? 'الإجمالي' : 'Total' }}</th>
                     </tr>
                 </thead>
@@ -141,7 +143,19 @@
                             <td class="p-3 text-center" dir="ltr">
                                 <input type="number" step="any" min="0" name="prices[{{ $item->id }}]"
                                     value="{{ old('prices.'.$item->id, $item->list_price) }}"
-                                    class="si-price w-full px-2 py-1.5 border border-gray-300 rounded text-center"
+                                    class="si-price w-24 px-2 py-1.5 border border-gray-300 rounded text-center mx-auto"
+                                    {{ $isZero ? 'disabled' : '' }}>
+                            </td>
+                            <td class="p-3 text-center" dir="ltr">
+                                <input type="number" step="any" min="0" max="100" name="discount_percents[{{ $item->id }}]"
+                                    value="{{ old('discount_percents.'.$item->id, $item->discount_percent ?? 0) }}"
+                                    class="si-disc w-16 px-2 py-1.5 border border-gray-300 rounded text-center mx-auto"
+                                    {{ $isZero ? 'disabled' : '' }}>
+                            </td>
+                            <td class="p-3 text-center" dir="ltr">
+                                <input type="number" step="any" min="0" max="100" name="tax_percents[{{ $item->id }}]"
+                                    value="{{ old('tax_percents.'.$item->id, $item->tax_percent ?? 0) }}"
+                                    class="si-tax w-16 px-2 py-1.5 border border-gray-300 rounded text-center mx-auto"
                                     {{ $isZero ? 'disabled' : '' }}>
                             </td>
                             <td class="p-3 font-bold text-[#008A3B] si-net" dir="ltr">0.00</td>
@@ -186,6 +200,12 @@
     <div class="max-w-5xl mx-auto mb-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="px-6 py-4 flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2 border-r border-gray-200 pr-4">
+                    <span class="text-sm font-bold text-gray-700">{{ $isAr ? 'الخصم الإضافي:' : 'Extra Discount:' }}</span>
+                    <input type="number" step="0.01" min="0" name="extra_discount" id="extraDiscount" value="{{ old('extra_discount', !empty($salesOrder->extra_discount) ? $salesOrder->extra_discount : '') }}"
+                        oninput="window.triggerRecalc()" class="w-24 px-2 py-1 border border-gray-300 rounded text-left text-red-600 font-bold" dir="ltr">
+                    <span class="text-xs text-gray-400">{{ $cur ?? 'EGP' }}</span>
+                </div>
                 <div>
                     <div class="text-xs text-gray-500">{{ $isAr ? 'الإجمالي' : 'Subtotal' }}</div>
                     <div class="font-bold text-gray-800 text-lg" dir="ltr" id="subtotalDisplay">0.00</div>
@@ -196,7 +216,7 @@
                 </div>
                 <div>
                     <div class="text-xs text-gray-500">{{ $isAr ? 'إجمالي الفاتورة:' : 'Invoice total:' }}</div>
-                    <div class="font-extrabold text-[#008A3B] text-xl" dir="ltr" id="grandTotal">0.00 <span class="text-xs font-normal text-gray-400" id="grandTotalCur">{{ $cur }}</span></div>
+                    <div class="font-extrabold text-[#008A3B] text-xl" dir="ltr" id="grandTotal">0.00 <span class="text-xs font-normal text-gray-400" id="grandTotalCur">{{ $cur ?? 'EGP' }}</span></div>
                 </div>
             </div>
             <div class="flex items-center gap-3">
@@ -217,8 +237,8 @@
         if (!chk || !chk.checked) return { net: 0, afterDisc: 0, tax: 0 };
         const q = parseFloat(tr.querySelector('.si-qty').value || 0);
         const p = parseFloat(tr.querySelector('.si-price').value || 0);
-        const d = parseFloat(tr.querySelector('.si-qty').dataset.discount || 0);
-        const t = parseFloat(tr.querySelector('.si-qty').dataset.tax || 0);
+        const d = parseFloat(tr.querySelector('.si-disc').value || 0);
+        const t = parseFloat(tr.querySelector('.si-tax').value || 0);
         const base = q * p;
         const afterDisc = base - (base * d / 100);
         const tax = afterDisc * t / 100;
@@ -243,6 +263,8 @@
 
     function recalc() {
         let subtotal = 0, taxTotal = 0;
+        let extraDisc = parseFloat(document.getElementById('extraDiscount').value) || 0;
+        
         document.querySelectorAll('.si-line').forEach(tr => {
             const r = lineNet(tr);
             subtotal += r.afterDisc;
@@ -253,20 +275,24 @@
             subtotal += r.afterDisc;
             taxTotal += r.tax;
         });
-        const grand = subtotal + taxTotal;
+        const grand = subtotal - extraDisc + taxTotal;
         document.getElementById('subtotalDisplay').textContent = subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('taxTotalDisplay').textContent = taxTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('grandTotal').childNodes[0].textContent = grand.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ';
     }
 
-    document.querySelectorAll('.si-check, .si-qty, .si-price').forEach(el => el.addEventListener('input', recalc));
+    document.querySelectorAll('.si-check, .si-qty, .si-price, .si-disc, .si-tax').forEach(el => el.addEventListener('input', recalc));
     document.querySelectorAll('.si-check').forEach(el => {
         el.addEventListener('change', function() {
             const tr = this.closest('tr');
             const qty = tr.querySelector('.si-qty');
             const price = tr.querySelector('.si-price');
+            const disc = tr.querySelector('.si-disc');
+            const tax = tr.querySelector('.si-tax');
             qty.disabled = !this.checked;
             price.disabled = !this.checked;
+            disc.disabled = !this.checked;
+            tax.disabled = !this.checked;
             
             // If checked and qty is empty, default it to 1 just to prevent validation errors if they want to invoice it again
             if (this.checked && !qty.value) {
@@ -339,6 +365,7 @@
             new TomSelect(newSelect, {
                 allowEmptyOption: true,
                 maxOptions: 300,
+                dropdownParent: 'body',
                 onChange: function(val) {
                     if (val) {
                         const item = itemsList.find(i => String(i.id) === String(val));

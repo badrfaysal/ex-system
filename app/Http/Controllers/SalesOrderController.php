@@ -70,6 +70,7 @@ class SalesOrderController extends Controller
             'quotation_id'                => 'required|exists:quotations,id',
             'selected_items'              => 'nullable|array',
             'selected_items.*'            => 'exists:quotation_items,id',
+            'extra_discount'              => 'nullable|numeric|min:0',
             'quantities'                  => 'nullable|array',
             'quantities.*'                => 'numeric|min:0.001',
             'prices'                      => 'nullable|array',
@@ -94,6 +95,7 @@ class SalesOrderController extends Controller
 
         $selectedIds   = $data['selected_items'] ?? [];
         $extraLines    = $data['extra_lines'] ?? [];
+        $extraDiscount = (float) ($data['extra_discount'] ?? 0);
 
         if (empty($selectedIds) && empty($extraLines)) {
             return back()->with('error', app()->getLocale() === 'ar'
@@ -105,7 +107,7 @@ class SalesOrderController extends Controller
         $prices        = $data['prices'] ?? [];
         $selectedItems = $quotation->items->whereIn('id', $selectedIds);
 
-        $salesOrder = DB::transaction(function () use ($quotation, $selectedItems, $quantities, $prices, $extraLines) {
+        $salesOrder = DB::transaction(function () use ($quotation, $selectedItems, $quantities, $prices, $extraLines, $extraDiscount) {
             $so = SalesOrder::create([
                 'so_number'      => SequenceGenerator::next('SO'),
                 'quotation_id'   => $quotation->id,
@@ -116,6 +118,7 @@ class SalesOrderController extends Controller
                 'terms'          => $quotation->terms,
                 'status'         => 'confirmed',
                 'subtotal'       => 0,
+                'extra_discount' => 0,
                 'total_discount' => 0,
                 'tax_amount'     => 0,
                 'grand_total'    => 0,
@@ -125,14 +128,18 @@ class SalesOrderController extends Controller
             [$exSubtotal, $exDiscounts, $exTax]      = $this->saveExtraLines($so, $extraLines);
 
             $subtotal      += $exSubtotal;
-            $lineDiscounts += $exDiscounts;
+            // The total discount is line discounts + extra lines discounts + the explicit extra discount
+            $totalLineDiscounts = $lineDiscounts + $exDiscounts;
             $taxAmount     += $exTax;
+
+            $totalDiscount = $totalLineDiscounts + $extraDiscount;
 
             $so->update([
                 'subtotal'       => round($subtotal, 2),
-                'total_discount' => round($lineDiscounts, 2),
+                'extra_discount' => round($extraDiscount, 2),
+                'total_discount' => round($totalDiscount, 2),
                 'tax_amount'     => round($taxAmount, 2),
-                'grand_total'    => round($subtotal - $lineDiscounts + $taxAmount, 2),
+                'grand_total'    => round($subtotal - $totalDiscount + $taxAmount, 2),
             ]);
 
             // تحويل حالة عرض السعر إلى «محوّل» نهائياً

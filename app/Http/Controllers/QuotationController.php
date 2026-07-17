@@ -490,6 +490,7 @@ class QuotationController extends Controller
 
         $quotation->update([
             'subtotal'       => round($subtotal, 2),
+            'extra_discount' => round($extraDiscount, 2),
             'total_discount' => round($totalDiscount, 2),
             'tax_amount'     => round($taxAmount, 2),
             'grand_total'    => round($grandTotal, 2),

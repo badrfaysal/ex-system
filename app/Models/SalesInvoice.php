@@ -14,7 +14,7 @@ class SalesInvoice extends Model
 
     protected $fillable = [
         'invoice_number', 'sales_order_id', 'client_id', 'quotation_id', 'invoice_date', 'due_date', 'currency', 'notes',
-        'subtotal', 'total_discount', 'tax_amount', 'grand_total', 'created_by', 'attachments',
+        'subtotal', 'extra_discount', 'total_discount', 'tax_amount', 'grand_total', 'created_by', 'attachments',
     ];
 
     protected $casts = [

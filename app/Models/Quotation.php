@@ -16,7 +16,7 @@ class Quotation extends Model
         'quote_number', 'quote_date', 'expiry_date', 'opportunity_ref', 'cost_center_name',
         'client_id', 'price_list_id', 'sales_rep', 'currency',
         'status', 'terms',
-        'subtotal', 'total_discount', 'tax_amount', 'grand_total',
+        'subtotal', 'extra_discount', 'total_discount', 'tax_amount', 'grand_total',
     ];
 
     protected $casts = [

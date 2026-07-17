@@ -91,6 +91,33 @@
                     <span class="text-gray-500">{{ $isAr ? 'الإجمالي الفرعي' : 'Subtotal' }}</span>
                     <span class="font-bold text-gray-800" dir="ltr">{{ number_format($salesInvoice->subtotal, 2) }} {{ $cur }}</span>
                 </div>
+                @php
+                    $itemDiscounts = $salesInvoice->total_discount - $salesInvoice->extra_discount;
+                @endphp
+                @if($itemDiscounts > 0)
+                <div class="flex justify-between items-center px-4 py-2.5 border-b border-gray-100 bg-red-50/10">
+                    <span class="text-gray-500">{{ $isAr ? 'خصم الأصناف' : 'Item Discounts' }}</span>
+                    <span class="font-bold text-red-600" dir="ltr">- {{ number_format($itemDiscounts, 2) }} {{ $cur }}</span>
+                </div>
+                @endif
+                @if($salesInvoice->extra_discount > 0)
+                <div class="flex justify-between items-center px-4 py-2.5 border-b border-gray-100 bg-red-50/20">
+                    <span class="text-gray-500">{{ $isAr ? 'خصم إضافي' : 'Extra Discount' }}</span>
+                    <span class="font-bold text-red-600" dir="ltr">- {{ number_format($salesInvoice->extra_discount, 2) }} {{ $cur }}</span>
+                </div>
+                @endif
+                @if($itemDiscounts > 0 && $salesInvoice->extra_discount > 0)
+                <div class="flex justify-between items-center px-4 py-2.5 border-b border-gray-100 bg-red-50/30">
+                    <span class="text-gray-500">{{ $isAr ? 'إجمالي الخصومات' : 'Total Discounts' }}</span>
+                    <span class="font-bold text-red-600" dir="ltr">- {{ number_format($salesInvoice->total_discount, 2) }} {{ $cur }}</span>
+                </div>
+                @endif
+                @if($salesInvoice->tax_amount > 0)
+                <div class="flex justify-between items-center px-4 py-2.5 border-b border-gray-100">
+                    <span class="text-gray-500">{{ $isAr ? 'إجمالي الضريبة' : 'Total Tax' }}</span>
+                    <span class="font-bold text-gray-800" dir="ltr">+ {{ number_format($salesInvoice->tax_amount, 2) }} {{ $cur }}</span>
+                </div>
+                @endif
                 <div class="flex justify-between items-center px-4 py-3" style="background:#008A3B;">
                     <span class="font-extrabold text-white text-sm">{{ $isAr ? 'الإجمالي النهائي' : 'Grand Total' }}</span>
                     <span class="font-extrabold text-white text-base" dir="ltr">{{ number_format($salesInvoice->grand_total, 2) }} {{ $cur }}</span>

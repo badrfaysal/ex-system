@@ -760,6 +760,7 @@
                 var opts = {
                     allowEmptyOption: true,
                     maxOptions: 300,
+                    dropdownParent: 'body',
                     render: {
                         no_results: function () {
                             return '<div class="no-results" style="padding:.5rem .75rem;color:#9ca3af;font-size:.8rem;">لا توجد نتائج</div>';
@@ -784,49 +785,77 @@
             if (pageLoader) pageLoader.classList.remove('active');
         });
 
-        // ===== ضبط العملة تلقائيًا حسب الحساب المختار =====
-        // الحساب يعمل بعملة واحدة، فأي فورم فيه اختيار حساب تتقفل عملته على عملته.
+        // ===== فلترة الحسابات بناءً على العملة المختارة =====
         (function () {
-            var isAr = document.documentElement.getAttribute('dir') === 'rtl'
-                || document.documentElement.getAttribute('lang') === 'ar';
-
-            function setCurrencyField(field, cur) {
-                if (!field) return;
-                if (field.tomselect) {
-                    field.tomselect.setValue(cur, true); // true = صامت (من غير trigger)
-                } else {
-                    field.value = cur;
-                }
-            }
-
-            function ensureNote(field, cur) {
-                var container = field.closest('div') || field.parentElement;
-                if (!container) return;
-                var note = container.querySelector('.wallet-cur-note');
-                if (!note) {
-                    note = document.createElement('p');
-                    note.className = 'wallet-cur-note text-[11px] text-amber-600 mt-1';
-                    container.appendChild(note);
-                }
-                note.textContent = (isAr ? 'العملة مضبوطة تلقائيًا على عملة الحساب: ' : 'Currency locked to the account currency: ') + cur;
-            }
-
-            document.querySelectorAll('select[name="wallet_id"], select[name="from_wallet_id"]').forEach(function (walletSel) {
-                var form = walletSel.closest('form');
+            document.querySelectorAll('select[name="currency"]').forEach(function (curField) {
+                var form = curField.closest('form');
                 if (!form) return;
-                var curField = form.querySelector('[name="currency"]');
-                if (!curField) return;
+                
+                var walletSels = form.querySelectorAll('select[name="wallet_id"], select[name="from_wallet_id"], select[name="to_wallet_id"]');
+                if (walletSels.length === 0) return;
 
-                function sync() {
-                    var opt = walletSel.options[walletSel.selectedIndex];
-                    var cur = opt ? opt.getAttribute('data-currency') : null;
-                    if (!cur) return;
-                    setCurrencyField(curField, cur);
-                    ensureNote(curField, cur);
-                }
+                walletSels.forEach(function(walletSel) {
+                    // حفظ الخيارات الأصلية في مصفوفة
+                    var allOptions = Array.from(walletSel.querySelectorAll('option')).map(function(opt) {
+                        return {
+                            value: opt.value,
+                            text: opt.text,
+                            disabled: opt.disabled,
+                            currency: opt.getAttribute('data-currency')
+                        };
+                    });
 
-                walletSel.addEventListener('change', sync);
-                if (walletSel.value) sync(); // ضبط مبدئي لو فيه حساب مختار مسبقًا
+                    function syncWallets() {
+                        var selectedCur = curField.value;
+                        if (!selectedCur) return;
+
+                        var ts = walletSel.tomselect;
+                        var currentValue = walletSel.value;
+
+                        if (ts) {
+                            ts.clearOptions(); // مسح الخيارات الحالية من TomSelect
+                            allOptions.forEach(function(opt) {
+                                // إضافة الخيار الافتراضي (اختر الحساب)
+                                if (opt.disabled || !opt.value) {
+                                    ts.addOption({value: opt.value, text: opt.text, disabled: true});
+                                    return;
+                                }
+                                // إضافة الحسابات التي تتطابق عملتها مع العملة المختارة فقط
+                                if (opt.currency === selectedCur) {
+                                    ts.addOption({value: opt.value, text: opt.text});
+                                }
+                            });
+
+                            // التحقق مما إذا كان الحساب المختار سابقاً لا يزال متاحاً
+                            if (currentValue) {
+                                var stillValid = allOptions.find(function(o) {
+                                    return String(o.value) === String(currentValue) && o.currency === selectedCur;
+                                });
+                                if (!stillValid) {
+                                    ts.clear(true);
+                                } else {
+                                    ts.setValue(currentValue, true);
+                                }
+                            }
+                        } else {
+                            // لو لم يكن TomSelect مفعلاً (Fallback)
+                            Array.from(walletSel.options).forEach(function(opt) {
+                                if (opt.disabled || !opt.value) return;
+                                var c = opt.getAttribute('data-currency');
+                                opt.style.display = (c === selectedCur) ? '' : 'none';
+                            });
+                            var optSelected = walletSel.options[walletSel.selectedIndex];
+                            if (optSelected && optSelected.getAttribute('data-currency') !== selectedCur) {
+                                walletSel.value = '';
+                            }
+                        }
+                    }
+
+                    curField.addEventListener('change', syncWallets);
+                    
+                    // تأخير بسيط لضمان تهيئة TomSelect قبل تشغيل التزامن الأول
+                    setTimeout(syncWallets, 150);
+                });
             });
         })();
     </script>

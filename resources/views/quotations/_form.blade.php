@@ -250,7 +250,7 @@
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-gray-600">{{ __('messages.quotations.extra_disc') }}:</span>
                         <div class="flex items-center gap-1">
-                            <input type="number" step="0.01" min="0" name="extra_discount" id="extraDiscount" value="{{ old('extra_discount', 0) }}"
+                            <input type="number" step="0.01" min="0" name="extra_discount" id="extraDiscount" value="{{ old('extra_discount', $quotation->extra_discount ?? 0) }}"
                                 oninput="recalc()" class="w-24 px-2 py-1 border border-gray-300 rounded text-left text-red-600 font-bold" dir="ltr">
                             <span class="text-red-500 text-xs quote-cur">EGP</span>
                         </div>

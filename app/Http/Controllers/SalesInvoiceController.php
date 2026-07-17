@@ -135,12 +135,17 @@ class SalesInvoiceController extends Controller
             'due_date'                 => 'required|date|after_or_equal:invoice_date',
             'currency'                 => 'required|string',
             'notes'                    => 'nullable|string',
+            'extra_discount'           => 'nullable|numeric|min:0',
             'selected_items'           => 'nullable|array',
             'selected_items.*'         => 'exists:sales_order_items,id',
             'quantities'               => 'nullable|array',
             'quantities.*'             => 'numeric|min:0.001',
             'prices'                   => 'nullable|array',
             'prices.*'                 => 'numeric|min:0',
+            'discount_percents'        => 'nullable|array',
+            'discount_percents.*'      => 'numeric|min:0|max:100',
+            'tax_percents'             => 'nullable|array',
+            'tax_percents.*'           => 'numeric|min:0|max:100',
             'extra_lines'              => 'nullable|array',
             'extra_lines.*.item_id'    => 'nullable|exists:items,id',
             'extra_lines.*.description'=> 'required_with:extra_lines|string',
@@ -156,6 +161,7 @@ class SalesInvoiceController extends Controller
         $salesOrder = SalesOrder::with(['items.salesInvoiceItems'])->findOrFail($data['sales_order_id']);
         $selectedIds = $data['selected_items'] ?? [];
         $extraLines = $data['extra_lines'] ?? [];
+        $extraDiscount = (float) ($data['extra_discount'] ?? 0);
 
         if (empty($selectedIds) && empty($extraLines)) {
             return back()->withInput()->with('error', app()->getLocale() === 'ar'
@@ -165,7 +171,7 @@ class SalesInvoiceController extends Controller
 
         $selectedItems = $salesOrder->items->whereIn('id', $selectedIds);
 
-        $invoice = DB::transaction(function () use ($data, $salesOrder, $selectedItems, $extraLines) {
+        $invoice = DB::transaction(function () use ($data, $salesOrder, $selectedItems, $extraLines, $extraDiscount) {
             $invoice = SalesInvoice::create([
                 'invoice_number' => SequenceGenerator::next('SI'),
                 'sales_order_id' => $salesOrder->id,
@@ -177,6 +183,7 @@ class SalesInvoiceController extends Controller
                 'notes'          => $data['notes'] ?? null,
                 'created_by'     => Auth::id(),
                 'subtotal'       => 0,
+                'extra_discount' => 0,
                 'total_discount' => 0,
                 'tax_amount'     => 0,
                 'grand_total'    => 0,
@@ -188,8 +195,8 @@ class SalesInvoiceController extends Controller
             foreach ($selectedItems as $soItem) {
                 $qty      = (float) ($data['quantities'][$soItem->id] ?? $soItem->quantity);
                 $price    = (float) ($data['prices'][$soItem->id] ?? $soItem->list_price);
-                $discount = (float) $soItem->discount_percent;
-                $tax      = (float) $soItem->tax_percent;
+                $discount = (float) ($data['discount_percents'][$soItem->id] ?? $soItem->discount_percent);
+                $tax      = (float) ($data['tax_percents'][$soItem->id] ?? $soItem->tax_percent);
 
                 $lineBase  = $qty * $price;
                 $discVal   = $lineBase * $discount / 100;
@@ -250,11 +257,15 @@ class SalesInvoiceController extends Controller
                 $taxAmount     += $taxVal;
             }
 
+            $totalLineDiscounts = $lineDiscounts;
+            $totalDiscount = $totalLineDiscounts + $extraDiscount;
+
             $invoice->update([
                 'subtotal'       => round($subtotal, 2),
-                'total_discount' => round($lineDiscounts, 2),
+                'extra_discount' => round($extraDiscount, 2),
+                'total_discount' => round($totalDiscount, 2),
                 'tax_amount'     => round($taxAmount, 2),
-                'grand_total'    => round($subtotal - $lineDiscounts + $taxAmount, 2),
+                'grand_total'    => round($subtotal - $totalDiscount + $taxAmount, 2),
             ]);
 
             return $invoice;

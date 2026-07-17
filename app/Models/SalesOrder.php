@@ -15,7 +15,7 @@ class SalesOrder extends Model
     protected $fillable = [
         'so_number', 'quotation_id', 'client_id',
         'so_date', 'currency', 'sales_rep', 'terms', 'status',
-        'subtotal', 'total_discount', 'tax_amount', 'grand_total',
+        'subtotal', 'extra_discount', 'total_discount', 'tax_amount', 'grand_total',
     ];
 
     protected $casts = [

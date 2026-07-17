@@ -122,6 +122,7 @@ class PurchaseInvoiceController extends Controller
             'currency'                 => 'required|string',
             'vendor_invoice_number'    => 'nullable|string|max:255',
             'notes'                    => 'nullable|string',
+            'extra_discount'           => 'nullable|numeric|min:0',
             'lines'                    => 'required|array|min:1',
             'lines.*.item_id'          => 'nullable|exists:items,id',
             'lines.*.description'      => 'required|string',
@@ -135,8 +136,9 @@ class PurchaseInvoiceController extends Controller
         ]);
 
         $salesOrder = SalesOrder::findOrFail($data['sales_order_id']);
+        $extraDiscount = (float) ($data['extra_discount'] ?? 0);
 
-        $invoice = DB::transaction(function () use ($data, $salesOrder) {
+        $invoice = DB::transaction(function () use ($data, $salesOrder, $extraDiscount) {
             $invoice = PurchaseInvoice::create([
                 'invoice_number'         => SequenceGenerator::next('PI'),
                 'quotation_id'           => $salesOrder->quotation_id,
@@ -148,6 +150,7 @@ class PurchaseInvoiceController extends Controller
                 'notes'                  => $data['notes'] ?? null,
                 'created_by'     => Auth::id(),
                 'subtotal'       => 0,
+                'extra_discount' => 0,
                 'total_discount' => 0,
                 'tax_amount'     => 0,
                 'grand_total'    => 0,
@@ -184,11 +187,15 @@ class PurchaseInvoiceController extends Controller
                 $taxAmount     += $taxVal;
             }
 
+            $totalLineDiscounts = $lineDiscounts;
+            $totalDiscount = $totalLineDiscounts + $extraDiscount;
+
             $invoice->update([
                 'subtotal'       => round($subtotal, 2),
-                'total_discount' => round($lineDiscounts, 2),
+                'extra_discount' => round($extraDiscount, 2),
+                'total_discount' => round($totalDiscount, 2),
                 'tax_amount'     => round($taxAmount, 2),
-                'grand_total'    => round($subtotal - $lineDiscounts + $taxAmount, 2),
+                'grand_total'    => round($subtotal - $totalDiscount + $taxAmount, 2),
             ]);
 
             return $invoice;
