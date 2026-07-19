@@ -47,6 +47,11 @@ class ActivityObserver
             'subject_label' => $this->labelFor($model),
             'description'   => $description,
         ]);
+
+        $typesToClearCache = ['SalesOrder', 'SalesInvoice', 'PurchaseInvoice', 'ClientReceipt'];
+        if (in_array(class_basename($model), $typesToClearCache)) {
+            \Illuminate\Support\Facades\Cache::forget('nav_notifications');
+        }
     }
 
     private function labelFor(Model $model): ?string

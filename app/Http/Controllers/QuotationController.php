@@ -359,8 +359,8 @@ class QuotationController extends Controller
         });
 
         return [
-            'clients'    => Client::orderBy('company_name')->get(),
-            'items'      => Item::orderBy('name_ar')->get(),
+            'clients'    => Client::select('id', 'company_name', 'company_name_en')->orderBy('company_name')->get(),
+            'items'      => Item::select('id', 'item_code', 'name_ar', 'name_en', 'base_uom')->orderBy('name_ar')->get(),
             'priceLists' => PriceList::where('status', 'active')->orderBy('name')->get(),
             'currencies' => $lookups->get('currency') ?? collect(),
             'uoms'       => ($lookups->get('uom') ?? collect())->pluck('display_name', 'key_value'),

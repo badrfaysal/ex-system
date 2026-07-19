@@ -44,50 +44,54 @@ class AppServiceProvider extends ServiceProvider
 
         // تنبيهات: أوامر بيع عندها فاتورة شراء من غير فاتورة بيع أو العكس
         View::composer('layouts.app', function ($view) {
-            $mismatches = SalesOrder::query()
-                ->withMismatchedInvoices()
-                ->with('client')
-                ->withCount(['purchaseInvoices', 'salesInvoices'])
-                ->latest()
-                ->limit(20)
-                ->get()
-                ->map(function ($salesOrder) {
-                    $hasPurchase = $salesOrder->purchase_invoices_count > 0;
-                    return [
-                        'type'         => 'mismatch',
-                        'sales_order'  => $salesOrder,
-                        'missing'      => $hasPurchase ? 'sales_invoice' : 'purchase_invoice',
-                        'action_route' => $hasPurchase
-                            ? route('sales-invoices.create', ['sales_order_id' => $salesOrder->id])
-                            : route('purchase-invoices.create', ['sales_order_id' => $salesOrder->id]),
-                    ];
-                });
+            $navNotifications = \Illuminate\Support\Facades\Cache::rememberForever('nav_notifications', function () {
+                $mismatches = SalesOrder::query()
+                    ->withMismatchedInvoices()
+                    ->with('client')
+                    ->withCount(['purchaseInvoices', 'salesInvoices'])
+                    ->latest()
+                    ->limit(20)
+                    ->get()
+                    ->map(function ($salesOrder) {
+                        $hasPurchase = $salesOrder->purchase_invoices_count > 0;
+                        return [
+                            'type'         => 'mismatch',
+                            'sales_order'  => $salesOrder,
+                            'missing'      => $hasPurchase ? 'sales_invoice' : 'purchase_invoice',
+                            'action_route' => $hasPurchase
+                                ? route('sales-invoices.create', ['sales_order_id' => $salesOrder->id])
+                                : route('purchase-invoices.create', ['sales_order_id' => $salesOrder->id]),
+                        ];
+                    });
 
-            // تنبيهات: فواتير بيع فات موعد استحقاقها ولسه فيها مبلغ متبقي
-            $overdueInvoices = SalesInvoice::query()
-                ->overdue()
-                ->with('client')
-                ->withSum(['receipts as received_sum' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
-                ->orderBy('due_date')
-                ->limit(50)
-                ->get()
-                ->map(function ($invoice) {
-                    $invoice->balance_due_calc = (float) $invoice->grand_total - (float) ($invoice->received_sum ?? 0);
-                    return $invoice;
-                })
-                ->filter(fn ($invoice) => $invoice->balance_due_calc > 0.01)
-                ->take(20)
-                ->map(function ($invoice) {
-                    return [
-                        'type'          => 'overdue',
-                        'sales_invoice' => $invoice,
-                        'balance_due'   => $invoice->balance_due_calc,
-                        'days_overdue'  => (int) round(abs(now()->diffInSeconds($invoice->due_date)) / 86400),
-                        'action_route'  => route('sales-invoices.show', $invoice),
-                    ];
-                });
+                // تنبيهات: فواتير بيع فات موعد استحقاقها ولسه فيها مبلغ متبقي
+                $overdueInvoices = SalesInvoice::query()
+                    ->overdue()
+                    ->with('client')
+                    ->withSum(['receipts as received_sum' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
+                    ->orderBy('due_date')
+                    ->limit(50)
+                    ->get()
+                    ->map(function ($invoice) {
+                        $invoice->balance_due_calc = (float) $invoice->grand_total - (float) ($invoice->received_sum ?? 0);
+                        return $invoice;
+                    })
+                    ->filter(fn ($invoice) => $invoice->balance_due_calc > 0.01)
+                    ->take(20)
+                    ->map(function ($invoice) {
+                        return [
+                            'type'          => 'overdue',
+                            'sales_invoice' => $invoice,
+                            'balance_due'   => $invoice->balance_due_calc,
+                            'days_overdue'  => (int) round(abs(now()->diffInSeconds($invoice->due_date)) / 86400),
+                            'action_route'  => route('sales-invoices.show', $invoice),
+                        ];
+                    });
 
-            $view->with('navNotifications', $mismatches->concat($overdueInvoices));
+                return $mismatches->concat($overdueInvoices);
+            });
+
+            $view->with('navNotifications', $navNotifications);
         });
     }
 }
