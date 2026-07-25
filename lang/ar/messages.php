@@ -6,7 +6,7 @@ return [
     'app_name'      => 'EFC Export',
     'app_sub'       => '',
     'system_title'  => 'نظام EFC لتصدير الحاصلات الزراعية',
-    'welcome'       => 'مرحباً، أحمد',
+    'welcome'       => 'مرحباً',
     'admin_name'    => 'أحمد المدير',
     'admin_role'    => 'مسؤول النظام',
     'home'          => 'الرئيسية',

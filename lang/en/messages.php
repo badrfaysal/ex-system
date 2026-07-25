@@ -6,7 +6,7 @@ return [
     'app_name'      => 'EFC Export',
     'app_sub'       => '',
     'system_title'  => 'EFC Agricultural Crops Export System',
-    'welcome'       => 'Welcome, Ahmed',
+    'welcome'       => 'Welcome',
     'admin_name'    => 'Ahmed (Manager)',
     'admin_role'    => 'System Admin',
     'home'          => 'Home',

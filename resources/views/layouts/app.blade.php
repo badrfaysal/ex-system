@@ -572,7 +572,6 @@
                             });
                         </script>
                         <div class="h-8 w-px bg-gray-200"></div>
-                        <span class="text-sm font-medium whitespace-nowrap hidden sm:inline">{{ __('messages.welcome') }}</span>
                     </div>
                 </div>
             </header>
