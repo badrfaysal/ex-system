@@ -15,6 +15,9 @@ class RevenueController extends Controller
         $validated = $request->validate([
             'wallet_id' => 'required|exists:wallets,id',
             'amount' => 'required|numeric|min:0.01',
+            'foreign_amount'   => 'nullable|numeric|min:0.01',
+            'foreign_currency' => 'nullable|string',
+            'exchange_rate'    => 'nullable|numeric|min:0.000001',
             'category' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'revenue_date' => 'required|date',

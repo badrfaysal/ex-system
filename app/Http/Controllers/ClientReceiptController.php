@@ -55,32 +55,41 @@ class ClientReceiptController extends Controller
         $data = $request->validate([
             'sales_invoice_id' => 'required|exists:sales_invoices,id',
             'wallet_id'        => 'required|exists:wallets,id',
-            'amount'           => [
-                'required', 'numeric', 'min:0.01',
-                function ($attribute, $value, $fail) use ($request, $isAr) {
-                    $invoice = SalesInvoice::find($request->input('sales_invoice_id'));
-                    if ($invoice && round((float) $value, 2) > round($invoice->balance_due, 2)) {
-                        $fail($isAr
-                            ? 'المبلغ المدخل أكبر من المتبقي على فاتورة البيع (' . number_format($invoice->balance_due, 2) . ' ' . $invoice->currency . ').'
-                            : 'The amount exceeds the sales invoice balance due (' . number_format($invoice->balance_due, 2) . ' ' . $invoice->currency . ').');
-                    }
-                },
-            ],
-            'currency'         => [
-                'required', 'string', new MatchesWalletCurrency,
-                function ($attribute, $value, $fail) use ($request, $isAr) {
-                    $invoice = SalesInvoice::find($request->input('sales_invoice_id'));
-                    if ($invoice && $value !== $invoice->currency) {
-                        $fail($isAr
-                            ? "فاتورة البيع {$invoice->invoice_number} كانت بعملة {$invoice->currency} — لا يمكن تسجيل سند قبض بعملة مختلفة."
-                            : "Sales invoice {$invoice->invoice_number} was issued in {$invoice->currency} — a receipt in a different currency is not allowed.");
-                    }
-                },
-            ],
+            'amount'           => 'required|numeric|min:0.01',
+            'foreign_amount'   => 'nullable|numeric|min:0.01',
+            'foreign_currency' => 'nullable|string',
+            'exchange_rate'    => 'nullable|numeric|min:0.000001',
+            'currency'         => 'required|string',
             'receipt_date'     => 'required|date',
             'payment_method'   => 'nullable|string',
             'notes'            => 'nullable|string',
         ]);
+
+        $salesInvoice = SalesInvoice::findOrFail($data['sales_invoice_id']);
+        $wallet = Wallet::findOrFail($data['wallet_id']);
+
+        $paidTowardsInvoice = $data['foreign_amount'] ?? $data['amount'];
+        
+        if (round((float) $paidTowardsInvoice, 2) > round($salesInvoice->balance_due, 2)) {
+            return back()->withErrors(['amount' => $isAr 
+                ? 'المبلغ المدخل أكبر من المتبقي على فاتورة البيع (' . number_format($salesInvoice->balance_due, 2) . ' ' . $salesInvoice->currency . ').'
+                : 'The amount exceeds the sales invoice balance due (' . number_format($salesInvoice->balance_due, 2) . ' ' . $salesInvoice->currency . ').'])->withInput();
+        }
+
+        // If currencies differ, use foreign_amount for the invoice currency, and amount for wallet currency
+        if ($salesInvoice->currency !== $wallet->currency) {
+            $data['foreign_currency'] = $salesInvoice->currency;
+            $data['foreign_amount'] = $paidTowardsInvoice;
+            $data['exchange_rate'] = $data['exchange_rate'] ?? 1;
+            $data['currency'] = $wallet->currency;
+            $data['amount'] = round($data['foreign_amount'] * $data['exchange_rate'], 2);
+        } else {
+            $data['currency'] = $wallet->currency;
+            $data['amount'] = $paidTowardsInvoice;
+            $data['foreign_amount'] = null;
+            $data['foreign_currency'] = null;
+            $data['exchange_rate'] = 1;
+        }
 
         $salesInvoice = SalesInvoice::findOrFail($data['sales_invoice_id']);
 
@@ -92,6 +101,9 @@ class ClientReceiptController extends Controller
                 'quotation_id'     => $salesInvoice->quotation_id,
                 'wallet_id'        => $data['wallet_id'],
                 'amount'           => $data['amount'],
+                'foreign_amount'   => $data['foreign_amount'] ?? null,
+                'foreign_currency' => $data['foreign_currency'] ?? null,
+                'exchange_rate'    => $data['exchange_rate'] ?? 1,
                 'currency'         => $data['currency'],
                 'receipt_date'     => $data['receipt_date'],
                 'payment_method'   => $data['payment_method'] ?? null,

@@ -101,10 +101,18 @@
             <input type="hidden" name="revenue_date" value="{{ date('Y-m-d') }}">
             
             <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'المبلغ' : 'Amount' }} *</label>
+                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'المبلغ الفعلي (للحساب)' : 'Amount' }} *</label>
                 <div class="relative">
-                    <input type="number" step="0.01" min="0.01" name="amount" required class="w-full pl-4 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-[#008A3B] focus:border-[#008A3B] font-bold" dir="ltr">
+                    <input type="number" step="0.01" min="0.01" name="amount" id="revNativeAmount" required class="w-full pl-4 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-[#008A3B] focus:border-[#008A3B] font-bold" dir="ltr">
                     <span class="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 font-bold text-sm">{{ $wallet->currency }}</span>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                <p class="text-xs font-bold text-blue-800 mb-2"><i class="fas fa-globe"></i> {{ $isAr ? 'إيداع بعملة أجنبية (اختياري)' : 'Foreign Currency Deposit' }}</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" step="0.01" min="0.01" name="foreign_amount" id="revForeignAmount" placeholder="{{ $isAr ? 'المبلغ الأجنبي' : 'Foreign Amount' }}" class="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:border-blue-500" dir="ltr">
+                    <input type="number" step="0.000001" min="0.000001" name="exchange_rate" id="revExchangeRate" placeholder="{{ $isAr ? 'سعر الصرف' : 'Exchange Rate' }}" class="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:border-blue-500" dir="ltr">
                 </div>
             </div>
 
@@ -141,10 +149,18 @@
             <input type="hidden" name="redirect_to" value="{{ route('wallets.show', $wallet) }}">
             
             <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'المبلغ' : 'Amount' }} *</label>
+                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'المبلغ الفعلي (للحساب)' : 'Amount' }} *</label>
                 <div class="relative">
-                    <input type="number" step="0.01" min="0.01" name="amount" required class="w-full pl-4 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 font-bold" dir="ltr">
+                    <input type="number" step="0.01" min="0.01" name="amount" id="expNativeAmount" required class="w-full pl-4 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 font-bold" dir="ltr">
                     <span class="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 font-bold text-sm">{{ $wallet->currency }}</span>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                <p class="text-xs font-bold text-blue-800 mb-2"><i class="fas fa-globe"></i> {{ $isAr ? 'صرف بعملة أجنبية (اختياري)' : 'Foreign Currency Expense' }}</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" step="0.01" min="0.01" name="foreign_amount" id="expForeignAmount" placeholder="{{ $isAr ? 'المبلغ الأجنبي' : 'Foreign Amount' }}" class="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:border-blue-500" dir="ltr">
+                    <input type="number" step="0.000001" min="0.000001" name="exchange_rate" id="expExchangeRate" placeholder="{{ $isAr ? 'سعر الصرف' : 'Exchange Rate' }}" class="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:border-blue-500" dir="ltr">
                 </div>
             </div>
 
@@ -170,4 +186,35 @@
         </form>
     </div>
 </div>
+
+<script>
+window.addEventListener('load', function() {
+    function setupCalculator(fAmtId, fRateId, nAmtId) {
+        var fAmt = document.getElementById(fAmtId);
+        var fRate = document.getElementById(fRateId);
+        var nAmt = document.getElementById(nAmtId);
+
+        if(!fAmt || !fRate || !nAmt) return;
+
+        function calc() {
+            var fa = parseFloat(fAmt.value);
+            if (!isNaN(fa) && fa > 0) {
+                var r = parseFloat(fRate.value) || 1;
+                nAmt.value = (fa * r).toFixed(2);
+                nAmt.readOnly = true;
+                nAmt.classList.add('bg-gray-100', 'cursor-not-allowed');
+            } else {
+                nAmt.readOnly = false;
+                nAmt.classList.remove('bg-gray-100', 'cursor-not-allowed');
+            }
+        }
+
+        fAmt.addEventListener('input', calc);
+        fRate.addEventListener('input', calc);
+    }
+
+    setupCalculator('revForeignAmount', 'revExchangeRate', 'revNativeAmount');
+    setupCalculator('expForeignAmount', 'expExchangeRate', 'expNativeAmount');
+});
+</script>
 @endsection

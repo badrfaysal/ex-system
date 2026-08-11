@@ -14,7 +14,7 @@ class Revenue extends Model
 
     protected $fillable = [
         'revenue_number', 'wallet_id', 'category', 'description',
-        'amount', 'currency', 'revenue_date', 'notes', 'created_by',
+        'amount', 'foreign_amount', 'foreign_currency', 'exchange_rate', 'currency', 'revenue_date', 'notes', 'created_by',
     ];
 
     protected $casts = [

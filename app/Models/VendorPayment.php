@@ -15,7 +15,7 @@ class VendorPayment extends Model
 
     protected $fillable = [
         'payment_number', 'vendor_id', 'purchase_invoice_id', 'wallet_id',
-        'amount', 'currency', 'payment_date', 'payment_method', 'notes', 'created_by',
+        'amount', 'foreign_amount', 'foreign_currency', 'exchange_rate', 'currency', 'payment_date', 'payment_method', 'notes', 'created_by',
     ];
 
     protected $casts = [

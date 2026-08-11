@@ -27,20 +27,9 @@ class WalletTransferController extends Controller
 
         $data = $request->validate([
             'from_wallet_id'  => 'required|exists:wallets,id|different:to_wallet_id',
-            'to_wallet_id'    => [
-                'required',
-                'exists:wallets,id',
-                function ($attribute, $value, $fail) use ($request, $isAr) {
-                    $from = Wallet::find($request->input('from_wallet_id'));
-                    $to   = Wallet::find($value);
-                    if ($from && $to && $from->currency !== $to->currency) {
-                        $fail($isAr
-                            ? "لا يمكن التحويل بين حسابين بعملتين مختلفتين ({$from->currency} ≠ {$to->currency})."
-                            : "Cannot transfer between accounts of different currencies ({$from->currency} ≠ {$to->currency}).");
-                    }
-                },
-            ],
+            'to_wallet_id'    => 'required|exists:wallets,id',
             'amount'          => 'required|numeric|min:0.01',
+            'exchange_rate'   => 'nullable|numeric|min:0.000001',
             'transfer_date'   => 'required|date',
             'notes'           => 'nullable|string',
         ], [
@@ -51,15 +40,21 @@ class WalletTransferController extends Controller
 
         try {
             $transfer = DB::transaction(function () use (&$data) {
-                // نقفل الحسابين بترتيب ثابت (حسب id) لتفادي deadlock مع تحويل عكسي متزامن
                 WalletLedger::lockMany([$data['from_wallet_id'], $data['to_wallet_id']]);
 
-                // التحقق من كفاية رصيد حساب المصدر — آمن حتى مع طلبات متزامنة على نفس الحساب
                 $fromWallet = WalletLedger::lockAndCheck($data['from_wallet_id'], $data['amount']);
+                $toWallet = Wallet::find($data['to_wallet_id']);
 
-                // العملة مقفولة على عملة حساب المصدر — مش بتُقبل من المستخدم أصلاً
                 $data['currency'] = $fromWallet->currency;
                 $data['transfer_number'] = SequenceGenerator::next('TR');
+                
+                $data['exchange_rate'] = $data['exchange_rate'] ?? 1;
+                if ($fromWallet->currency === $toWallet->currency) {
+                    $data['exchange_rate'] = 1;
+                    $data['converted_amount'] = $data['amount'];
+                } else {
+                    $data['converted_amount'] = round($data['amount'] * $data['exchange_rate'], 2);
+                }
 
                 return WalletTransfer::create($data);
             });

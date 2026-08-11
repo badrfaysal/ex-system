@@ -38,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
             Quotation::class, SalesOrder::class, SalesInvoice::class, PurchaseInvoice::class,
             Expense::class, VendorPayment::class, ClientReceipt::class, WalletTransfer::class, Revenue::class,
             Client::class, Vendor::class, Item::class,
+            \App\Models\ContactGroup::class, \App\Models\Contact::class,
         ] as $model) {
             $model::observe(ActivityObserver::class);
         }

@@ -15,7 +15,7 @@ class ClientReceipt extends Model
 
     protected $fillable = [
         'receipt_number', 'client_id', 'sales_invoice_id', 'quotation_id', 'wallet_id',
-        'amount', 'currency', 'receipt_date', 'payment_method', 'notes', 'created_by',
+        'amount', 'foreign_amount', 'foreign_currency', 'exchange_rate', 'currency', 'receipt_date', 'payment_method', 'notes', 'created_by',
     ];
 
     protected $casts = [

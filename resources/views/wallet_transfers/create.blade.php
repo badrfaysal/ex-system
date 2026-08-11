@@ -53,17 +53,30 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ' : 'Amount' }} <span class="text-red-500">*</span></label>
-                        <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount') }}" required dir="ltr"
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 bg-gray-50 focus:bg-white">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ المخصوم' : 'Amount Deducted' }} <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="number" step="0.01" min="0.01" id="transferAmount" name="amount" value="{{ old('amount') }}" required dir="ltr"
+                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 bg-gray-50 focus:bg-white pr-16">
+                            <span class="absolute right-3 top-2.5 text-sm font-bold text-gray-500" id="fromCurrencyLabel"></span>
+                        </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }}</label>
-                        <input type="text" id="transferCurrency" readonly dir="ltr"
-                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-600 cursor-not-allowed">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ المستلم' : 'Amount Received' }}</label>
+                        <div class="relative">
+                            <input type="text" id="transferConvertedAmount" readonly dir="ltr"
+                                class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-600 cursor-not-allowed pr-16">
+                            <span class="absolute right-3 top-2.5 text-sm font-bold text-gray-500" id="toCurrencyLabel"></span>
+                        </div>
                     </div>
                 </div>
-                <p class="text-[11px] text-gray-400 -mt-3">{{ $isAr ? 'مقفولة على عملة "من حساب" ولا يمكن تعديلها — الحسابان لازم يكونا بنفس العملة.' : 'Locked to the "From Account" currency and cannot be edited — both accounts must share the same currency.' }}</p>
+
+                <div id="exchangeRateContainer" class="hidden bg-blue-50 border border-blue-100 rounded-xl p-4 animate-fade-in">
+                    <label class="block text-sm font-semibold text-blue-800 mb-2">
+                        <i class="fas fa-exchange-alt mr-1"></i> {{ $isAr ? 'سعر الصرف (من العملة المرسلة للعملة المستقبلة)' : 'Exchange Rate' }} <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" step="0.000001" min="0.000001" id="transferExchangeRate" name="exchange_rate" value="{{ old('exchange_rate', 1) }}" dir="ltr"
+                        class="w-full px-4 py-2.5 border border-blue-200 rounded-lg focus:outline-none focus:border-blue-500 bg-white">
+                </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'تاريخ التحويل' : 'Transfer Date' }} <span class="text-red-500">*</span></label>
@@ -97,33 +110,57 @@
     ]);
 @endphp
 <script>
-    // العملة مقفولة على عملة "من حساب"، و"إلى حساب" بيتفلتر على نفس العملة —
-    // مينفعش تحويل بين حسابين بعملتين مختلفتين
     window.addEventListener('load', function () {
         var fromSel = document.getElementById('fromWalletSelect');
         var toSel = document.getElementById('toWalletSelect');
-        var curField = document.getElementById('transferCurrency');
-        if (!fromSel || !toSel || !curField) return;
+        var amountInput = document.getElementById('transferAmount');
+        var rateInput = document.getElementById('transferExchangeRate');
+        var rateContainer = document.getElementById('exchangeRateContainer');
+        var convertedOutput = document.getElementById('transferConvertedAmount');
+        var fromLabel = document.getElementById('fromCurrencyLabel');
+        var toLabel = document.getElementById('toCurrencyLabel');
+        
+        if (!fromSel || !toSel) return;
 
         var allWallets = @json($walletsJs);
         var oldToId = {{ old('to_wallet_id') ? (int) old('to_wallet_id') : 'null' }};
 
-        function currentFromCurrency() {
-            var opt = fromSel.options[fromSel.selectedIndex];
-            return opt ? (opt.getAttribute('data-currency') || '') : '';
+        function getWalletData(id) {
+            return allWallets.find(w => String(w.id) === String(id));
         }
 
-        function syncCurrency() {
-            curField.value = currentFromCurrency();
+        function calculate() {
+            var fromWallet = getWalletData(fromSel.value);
+            var toWallet = getWalletData(toSel.value);
+            var amt = parseFloat(amountInput.value) || 0;
+            
+            if (!fromWallet || !toWallet) {
+                convertedOutput.value = '';
+                fromLabel.innerText = '';
+                toLabel.innerText = '';
+                return;
+            }
+
+            fromLabel.innerText = fromWallet.currency;
+            toLabel.innerText = toWallet.currency;
+
+            if (fromWallet.currency !== toWallet.currency) {
+                rateContainer.classList.remove('hidden');
+                var rate = parseFloat(rateInput.value) || 1;
+                convertedOutput.value = (amt * rate).toFixed(2);
+            } else {
+                rateContainer.classList.add('hidden');
+                convertedOutput.value = amt.toFixed(2);
+            }
         }
 
         function filterToOptions(preserveValue) {
             var ts = toSel.tomselect;
             if (!ts) return;
 
-            var cur = currentFromCurrency();
             var fromId = fromSel.value;
-            var matching = allWallets.filter(function (w) { return w.currency === cur && String(w.id) !== String(fromId); });
+            // تسمح بأي عملة، فقط تمنع اختيار نفس المحفظة
+            var matching = allWallets.filter(function (w) { return String(w.id) !== String(fromId); });
             var valueToRestore = preserveValue !== undefined ? preserveValue : ts.getValue();
 
             ts.clearOptions();
@@ -138,15 +175,17 @@
             } else {
                 ts.clear(true);
             }
+            calculate();
         }
 
-        syncCurrency();
         filterToOptions(oldToId);
 
         fromSel.addEventListener('change', function () {
-            syncCurrency();
             filterToOptions();
         });
+        toSel.addEventListener('change', calculate);
+        amountInput.addEventListener('input', calculate);
+        rateInput.addEventListener('input', calculate);
     });
 </script>
 @endsection

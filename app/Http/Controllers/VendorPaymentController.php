@@ -57,32 +57,39 @@ class VendorPaymentController extends Controller
         $data = $request->validate([
             'purchase_invoice_id' => 'required|exists:purchase_invoices,id',
             'wallet_id'           => 'required|exists:wallets,id',
-            'amount'              => [
-                'required', 'numeric', 'min:0.01',
-                function ($attribute, $value, $fail) use ($request, $isAr) {
-                    $invoice = \App\Models\PurchaseInvoice::find($request->input('purchase_invoice_id'));
-                    if ($invoice && round((float) $value, 2) > round($invoice->balance_due, 2)) {
-                        $fail($isAr
-                            ? 'المبلغ المدخل أكبر من المتبقي على فاتورة الشراء (' . number_format($invoice->balance_due, 2) . ' ' . $invoice->currency . ').'
-                            : 'The amount exceeds the purchase invoice balance due (' . number_format($invoice->balance_due, 2) . ' ' . $invoice->currency . ').');
-                    }
-                },
-            ],
-            'currency'            => [
-                'required', 'string', new MatchesWalletCurrency,
-                function ($attribute, $value, $fail) use ($request, $isAr) {
-                    $invoice = \App\Models\PurchaseInvoice::find($request->input('purchase_invoice_id'));
-                    if ($invoice && $value !== $invoice->currency) {
-                        $fail($isAr
-                            ? "فاتورة الشراء {$invoice->invoice_number} كانت بعملة {$invoice->currency} — لا يمكن تسجيل سند دفع بعملة مختلفة."
-                            : "Purchase invoice {$invoice->invoice_number} was issued in {$invoice->currency} — a payment in a different currency is not allowed.");
-                    }
-                },
-            ],
+            'amount'              => 'required|numeric|min:0.01',
+            'foreign_amount'   => 'nullable|numeric|min:0.01',
+            'foreign_currency' => 'nullable|string',
+            'exchange_rate'    => 'nullable|numeric|min:0.000001',
+            'currency'            => 'required|string',
             'payment_date'        => 'required|date',
             'payment_method'      => 'nullable|string',
             'notes'               => 'nullable|string',
         ]);
+
+        $purchaseInvoice = \App\Models\PurchaseInvoice::findOrFail($data['purchase_invoice_id']);
+        $wallet = Wallet::findOrFail($data['wallet_id']);
+
+        $paidTowardsInvoice = $data['foreign_amount'] ?? $data['amount'];
+        if (round((float) $paidTowardsInvoice, 2) > round($purchaseInvoice->balance_due, 2)) {
+            return back()->withErrors(['amount' => $isAr
+                ? 'المبلغ المدخل أكبر من المتبقي على فاتورة الشراء (' . number_format($purchaseInvoice->balance_due, 2) . ' ' . $purchaseInvoice->currency . ').'
+                : 'The amount exceeds the purchase invoice balance due (' . number_format($purchaseInvoice->balance_due, 2) . ' ' . $purchaseInvoice->currency . ').'])->withInput();
+        }
+
+        if ($purchaseInvoice->currency !== $wallet->currency) {
+            $data['foreign_currency'] = $purchaseInvoice->currency;
+            $data['foreign_amount'] = $paidTowardsInvoice;
+            $data['exchange_rate'] = $data['exchange_rate'] ?? 1;
+            $data['currency'] = $wallet->currency;
+            $data['amount'] = round($data['foreign_amount'] * $data['exchange_rate'], 2);
+        } else {
+            $data['currency'] = $wallet->currency;
+            $data['amount'] = $paidTowardsInvoice;
+            $data['foreign_amount'] = null;
+            $data['foreign_currency'] = null;
+            $data['exchange_rate'] = 1;
+        }
 
         $purchaseInvoice = \App\Models\PurchaseInvoice::findOrFail($data['purchase_invoice_id']);
         $data['vendor_id'] = $purchaseInvoice->vendor_id;
@@ -127,35 +134,43 @@ class VendorPaymentController extends Controller
 
         $data = $request->validate([
             'wallet_id'      => 'required|exists:wallets,id',
-            'amount'         => [
-                'required', 'numeric', 'min:0.01',
-                function ($attribute, $value, $fail) use ($vendorPayment, $isAr) {
-                    $invoice = \App\Models\PurchaseInvoice::find($vendorPayment->purchase_invoice_id);
-                    if ($invoice) {
-                        $allowed = $invoice->balance_due + (float) $vendorPayment->amount;
-                        if (round((float) $value, 2) > round($allowed, 2)) {
-                            $fail($isAr
-                                ? 'المبلغ المدخل أكبر من المتبقي على فاتورة الشراء (' . number_format($allowed, 2) . ' ' . $invoice->currency . ').'
-                                : 'The amount exceeds the purchase invoice balance due (' . number_format($allowed, 2) . ' ' . $invoice->currency . ').');
-                        }
-                    }
-                },
-            ],
-            'currency'       => [
-                'required', 'string', new MatchesWalletCurrency,
-                function ($attribute, $value, $fail) use ($vendorPayment, $isAr) {
-                    $invoice = \App\Models\PurchaseInvoice::find($vendorPayment->purchase_invoice_id);
-                    if ($invoice && $value !== $invoice->currency) {
-                        $fail($isAr
-                            ? "فاتورة الشراء {$invoice->invoice_number} كانت بعملة {$invoice->currency} — لا يمكن تسجيل سند دفع بعملة مختلفة."
-                            : "Purchase invoice {$invoice->invoice_number} was issued in {$invoice->currency} — a payment in a different currency is not allowed.");
-                    }
-                },
-            ],
+            'amount'         => 'required|numeric|min:0.01',
+            'foreign_amount'   => 'nullable|numeric|min:0.01',
+            'foreign_currency' => 'nullable|string',
+            'exchange_rate'    => 'nullable|numeric|min:0.000001',
+            'currency'       => 'required|string',
             'payment_date'   => 'required|date',
             'payment_method' => 'nullable|string',
             'notes'          => 'nullable|string',
         ]);
+
+        $wallet = Wallet::findOrFail($data['wallet_id']);
+        $invoice = \App\Models\PurchaseInvoice::find($vendorPayment->purchase_invoice_id);
+        
+        $paidTowardsInvoice = $data['foreign_amount'] ?? $data['amount'];
+        
+        if ($invoice) {
+            $allowed = $invoice->balance_due + (float) ($vendorPayment->foreign_amount ?? $vendorPayment->amount);
+            if (round((float) $paidTowardsInvoice, 2) > round($allowed, 2)) {
+                return back()->withErrors(['amount' => $isAr
+                    ? 'المبلغ المدخل أكبر من المتبقي على فاتورة الشراء (' . number_format($allowed, 2) . ' ' . $invoice->currency . ').'
+                    : 'The amount exceeds the purchase invoice balance due (' . number_format($allowed, 2) . ' ' . $invoice->currency . ').'])->withInput();
+            }
+        }
+
+        if ($invoice && $invoice->currency !== $wallet->currency) {
+            $data['foreign_currency'] = $invoice->currency;
+            $data['foreign_amount'] = $paidTowardsInvoice;
+            $data['exchange_rate'] = $data['exchange_rate'] ?? 1;
+            $data['currency'] = $wallet->currency;
+            $data['amount'] = round($data['foreign_amount'] * $data['exchange_rate'], 2);
+        } else {
+            $data['currency'] = $wallet->currency;
+            $data['amount'] = $paidTowardsInvoice;
+            $data['foreign_amount'] = null;
+            $data['foreign_currency'] = null;
+            $data['exchange_rate'] = 1;
+        }
 
         $data['created_by'] = auth()->id();
 

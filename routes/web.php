@@ -74,6 +74,10 @@ Route::middleware('auth')->group(function () {
     Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
+    // المجموعات وجهات الاتصال
+    Route::resource('contact-groups', \App\Http\Controllers\ContactGroupController::class);
+    Route::resource('contacts', \App\Http\Controllers\ContactController::class)->only(['store', 'update', 'destroy']);
+
     // ربط الموردين بالأصناف
     Route::get('/sourcing', [SourcingController::class, 'index'])->name('sourcing.index');
     Route::get('/sourcing/search-items', [SourcingController::class, 'searchItems'])->name('sourcing.search-items');

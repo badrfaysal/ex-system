@@ -15,7 +15,7 @@ class WalletTransfer extends Model
 
     protected $fillable = [
         'transfer_number', 'from_wallet_id', 'to_wallet_id',
-        'amount', 'currency', 'transfer_date', 'notes', 'created_by',
+        'amount', 'converted_amount', 'exchange_rate', 'currency', 'transfer_date', 'notes', 'created_by',
     ];
 
     protected $casts = [

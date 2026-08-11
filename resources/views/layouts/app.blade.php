@@ -416,6 +416,20 @@
                 </div>
 
 
+                {{-- ===== المجموعات والدليل ===== --}}
+                <p class="sb-section">{{ app()->getLocale() === 'ar' ? 'المجموعات والدليل' : 'Groups & Directory' }}</p>
+
+                {{-- مجموعات جهات الاتصال --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-layer-group sb-group-icon text-indigo-500"></i>
+                        <span>{{ app()->getLocale() === 'ar' ? 'سجل المجموعات' : 'Contact Groups' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('contact-groups.index') }}" class="sb-sub {{ request()->routeIs('contact-groups.*') || request()->routeIs('contacts.*') ? 'active' : '' }}">{{ app()->getLocale() === 'ar' ? 'عرض المجموعات' : 'View Groups' }}</a>
+                    </div>
+                </div>
+
                 {{-- ===== الإعدادات والنظام ===== --}}
                 <p class="sb-section">{{ __('messages.nav.system') }}</p>
                 

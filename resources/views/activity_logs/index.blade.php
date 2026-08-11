@@ -20,6 +20,8 @@
         'Client' => ['ar' => 'عميل', 'en' => 'Client'],
         'Vendor' => ['ar' => 'مورد', 'en' => 'Vendor'],
         'Item' => ['ar' => 'صنف', 'en' => 'Item'],
+        'ContactGroup' => ['ar' => 'مجموعة', 'en' => 'Group'],
+        'Contact' => ['ar' => 'فرد/جهة اتصال', 'en' => 'Contact'],
     ];
 @endphp
 @section('header_title', $isAr ? 'سجل العمليات' : 'Activity Log')
@@ -105,6 +107,10 @@
                                 case 'ClientReceipt': $url = route('client-receipts.index'); break;
                                 case 'WalletTransfer': $url = route('wallets.index'); break;
                                 case 'Revenue': $url = route('wallets.index'); break;
+                                case 'ContactGroup': 
+                                case 'Contact':
+                                    $url = route('contact-groups.index'); 
+                                    break;
                             }
                         @endphp
                         <tr class="hover:bg-[#005B9F]/5 transition-colors cursor-pointer"

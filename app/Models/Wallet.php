@@ -56,7 +56,7 @@ class Wallet extends Model
             ->withSum(['expenses' => $notReversed], 'amount')
             ->withSum(['vendorPayments' => $notReversed], 'amount')
             ->withSum(['transfersOut' => $notReversed], 'amount')
-            ->withSum(['transfersIn' => $notReversed], 'amount');
+            ->withSum(['transfersIn' => $notReversed], 'converted_amount');
     }
 
     /**
@@ -69,9 +69,9 @@ class Wallet extends Model
      */
     public function getCurrentBalanceAttribute(): float
     {
-        $sum = fn (string $key, string $relation): float => array_key_exists($key, $this->attributes)
+        $sum = fn (string $key, string $relation, string $column = 'amount'): float => array_key_exists($key, $this->attributes)
             ? (float) $this->attributes[$key]
-            : (float) $this->$relation()->whereNull('reversed_at')->sum('amount');
+            : (float) $this->$relation()->whereNull('reversed_at')->sum($column);
 
         return (float) $this->opening_balance
             + $sum('receipts_sum_amount', 'receipts')
@@ -79,6 +79,6 @@ class Wallet extends Model
             - $sum('expenses_sum_amount', 'expenses')
             - $sum('vendor_payments_sum_amount', 'vendorPayments')
             - $sum('transfers_out_sum_amount', 'transfersOut')
-            + $sum('transfers_in_sum_amount', 'transfersIn');
+            + $sum('transfers_in_sum_converted_amount', 'transfersIn', 'converted_amount');
     }
 }

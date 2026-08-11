@@ -48,17 +48,36 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ المحصّل' : 'Amount Received' }} <span class="text-red-500">*</span></label>
-                        <input type="number" step="0.01" min="0.01" max="{{ $balance }}" name="amount" value="{{ old('amount') }}" required dir="ltr"
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ المحصّل (من الفاتورة)' : 'Amount Received (Invoice)' }} <span class="text-red-500">*</span></label>
+                        <input type="number" step="0.01" min="0.01" max="{{ $balance }}" name="amount" id="receiptAmount" value="{{ old('amount') }}" required dir="ltr"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B] bg-gray-50 focus:bg-white">
                         <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'يمكن أن يكون تحصيل جزئي — مينفعش يتعدى المتبقي' : "Can be a partial collection — can't exceed the balance due" }}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'العملة' : 'Currency' }}</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'عملة السداد' : 'Payment Currency' }}</label>
                         <input type="text" name="currency" id="receiptCurrency" value="{{ $salesInvoice->currency }}" readonly dir="ltr"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-600 cursor-not-allowed">
-                        <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'مقفولة على عملة فاتورة البيع ولا يمكن تغييرها' : 'Locked to the sales invoice currency and cannot be changed' }}</p>
+                        <p class="text-[11px] text-gray-400 mt-1">{{ $isAr ? 'مقفولة على عملة فاتورة البيع' : 'Locked to the sales invoice currency' }}</p>
                         @error('currency') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div id="exchangeRateContainer" class="hidden bg-blue-50 border border-blue-100 rounded-xl p-4 animate-fade-in mt-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-blue-800 mb-2">
+                                <i class="fas fa-exchange-alt mr-1"></i> {{ $isAr ? 'سعر الصرف (من عملة الفاتورة لعملة الحساب)' : 'Exchange Rate' }} <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" step="0.000001" min="0.000001" id="exchangeRate" name="exchange_rate" value="{{ old('exchange_rate', 1) }}" dir="ltr"
+                                class="w-full px-4 py-2.5 border border-blue-200 rounded-lg focus:outline-none focus:border-blue-500 bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-blue-800 mb-2">
+                                <i class="fas fa-wallet mr-1"></i> {{ $isAr ? 'المبلغ الفعلي (للحساب)' : 'Actual Amount (Wallet)' }}
+                            </label>
+                            <input type="text" id="convertedAmount" readonly dir="ltr"
+                                class="w-full px-4 py-2.5 border border-blue-200 rounded-lg bg-blue-100 text-blue-800 cursor-not-allowed font-bold">
+                        </div>
                     </div>
                 </div>
 
@@ -114,26 +133,37 @@
     $walletsJs = $wallets->map(fn ($w) => ['id' => $w->id, 'name' => $w->name, 'currency' => $w->currency]);
 @endphp
 <script>
-    // فلترة الحساب على عملة فاتورة البيع الثابتة — تظهر بس الحسابات اللي بنفس العملة
     window.addEventListener('load', function () {
         var cur = document.getElementById('receiptCurrency').value;
         var walletSel = document.querySelector('select[name="wallet_id"]');
-        var ts = walletSel ? walletSel.tomselect : null;
-        if (!ts) return;
-
+        var amtInput = document.getElementById('receiptAmount');
+        var rateInput = document.getElementById('exchangeRate');
+        var convertedOutput = document.getElementById('convertedAmount');
+        var rateContainer = document.getElementById('exchangeRateContainer');
         var allWallets = @json($walletsJs);
-        var oldWalletId = {{ old('wallet_id') ? (int) old('wallet_id') : 'null' }};
-        var matching = allWallets.filter(function (w) { return w.currency === cur; });
 
-        ts.clearOptions();
-        matching.forEach(function (w) {
-            ts.addOption({ value: String(w.id), text: w.name + ' (' + w.currency + ')' });
-        });
-        ts.refreshOptions(false);
+        function calculate() {
+            if (!walletSel) return;
+            var wId = walletSel.value;
+            var wallet = allWallets.find(w => String(w.id) === String(wId));
+            var amt = parseFloat(amtInput.value) || 0;
 
-        if (oldWalletId !== null && matching.some(function (w) { return String(w.id) === String(oldWalletId); })) {
-            ts.setValue(String(oldWalletId), true);
+            if (wallet && wallet.currency !== cur) {
+                rateContainer.classList.remove('hidden');
+                var rate = parseFloat(rateInput.value) || 1;
+                convertedOutput.value = (amt * rate).toFixed(2) + ' ' + wallet.currency;
+            } else {
+                rateContainer.classList.add('hidden');
+            }
         }
+
+        if (walletSel) {
+            walletSel.addEventListener('change', calculate);
+        }
+        if (amtInput) amtInput.addEventListener('input', calculate);
+        if (rateInput) rateInput.addEventListener('input', calculate);
+        
+        calculate();
     });
 </script>
 @endsection
