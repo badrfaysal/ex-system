@@ -173,8 +173,8 @@
 @if($openInvoices->isNotEmpty())
 <div id="payModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 no-print" role="dialog">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closePayModal()"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" dir="{{ $isAr ? 'rtl' : 'ltr' }}">
-        <div class="bg-red-600 text-white px-6 py-4 flex items-center justify-between">
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[95vh] flex flex-col" dir="{{ $isAr ? 'rtl' : 'ltr' }}">
+        <div class="bg-red-600 text-white px-6 py-4 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
                     <i class="fas fa-money-check-alt text-sm"></i>
@@ -186,7 +186,7 @@
             </button>
         </div>
 
-        <form action="{{ route('vendor-payments.store') }}" method="POST" class="p-6 space-y-4">
+        <form action="{{ route('vendor-payments.store') }}" method="POST" class="p-6 space-y-4 overflow-y-auto">
             @csrf
             <input type="hidden" name="payment_date" value="{{ now()->toDateString() }}">
 
@@ -228,7 +228,50 @@
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-600 cursor-not-allowed">
                 </div>
             </div>
-            <p class="text-[11px] text-gray-400 -mt-2">{{ $isAr ? 'مقفولة على عملة فاتورة الشراء المختارة ولا يمكن تغييرها' : 'Locked to the selected purchase invoice currency and cannot be changed' }}</p>
+            <p class="text-[11px] text-gray-400 -mt-2 mb-2">{{ $isAr ? 'مقفولة على عملة فاتورة الشراء المختارة ولا يمكن تغييرها' : 'Locked to the selected purchase invoice currency and cannot be changed' }}</p>
+
+            {{-- Smart Exchange Rate UI --}}
+            <div id="exchangeRateContainer" class="hidden bg-red-50 border border-red-100 rounded-xl p-5 animate-fade-in mt-2 mb-4">
+                <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
+                    <label class="text-sm font-bold text-red-800">
+                        <i class="fas fa-coins mr-1"></i> {{ $isAr ? 'تحديد سعر الصرف' : 'Exchange Rate' }} <span class="text-red-500">*</span>
+                    </label>
+                    <button type="button" id="swapRateBtn" class="text-xs px-3 py-1.5 bg-white border border-red-200 text-red-700 hover:bg-red-100 rounded-lg font-bold transition-colors shadow-sm flex items-center gap-1">
+                        <i class="fas fa-exchange-alt"></i> {{ $isAr ? 'عكس اتجاه الصرف' : 'Swap Direction' }}
+                    </button>
+                </div>
+                
+                <div class="flex items-center justify-center gap-2 sm:gap-4 bg-white p-4 rounded-xl border border-red-200 shadow-inner mb-4">
+                    <div class="text-center w-1/3">
+                        <span class="block text-xl font-black text-gray-800">1</span>
+                        <span class="block text-sm font-bold text-gray-500" id="rateBaseCurrency"></span>
+                    </div>
+                    
+                    <div class="text-gray-400 font-bold text-lg">=</div>
+                    
+                    <div class="w-1/3">
+                        <input type="number" step="0.000001" min="0.000001" id="uiRateInput" dir="ltr"
+                            class="w-full px-2 py-2 border-2 border-red-300 rounded-lg focus:outline-none focus:border-red-600 focus:ring-2 focus:ring-red-100 text-center font-mono text-xl font-bold text-red-800 shadow-sm transition-all">
+                    </div>
+
+                    <div class="text-center w-1/3">
+                        <span class="block text-xl font-black text-transparent select-none">-</span>
+                        <span class="block text-sm font-bold text-gray-500" id="rateTargetCurrency"></span>
+                    </div>
+                </div>
+                
+                <p class="text-xs text-red-600 font-medium mb-3 text-center" id="rateHelpText"></p>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-red-800 mb-1">
+                        <i class="fas fa-wallet mr-1"></i> {{ $isAr ? 'المبلغ الفعلي من الخزينة' : 'Actual Wallet Amount' }}
+                    </label>
+                    <input type="text" id="convertedAmount" readonly dir="ltr"
+                        class="w-full px-3 py-2 border border-red-200 rounded-lg bg-red-100 text-red-800 cursor-not-allowed font-bold">
+                </div>
+                
+                <input type="hidden" id="exchangeRate" name="exchange_rate" value="1">
+            </div>
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'طريقة الدفع' : 'Payment Method' }}</label>
@@ -273,22 +316,76 @@
         if(opt) document.getElementById('payCurrencyInput').value = opt.dataset.currency || 'EGP';
     }
 
-    // فلترة الحساب حسب عملة الفاتورة المختارة — تظهر بس الحسابات اللي بنفس العملة
-    function filterWallets() {
-        const cur = document.getElementById('payCurrencyInput').value;
+    // الحسابات لم تعد مفلترة على نفس العملة، بل يظهر سعر الصرف عند الاختلاف
+    var rateDirection = 'direct';
+    var curA = '';
+    var curB = '';
+    var isAr = {{ $isAr ? 'true' : 'false' }};
+    var isUiRateInitialized = false;
+
+    function handleCurrencyChange() {
+        const invoiceCur = document.getElementById('payCurrencyInput').value;
         const walletSel = document.getElementById('payWalletSelect');
-        if(!walletSel) return;
-        let firstVisible = null;
-        Array.from(walletSel.options).forEach(function (opt) {
-            const match = opt.dataset.currency === cur;
-            opt.hidden = !match;
-            opt.disabled = !match;
-            if (match && !firstVisible) firstVisible = opt;
-        });
-        if (!walletSel.value || walletSel.selectedOptions[0]?.hidden) {
-            walletSel.value = firstVisible ? firstVisible.value : '';
+        const rateContainer = document.getElementById('exchangeRateContainer');
+        const convertedOutput = document.getElementById('convertedAmount');
+        const amtInput = document.getElementById('payAmountInput');
+        const rateInput = document.getElementById('exchangeRate');
+        const uiRateInput = document.getElementById('uiRateInput');
+        
+        if(!walletSel || !walletSel.value) return;
+        
+        const walletCur = walletSel.options[walletSel.selectedIndex].dataset.currency;
+        const amt = parseFloat(amtInput.value) || 0;
+
+        if (walletCur !== invoiceCur) {
+            rateContainer.classList.remove('hidden');
+            curA = invoiceCur;
+            curB = walletCur;
+            
+            if(rateDirection === 'direct') {
+                document.getElementById('rateBaseCurrency').innerText = curA;
+                document.getElementById('rateTargetCurrency').innerText = curB;
+                document.getElementById('rateHelpText').innerText = isAr ? ('أدخل كم يعادل الـ 1 ' + curA + ' بوحدة الـ ' + curB) : ('Enter how much 1 ' + curA + ' equals in ' + curB);
+            } else {
+                document.getElementById('rateBaseCurrency').innerText = curB;
+                document.getElementById('rateTargetCurrency').innerText = curA;
+                document.getElementById('rateHelpText').innerText = isAr ? ('أدخل كم يعادل الـ 1 ' + curB + ' بوحدة الـ ' + curA) : ('Enter how much 1 ' + curB + ' equals in ' + curA);
+            }
+
+            var hiddenRate = parseFloat(rateInput.value) || 1;
+            if(!isUiRateInitialized && uiRateInput) {
+                uiRateInput.value = rateDirection === 'direct' ? hiddenRate : (1 / hiddenRate).toFixed(6);
+                isUiRateInitialized = true;
+            }
+
+            convertedOutput.value = (amt * hiddenRate).toFixed(2) + ' ' + walletCur;
+        } else {
+            rateContainer.classList.add('hidden');
         }
     }
+
+    document.getElementById('swapRateBtn')?.addEventListener('click', function() {
+        rateDirection = rateDirection === 'direct' ? 'inverse' : 'direct';
+        var uiRateInput = document.getElementById('uiRateInput');
+        var val = parseFloat(uiRateInput.value) || 0;
+        if(val > 0) {
+            uiRateInput.value = (1 / val).toFixed(6);
+        }
+        handleCurrencyChange();
+    });
+
+    document.getElementById('uiRateInput')?.addEventListener('input', function() {
+        var uiRateInput = document.getElementById('uiRateInput');
+        var rateInput = document.getElementById('exchangeRate');
+        var val = parseFloat(uiRateInput.value) || 0;
+        if(val > 0) {
+            rateInput.value = rateDirection === 'direct' ? val : (1 / val).toFixed(6);
+        }
+        handleCurrencyChange();
+    });
+
+    document.getElementById('payAmountInput')?.addEventListener('input', handleCurrencyChange);
+    document.getElementById('payWalletSelect')?.addEventListener('change', handleCurrencyChange);
 
     function setPayFull() {
         const opt = currentOrderOption();
@@ -306,8 +403,8 @@
 
     function openPayModal() {
         syncPayCurrency();
-        filterWallets();
         setPayFull();
+        handleCurrencyChange();
         const modal = document.getElementById('payModal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -323,8 +420,8 @@
     if(orderSelect) {
         orderSelect.addEventListener('change', function () {
             syncPayCurrency();
-            filterWallets();
             setPayFull();
+            handleCurrencyChange();
         });
     }
 

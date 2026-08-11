@@ -70,12 +70,37 @@
                     </div>
                 </div>
 
-                <div id="exchangeRateContainer" class="hidden bg-blue-50 border border-blue-100 rounded-xl p-4 animate-fade-in">
-                    <label class="block text-sm font-semibold text-blue-800 mb-2">
-                        <i class="fas fa-exchange-alt mr-1"></i> {{ $isAr ? 'سعر الصرف (من العملة المرسلة للعملة المستقبلة)' : 'Exchange Rate' }} <span class="text-red-500">*</span>
-                    </label>
-                    <input type="number" step="0.000001" min="0.000001" id="transferExchangeRate" name="exchange_rate" value="{{ old('exchange_rate', 1) }}" dir="ltr"
-                        class="w-full px-4 py-2.5 border border-blue-200 rounded-lg focus:outline-none focus:border-blue-500 bg-white">
+                <div id="exchangeRateContainer" class="hidden bg-blue-50 border border-blue-100 rounded-xl p-5 animate-fade-in mt-2">
+                    <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
+                        <label class="text-sm font-bold text-blue-800">
+                            <i class="fas fa-coins mr-1"></i> {{ $isAr ? 'تحديد سعر الصرف' : 'Exchange Rate' }} <span class="text-red-500">*</span>
+                        </label>
+                        <button type="button" id="swapRateBtn" class="text-xs px-3 py-1.5 bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 rounded-lg font-bold transition-colors shadow-sm flex items-center gap-1">
+                            <i class="fas fa-exchange-alt"></i> {{ $isAr ? 'عكس اتجاه الصرف' : 'Swap Direction' }}
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center justify-center gap-2 sm:gap-4 bg-white p-4 rounded-xl border border-blue-200 shadow-inner">
+                        <div class="text-center w-1/3">
+                            <span class="block text-xl font-black text-gray-800">1</span>
+                            <span class="block text-sm font-bold text-gray-500" id="rateBaseCurrency"></span>
+                        </div>
+                        
+                        <div class="text-gray-400 font-bold text-lg">=</div>
+                        
+                        <div class="w-1/3">
+                            <input type="number" step="0.000001" min="0.000001" id="uiRateInput" dir="ltr"
+                                class="w-full px-2 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 text-center font-mono text-xl font-bold text-blue-800 shadow-sm transition-all">
+                        </div>
+
+                        <div class="text-center w-1/3">
+                            <span class="block text-xl font-black text-transparent select-none">-</span>
+                            <span class="block text-sm font-bold text-gray-500" id="rateTargetCurrency"></span>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xs text-blue-600 font-medium mt-3 text-center" id="rateHelpText"></p>
+                    <input type="hidden" id="transferExchangeRate" name="exchange_rate" value="{{ old('exchange_rate', 1) }}">
                 </div>
 
                 <div>
@@ -129,6 +154,57 @@
             return allWallets.find(w => String(w.id) === String(id));
         }
 
+        var uiRateInput = document.getElementById('uiRateInput');
+        var rateInput = document.getElementById('transferExchangeRate');
+        var swapRateBtn = document.getElementById('swapRateBtn');
+        var rateBaseCurrency = document.getElementById('rateBaseCurrency');
+        var rateTargetCurrency = document.getElementById('rateTargetCurrency');
+        var rateHelpText = document.getElementById('rateHelpText');
+        var rateDirection = 'direct'; 
+        
+        var curA = '';
+        var curB = '';
+        var isAr = {{ $isAr ? 'true' : 'false' }};
+
+        var hiddenRateInitial = parseFloat(rateInput.value) || 1;
+        if(uiRateInput && !uiRateInput.value) {
+            uiRateInput.value = rateDirection === 'direct' ? hiddenRateInitial : (1 / hiddenRateInitial).toFixed(6);
+        }
+
+        function updateRateUI() {
+            if(rateDirection === 'direct') {
+                rateBaseCurrency.innerText = curA;
+                rateTargetCurrency.innerText = curB;
+                rateHelpText.innerText = isAr ? ('أدخل كم يعادل الـ 1 ' + curA + ' بوحدة الـ ' + curB) : ('Enter how much 1 ' + curA + ' equals in ' + curB);
+            } else {
+                rateBaseCurrency.innerText = curB;
+                rateTargetCurrency.innerText = curA;
+                rateHelpText.innerText = isAr ? ('أدخل كم يعادل الـ 1 ' + curB + ' بوحدة الـ ' + curA) : ('Enter how much 1 ' + curB + ' equals in ' + curA);
+            }
+        }
+
+        if(swapRateBtn) {
+            swapRateBtn.addEventListener('click', function() {
+                rateDirection = rateDirection === 'direct' ? 'inverse' : 'direct';
+                var val = parseFloat(uiRateInput.value) || 0;
+                if(val > 0) {
+                    uiRateInput.value = (1 / val).toFixed(6);
+                }
+                updateRateUI();
+                calculate();
+            });
+        }
+
+        if(uiRateInput) {
+            uiRateInput.addEventListener('input', function() {
+                var val = parseFloat(uiRateInput.value) || 0;
+                if(val > 0) {
+                    rateInput.value = rateDirection === 'direct' ? val : (1 / val).toFixed(6);
+                }
+                calculate();
+            });
+        }
+
         function calculate() {
             var fromWallet = getWalletData(fromSel.value);
             var toWallet = getWalletData(toSel.value);
@@ -146,8 +222,12 @@
 
             if (fromWallet.currency !== toWallet.currency) {
                 rateContainer.classList.remove('hidden');
-                var rate = parseFloat(rateInput.value) || 1;
-                convertedOutput.value = (amt * rate).toFixed(2);
+                curA = fromWallet.currency;
+                curB = toWallet.currency;
+                updateRateUI();
+                
+                var hiddenRate = parseFloat(rateInput.value) || 1;
+                convertedOutput.value = (amt * hiddenRate).toFixed(2);
             } else {
                 rateContainer.classList.add('hidden');
                 convertedOutput.value = amt.toFixed(2);
@@ -185,7 +265,7 @@
         });
         toSel.addEventListener('change', calculate);
         amountInput.addEventListener('input', calculate);
-        rateInput.addEventListener('input', calculate);
+        // We removed rateInput event listener because it's driven by uiRateDirect and uiRateInverse
     });
 </script>
 @endsection
