@@ -40,7 +40,8 @@
     @endif
 
     <div class="highlight">
-      <p>{{ $isAr ? 'الرصيد المستحق لكم' : 'Balance Due to You' }}: <span class="grand">{{ number_format($balance, 2) }}</span></p>
+      @php $c = $vendor->purchaseInvoices->last()?->currency ?? $vendor->default_currency ?? 'EGP'; @endphp
+      <p>{{ $isAr ? 'الرصيد المستحق لكم' : 'Balance Due to You' }}: <span class="grand">{{ number_format($balance, 2) }} {{ $c }}</span></p>
     </div>
 
     @if($isAr)

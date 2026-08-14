@@ -54,7 +54,7 @@ class PurchaseInvoice extends Model
 
     public function getPaidAmountAttribute(): float
     {
-        return (float) $this->payments()->sum('amount');
+        return (float) $this->payments()->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(foreign_amount, amount)'));
     }
 
     public function getBalanceDueAttribute(): float

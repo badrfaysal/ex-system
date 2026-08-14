@@ -57,7 +57,7 @@ class ReportsController extends Controller
             'vendorsByStatus'   => Vendor::selectRaw('status, count(*) as cnt')->groupBy('status')->get(),
             'clientsByType'     => Client::selectRaw('client_type, count(*) as cnt')->groupBy('client_type')->get(),
             'expenseByCategory' => Expense::notReversed()->whereBetween('expense_date', [$from, $to])
-                                        ->selectRaw('category, sum(amount) as total, count(*) as cnt')
+                                        ->selectRaw('category, SUM(COALESCE(foreign_amount, amount)) as total, count(*) as cnt')
                                         ->groupBy('category')->orderByDesc('total')->get(),
             'walletBalances'    => Wallet::withBalanceSums()->orderBy('name')->get(),
             'cashFlowTrend'     => $this->monthlyTrend(),
@@ -114,7 +114,7 @@ class ReportsController extends Controller
             ->groupBy('client_id');
             
         $collectedSub = DB::table('client_receipts')
-            ->selectRaw('client_id, SUM(amount) as collected_total')
+            ->selectRaw('client_id, SUM(COALESCE(foreign_amount, amount)) as collected_total')
             ->whereNull('reversed_at')
             
             ->groupBy('client_id');
@@ -135,7 +135,7 @@ class ReportsController extends Controller
             ->groupBy('vendor_id');
             
         $paidSub = DB::table('vendor_payments')
-            ->selectRaw('vendor_id, SUM(amount) as paid_total')
+            ->selectRaw('vendor_id, SUM(COALESCE(foreign_amount, amount)) as paid_total')
             ->whereNull('reversed_at')
             
             ->groupBy('vendor_id');
@@ -154,7 +154,7 @@ class ReportsController extends Controller
     private function topReceivables(int $limit = 5): Collection
     {
         $invoicedSub = DB::table('sales_invoices')->selectRaw('client_id, SUM(grand_total) as invoiced_total')->groupBy('client_id');
-        $collectedSub = DB::table('client_receipts')->selectRaw('client_id, SUM(amount) as collected_total')->whereNull('reversed_at')->groupBy('client_id');
+        $collectedSub = DB::table('client_receipts')->selectRaw('client_id, SUM(COALESCE(foreign_amount, amount)) as collected_total')->whereNull('reversed_at')->groupBy('client_id');
 
         $rows = DB::table('clients as c')
             ->leftJoinSub($invoicedSub, 'inv', 'inv.client_id', '=', 'c.id')
@@ -175,7 +175,7 @@ class ReportsController extends Controller
     private function topPayables(int $limit = 5): Collection
     {
         $invoicedSub = DB::table('purchase_invoices')->selectRaw('vendor_id, SUM(grand_total) as invoiced_total')->groupBy('vendor_id');
-        $paidSub = DB::table('vendor_payments')->selectRaw('vendor_id, SUM(amount) as paid_total')->whereNull('reversed_at')->groupBy('vendor_id');
+        $paidSub = DB::table('vendor_payments')->selectRaw('vendor_id, SUM(COALESCE(foreign_amount, amount)) as paid_total')->whereNull('reversed_at')->groupBy('vendor_id');
 
         $rows = DB::table('vendors as v')
             ->leftJoinSub($invoicedSub, 'inv', 'inv.vendor_id', '=', 'v.id')
@@ -197,7 +197,7 @@ class ReportsController extends Controller
     private function overdueInvoices(): Collection
     {
         $receiptsSub = DB::table('client_receipts')
-            ->selectRaw('sales_invoice_id, SUM(amount) as received_sum')
+            ->selectRaw('sales_invoice_id, SUM(COALESCE(foreign_amount, amount)) as received_sum')
             ->whereNull('reversed_at')
             
             ->whereNotNull('sales_invoice_id')
@@ -322,8 +322,8 @@ class ReportsController extends Controller
 
     private function costCenterInsights(int $limit = 5): array
     {
-        $receiptsSub = DB::table('client_receipts')->selectRaw('quotation_id, SUM(amount) as revenue_sum')->whereNull('reversed_at')->whereNotNull('quotation_id')->groupBy('quotation_id');
-        $expensesSub = DB::table('expenses')->selectRaw('quotation_id, SUM(amount) as expenses_sum')->whereNull('reversed_at')->whereNotNull('quotation_id')->groupBy('quotation_id');
+        $receiptsSub = DB::table('client_receipts')->selectRaw('quotation_id, SUM(COALESCE(foreign_amount, amount)) as revenue_sum')->whereNull('reversed_at')->whereNotNull('quotation_id')->groupBy('quotation_id');
+        $expensesSub = DB::table('expenses')->selectRaw('quotation_id, SUM(COALESCE(foreign_amount, amount)) as expenses_sum')->whereNull('reversed_at')->whereNotNull('quotation_id')->groupBy('quotation_id');
         $purchasesSub = DB::table('purchase_invoices')->selectRaw('quotation_id, SUM(grand_total) as purchases_sum')->whereNotNull('quotation_id')->groupBy('quotation_id');
 
         $baseQuery = DB::table('quotations as q')

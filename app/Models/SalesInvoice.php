@@ -55,7 +55,7 @@ class SalesInvoice extends Model
 
     public function getReceivedAmountAttribute(): float
     {
-        return (float) $this->receipts()->sum('amount');
+        return (float) $this->receipts()->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(foreign_amount, amount)'));
     }
 
     public function getBalanceDueAttribute(): float

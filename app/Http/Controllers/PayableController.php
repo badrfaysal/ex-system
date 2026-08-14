@@ -17,7 +17,7 @@ class PayableController extends Controller
         $query = Vendor::query()
             ->whereHas('purchaseInvoices')
             ->withSum('purchaseInvoices as invoiced_total', 'grand_total')
-            ->withSum('payments as paid_total', 'amount');
+            ->withSum('payments as paid_total', \Illuminate\Support\Facades\DB::raw('COALESCE(foreign_amount, amount)'));
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -128,6 +128,7 @@ class PayableController extends Controller
                     'type'   => 'invoice',
                     'ref'    => $invoice->invoice_number,
                     'amount' => $invoice->grand_total,
+                    'currency' => $invoice->currency,
                     'link'   => route('purchase-invoices.show', $invoice),
                 ];
             })->values();
@@ -136,7 +137,8 @@ class PayableController extends Controller
             'date'   => $p->payment_date,
             'type'   => 'payment',
             'ref'    => $p->payment_number,
-            'amount' => -1 * $p->amount,
+            'amount' => -1 * ($p->foreign_amount ?? $p->amount),
+            'currency' => $p->foreign_currency ?? $p->currency,
             'link'   => route('vendor-payments.edit', $p),
         ]);
 

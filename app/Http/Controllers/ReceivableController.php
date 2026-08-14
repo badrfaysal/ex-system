@@ -18,7 +18,7 @@ class ReceivableController extends Controller
         $query = Client::query()
             ->whereHas('salesInvoices')
             ->withSum('salesInvoices as invoiced_total', 'grand_total')
-            ->withSum('receipts as collected_total', 'amount');
+            ->withSum('receipts as collected_total', \Illuminate\Support\Facades\DB::raw('COALESCE(foreign_amount, amount)'));
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -126,6 +126,7 @@ class ReceivableController extends Controller
             'type'   => 'invoice',
             'ref'    => $si->invoice_number,
             'amount' => $si->grand_total,
+            'currency' => $si->currency,
             'link'   => route('sales-invoices.show', $si),
         ]);
 
@@ -133,7 +134,8 @@ class ReceivableController extends Controller
             'date'   => $r->receipt_date,
             'type'   => 'receipt',
             'ref'    => $r->receipt_number,
-            'amount' => -1 * $r->amount,
+            'amount' => -1 * ($r->foreign_amount ?? $r->amount),
+            'currency' => $r->foreign_currency ?? $r->currency,
             'link'   => null,
         ]);
 

@@ -129,18 +129,19 @@
             </div>
             <div class="text-{{ $txtAlignOpp }}">
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{{ $isAr ? 'الملخص' : 'Summary' }}</p>
+                @php $c = $vendor->purchaseInvoices->last()?->currency ?? $vendor->default_currency ?? 'EGP'; @endphp
                 <table class="text-xs w-full" dir="{{ $docDir }}">
                     <tr>
                         <td class="text-gray-400 pb-1.5 {{ $isAr ? 'pl-3' : 'pr-3' }}">{{ $isAr ? 'إجمالي الفواتير:' : 'Total Invoiced:' }}</td>
-                        <td class="font-bold text-gray-700 pb-1.5 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($totalInvoiced, 2) }}</td>
+                        <td class="font-bold text-gray-700 pb-1.5 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($totalInvoiced, 2) }} {{ $c }}</td>
                     </tr>
                     <tr>
                         <td class="text-gray-400 pb-1.5 {{ $isAr ? 'pl-3' : 'pr-3' }}">{{ $isAr ? 'إجمالي المدفوع:' : 'Total Paid:' }}</td>
-                        <td class="font-bold text-green-600 pb-1.5 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($totalPaid, 2) }}</td>
+                        <td class="font-bold text-green-600 pb-1.5 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($totalPaid, 2) }} {{ $c }}</td>
                     </tr>
                     <tr>
                         <td class="text-gray-400 {{ $isAr ? 'pl-3' : 'pr-3' }}">{{ $isAr ? 'الباقي:' : 'Remaining:' }}</td>
-                        <td class="font-extrabold text-{{ $balance > 0 ? 'red-600' : 'green-600' }} text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($balance, 2) }}</td>
+                        <td class="font-extrabold text-{{ $balance > 0 ? 'red-600' : 'green-600' }} text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($balance, 2) }} {{ $c }}</td>
                     </tr>
                 </table>
             </div>
@@ -171,9 +172,9 @@
                                 @endif
                             </td>
                             <td class="px-3 py-2 font-bold text-xs {{ $entry['amount'] >= 0 ? 'text-red-600' : 'text-green-600' }}" dir="ltr">
-                                {{ $entry['amount'] >= 0 ? '+' : '' }}{{ number_format($entry['amount'], 2) }}
+                                {{ $entry['amount'] >= 0 ? '+' : '' }}{{ number_format($entry['amount'], 2) }} {{ $entry['currency'] ?? ($vendor->default_currency ?? 'EGP') }}
                             </td>
-                            <td class="px-3 py-2 font-extrabold text-gray-900 text-xs" style="text-align:{{ $txtAlignOpp }}" dir="ltr">{{ number_format($entry['balance'], 2) }}</td>
+                            <td class="px-3 py-2 font-extrabold text-gray-900 text-xs" style="text-align:{{ $txtAlignOpp }}" dir="ltr">{{ number_format($entry['balance'], 2) }} {{ $entry['currency'] ?? ($vendor->default_currency ?? 'EGP') }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="5" class="p-8 text-center text-gray-500">{{ $isAr ? 'لا توجد حركات' : 'No transactions yet' }}</td></tr>
@@ -185,7 +186,7 @@
         <div class="px-8 py-4 flex justify-end">
             <div class="rounded-xl px-5 py-3" style="background:#dc2626;">
                 <span class="font-extrabold text-white text-sm">{{ $isAr ? 'الرصيد المستحق النهائي: ' : 'Final Balance Due: ' }}</span>
-                <span class="font-extrabold text-white text-lg" dir="ltr">{{ number_format($balance, 2) }}</span>
+                <span class="font-extrabold text-white text-lg" dir="ltr">{{ number_format($balance, 2) }} {{ $c }}</span>
             </div>
         </div>
 
@@ -263,7 +264,8 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'المبلغ' : 'Amount' }} <span class="text-red-500">*</span></label>
-                    <input type="number" step="any" min="0.01" name="amount" id="payAmountInput" required dir="ltr"
+                    <input type="hidden" id="hiddenInvoiceAmount" name="amount">
+                    <input type="number" step="any" min="0.01" id="payAmountInput" required dir="ltr"
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500">
                 </div>
                 <div>
@@ -272,7 +274,7 @@
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-600 cursor-not-allowed">
                 </div>
             </div>
-            <p class="text-[11px] text-gray-400 -mt-2 mb-2">{{ $isAr ? 'مقفولة على عملة فاتورة الشراء المختارة ولا يمكن تغييرها' : 'Locked to the selected purchase invoice currency and cannot be changed' }}</p>
+            <p class="text-[11px] text-gray-400 -mt-2 mb-2">{{ $isAr ? 'مقفولة على عملة الخزينة المختارة ولا يمكن تغييرها' : 'Locked to the selected wallet currency and cannot be changed' }}</p>
 
             {{-- Smart Exchange Rate UI --}}
             <div id="exchangeRateContainer" class="hidden bg-red-50 border border-red-100 rounded-xl p-5 animate-fade-in mt-2 mb-4">
@@ -308,7 +310,7 @@
                 
                 <div>
                     <label class="block text-xs font-semibold text-red-800 mb-1">
-                        <i class="fas fa-wallet mr-1"></i> {{ $isAr ? 'المبلغ الفعلي من الخزينة' : 'Actual Wallet Amount' }}
+                        <i class="fas fa-file-invoice-dollar mr-1"></i> {{ $isAr ? 'المبلغ المسدد من الفاتورة' : 'Amount Applied to Invoice' }}
                     </label>
                     <input type="text" id="convertedAmount" readonly dir="ltr"
                         class="w-full px-3 py-2 border border-red-200 rounded-lg bg-red-100 text-red-800 cursor-not-allowed font-bold">
@@ -347,13 +349,14 @@
         return sel.options[sel.selectedIndex];
     }
 
-    // العملة مقفولة على عملة الفاتورة المختارة — كل فاتورة ليها عملتها الخاصة
     function syncPayCurrency() {
-        const opt = currentOrderOption();
-        if(opt) document.getElementById('payCurrencyInput').value = opt.dataset.currency || 'EGP';
+        const walletSel = document.getElementById('payWalletSelect');
+        if(walletSel && walletSel.value) {
+            const walletCur = walletSel.options[walletSel.selectedIndex].dataset.currency;
+            document.getElementById('payCurrencyInput').value = walletCur || 'EGP';
+        }
     }
 
-    // الحسابات لم تعد مفلترة على نفس العملة، بل يظهر سعر الصرف عند الاختلاف
     var rateDirection = 'direct';
     var curA = '';
     var curB = '';
@@ -361,11 +364,14 @@
     var isUiRateInitialized = false;
 
     function handleCurrencyChange() {
-        const invoiceCur = document.getElementById('payCurrencyInput').value;
+        const opt = currentOrderOption();
+        const invoiceCur = opt ? opt.dataset.currency : 'EGP';
+        const invoiceBalance = opt ? parseFloat(opt.dataset.balance) || 0 : 0;
         const walletSel = document.getElementById('payWalletSelect');
         const rateContainer = document.getElementById('exchangeRateContainer');
         const convertedOutput = document.getElementById('convertedAmount');
         const amtInput = document.getElementById('payAmountInput');
+        const hiddenAmount = document.getElementById('hiddenInvoiceAmount');
         const rateInput = document.getElementById('exchangeRate');
         const uiRateInput = document.getElementById('uiRateInput');
         
@@ -395,9 +401,18 @@
                 isUiRateInitialized = true;
             }
 
-            convertedOutput.value = (amt * hiddenRate).toFixed(2) + ' ' + walletCur;
+            // amt is Wallet Currency
+            // hiddenRate is 1 invoiceCur = X walletCur
+            // So invoiceAmt = WalletAmt / hiddenRate
+            var invoiceAmt = (rateDirection === 'direct') ? (amt / hiddenRate) : (amt * hiddenRate);
+
+            convertedOutput.value = invoiceAmt.toFixed(2) + ' ' + invoiceCur;
+            hiddenAmount.value = invoiceAmt.toFixed(2);
+            amtInput.removeAttribute('max');
         } else {
             rateContainer.classList.add('hidden');
+            hiddenAmount.value = amt;
+            amtInput.max = invoiceBalance;
         }
     }
 
@@ -422,13 +437,36 @@
     });
 
     document.getElementById('payAmountInput')?.addEventListener('input', handleCurrencyChange);
-    document.getElementById('payWalletSelect')?.addEventListener('change', handleCurrencyChange);
+    document.getElementById('payWalletSelect')?.addEventListener('change', function() {
+        syncPayCurrency();
+        handleCurrencyChange();
+    });
 
     function setPayFull() {
         const opt = currentOrderOption();
-        if(opt) document.getElementById('payAmountInput').value = opt.dataset.balance;
+        if(!opt) return;
+        
+        const invoiceCur = opt.dataset.currency;
+        const invoiceBalance = parseFloat(opt.dataset.balance) || 0;
+        const walletSel = document.getElementById('payWalletSelect');
+        const walletCur = walletSel ? walletSel.options[walletSel.selectedIndex].dataset.currency : invoiceCur;
+        
+        let walletAmt = invoiceBalance;
+        if (walletCur !== invoiceCur) {
+            const rateInput = document.getElementById('exchangeRate');
+            const hiddenRate = parseFloat(rateInput.value) || 1;
+            if (rateDirection === 'direct') {
+                walletAmt = invoiceBalance * hiddenRate;
+            } else {
+                walletAmt = invoiceBalance / hiddenRate;
+            }
+        }
+
+        document.getElementById('payAmountInput').value = walletAmt.toFixed(2);
         document.getElementById('payFullBtn').className = 'flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 border-red-600 text-red-600 bg-red-50 hover:bg-red-100';
         document.getElementById('payPartialBtn').className = 'flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 border-gray-300 text-gray-600 hover:border-red-600 hover:text-red-600';
+        
+        handleCurrencyChange();
     }
 
     function setPayPartial() {
@@ -436,6 +474,7 @@
         document.getElementById('payAmountInput').focus();
         document.getElementById('payPartialBtn').className = 'flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 border-red-600 text-red-600 bg-red-50 hover:bg-red-100';
         document.getElementById('payFullBtn').className = 'flex-1 px-3 py-2 rounded-lg text-sm font-bold border-2 border-gray-300 text-gray-600 hover:border-red-600 hover:text-red-600';
+        handleCurrencyChange();
     }
 
     function openPayModal() {
