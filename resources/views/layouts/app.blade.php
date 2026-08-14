@@ -983,5 +983,36 @@
         });
     </script>
 
+    <script>
+        // منع الإرسال المزدوج للنماذج (Double Submit Prevention)
+        document.addEventListener('submit', function (e) {
+            // تجاهل النماذج التي تم استثناؤها
+            if (e.target.hasAttribute('data-allow-multiple')) return;
+
+            // تجاهل نماذج الفلترة والبحث (GET)
+            if (e.target.method && e.target.method.toUpperCase() === 'GET') return;
+
+            // إذا كان النموذج غير صالح بحسب HTML5 Validation، لا تعطل الزر
+            if (typeof e.target.checkValidity === 'function' && !e.target.checkValidity()) return;
+
+            // العثور على أزرار الإرسال وتعطيلها
+            var submitButtons = e.target.querySelectorAll('button[type="submit"], input[type="submit"]');
+            submitButtons.forEach(function (btn) {
+                if (!btn.disabled) {
+                    // إذا كان هناك سكريبت آخر أوقف الإرسال في نفس اللحظة قد نحتاج مهلة قصيرة، ولكن في العادة هذا يكفي
+                    setTimeout(function() {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-75', 'cursor-not-allowed');
+                        if (btn.tagName.toLowerCase() === 'button') {
+                            btn.innerHTML = '<i class="fas fa-spinner fa-spin mx-1"></i> ' + btn.innerText;
+                        } else if (btn.tagName.toLowerCase() === 'input') {
+                            btn.value = '...';
+                        }
+                    }, 0);
+                }
+            });
+        });
+    </script>
+
 </body>
 </html>

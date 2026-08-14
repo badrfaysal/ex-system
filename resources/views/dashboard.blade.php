@@ -70,18 +70,18 @@
 
         @php
         $quickLinks = [
-            ['href' => route('quotations.create'),       'icon' => 'fa-file-invoice-dollar', 'cls' => 'text-purple-600 bg-purple-50', 'label' => 'عرض سعر جديد'],
+            ['href' => route('quotations.create'),       'icon' => 'fa-file-invoice-dollar', 'cls' => 'text-purple-600 bg-purple-50', 'label' => __('messages.dashboard.add_quotation')],
             ['href' => route('clients.create'),          'icon' => 'fa-user-plus',            'cls' => 'text-[#005B9F] bg-blue-50',    'label' => __('messages.dashboard.add_client')],
             ['href' => route('vendors.create'),          'icon' => 'fa-truck',                'cls' => 'text-[#008A3B] bg-green-50',   'label' => __('messages.dashboard.add_vendor')],
             ['href' => route('items.create'),            'icon' => 'fa-plus-circle',          'cls' => 'text-amber-500 bg-amber-50',   'label' => __('messages.dashboard.add_item')],
-            ['href' => route('price-lists.create'),      'icon' => 'fa-tags',                 'cls' => 'text-indigo-500 bg-indigo-50', 'label' => 'قائمة أسعار جديدة'],
-            ['href' => route('expenses.create'),         'icon' => 'fa-receipt',              'cls' => 'text-red-500 bg-red-50',       'label' => 'تسجيل مصروف'],
-            ['href' => route('vendor-payments.create'),  'icon' => 'fa-money-check-alt',      'cls' => 'text-red-600 bg-red-50',       'label' => 'سند دفع لمورد'],
-            ['href' => route('wallet-transfers.create'), 'icon' => 'fa-exchange-alt',         'cls' => 'text-amber-600 bg-amber-50',   'label' => 'تحويل بين حسابات'],
-            ['href' => route('financial-logs.index'),    'icon' => 'fa-chart-line',           'cls' => 'text-purple-600 bg-purple-50', 'label' => 'سجل الماليات'],
-            ['href' => route('sourcing.index'),          'icon' => 'fa-network-wired',        'cls' => 'text-amber-500 bg-amber-50',   'label' => 'ربط الموردين بالأصناف'],
-            ['href' => route('reports.index'),           'icon' => 'fa-chart-pie',            'cls' => 'text-purple-600 bg-purple-50', 'label' => 'التقارير والتحليلات'],
-            ['href' => route('settings.index'),          'icon' => 'fa-cogs',                 'cls' => 'text-gray-500 bg-gray-100',    'label' => 'الإعدادات'],
+            ['href' => route('price-lists.create'),      'icon' => 'fa-tags',                 'cls' => 'text-indigo-500 bg-indigo-50', 'label' => __('messages.dashboard.add_price_list')],
+            ['href' => route('expenses.create'),         'icon' => 'fa-receipt',              'cls' => 'text-red-500 bg-red-50',       'label' => __('messages.dashboard.add_expense')],
+            ['href' => route('vendor-payments.create'),  'icon' => 'fa-money-check-alt',      'cls' => 'text-red-600 bg-red-50',       'label' => __('messages.dashboard.add_vendor_payment')],
+            ['href' => route('wallet-transfers.create'), 'icon' => 'fa-exchange-alt',         'cls' => 'text-amber-600 bg-amber-50',   'label' => __('messages.dashboard.add_wallet_transfer')],
+            ['href' => route('financial-logs.index'),    'icon' => 'fa-chart-line',           'cls' => 'text-purple-600 bg-purple-50', 'label' => __('messages.dashboard.financial_logs')],
+            ['href' => route('sourcing.index'),          'icon' => 'fa-network-wired',        'cls' => 'text-amber-500 bg-amber-50',   'label' => __('messages.dashboard.sourcing')],
+            ['href' => route('reports.index'),           'icon' => 'fa-chart-pie',            'cls' => 'text-purple-600 bg-purple-50', 'label' => __('messages.dashboard.reports')],
+            ['href' => route('settings.index'),          'icon' => 'fa-cogs',                 'cls' => 'text-gray-500 bg-gray-100',    'label' => __('messages.dashboard.settings')],
         ];
         @endphp
 
