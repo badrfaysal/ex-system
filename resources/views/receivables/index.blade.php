@@ -78,8 +78,6 @@
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-100 text-gray-600 text-sm font-bold">
                         <th class="p-4">{{ $isAr ? 'العميل' : 'Client' }}</th>
-                        <th class="p-4">{{ $isAr ? 'إجمالي فواتير البيع' : 'Total Invoiced' }}</th>
-                        <th class="p-4">{{ $isAr ? 'إجمالي المحصّل' : 'Total Collected' }}</th>
                         <th class="p-4">{{ $isAr ? 'الرصيد المستحق' : 'Balance Due' }}</th>
                     </tr>
                 </thead>
@@ -87,10 +85,15 @@
                     @forelse ($clients as $client)
                         <tr class="hover:bg-green-50/30 cursor-pointer" onclick="location.href='{{ route('receivables.show', $client) }}'">
                             <td class="p-4 font-bold text-gray-900">{{ $client->displayName($isAr ? 'ar' : 'en') }}</td>
-                            @php $c = $client->salesInvoices->last()?->currency ?? $client->default_currency ?? 'EGP'; @endphp
-                            <td class="p-4 text-gray-600" dir="ltr">{{ number_format($client->invoiced_total ?? 0, 2) }} {{ $c }}</td>
-                            <td class="p-4 text-gray-600" dir="ltr">{{ number_format($client->collected_total ?? 0, 2) }} {{ $c }}</td>
-                            <td class="p-4 font-extrabold {{ $client->balance > 0 ? 'text-red-600' : 'text-green-600' }}" dir="ltr">{{ number_format($client->balance, 2) }} {{ $c }}</td>
+                            <td class="p-4 font-extrabold" dir="ltr">
+                                @forelse($client->currencyBalances as $curr => $amt)
+                                    @if(abs($amt) > 0.001)
+                                        <div class="{{ $amt > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($amt, 2) }} {{ $curr }}</div>
+                                    @endif
+                                @empty
+                                    <div class="text-gray-400">0.00</div>
+                                @endforelse
+                            </td>
                         </tr>
                     @empty
                         <tr><td colspan="4" class="p-8 text-center text-gray-500">{{ $isAr ? 'لا توجد مستحقات' : 'No receivables yet' }}</td></tr>

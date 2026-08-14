@@ -40,8 +40,14 @@
     @endif
 
     <div class="highlight">
-      @php $c = $vendor->purchaseInvoices->last()?->currency ?? $vendor->default_currency ?? 'EGP'; @endphp
-      <p>{{ $isAr ? 'الرصيد المستحق لكم' : 'Balance Due to You' }}: <span class="grand">{{ number_format($balance, 2) }} {{ $c }}</span></p>
+      <p style="margin-bottom: 8px;"><strong>{{ $isAr ? 'الرصيد المستحق لكم' : 'Balance Due to You' }}:</strong></p>
+      @forelse($balance as $curr => $amt)
+        @if(abs($amt) > 0.001)
+          <p style="margin-bottom: 4px;"><span class="grand">{{ number_format($amt, 2) }} {{ $curr }}</span></p>
+        @endif
+      @empty
+        <p style="margin-bottom: 4px;"><span class="grand">0.00</span></p>
+      @endforelse
     </div>
 
     @if($isAr)

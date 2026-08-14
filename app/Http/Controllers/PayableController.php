@@ -57,8 +57,22 @@ class PayableController extends Controller
 
         $vendors = $query->paginate(50)->withQueryString();
 
-        // Calculate balance for each model in the paginated collection
+        $vendors->load(['purchaseInvoices', 'payments']);
+
+        // Calculate grouped currency balance for each model in the paginated collection
         $vendors->getCollection()->transform(function ($vendor) {
+            $currencyBalances = [];
+            foreach ($vendor->purchaseInvoices as $inv) {
+                $c = $inv->currency ?? 'EGP';
+                $currencyBalances[$c] = ($currencyBalances[$c] ?? 0) + $inv->grand_total;
+            }
+            foreach ($vendor->payments as $pay) {
+                $c = $pay->foreign_currency ?? $pay->currency ?? 'EGP';
+                $currencyBalances[$c] = ($currencyBalances[$c] ?? 0) - ($pay->foreign_amount ?? $pay->amount);
+            }
+            $vendor->currencyBalances = $currencyBalances;
+
+            // Keep the raw single balance for legacy/sorting fallback if needed elsewhere
             $vendor->balance = (float) $vendor->invoiced_total - (float) $vendor->paid_total;
             return $vendor;
         });
@@ -71,7 +85,7 @@ class PayableController extends Controller
      */
     public function show(Vendor $vendor)
     {
-        [$timeline, $balance] = $this->buildTimeline($vendor);
+        [$timeline, $balance, $totalInvoiced, $totalPaid] = $this->buildTimeline($vendor);
 
         // فواتير الشراء اللي لسه عليها رصيد — تُستخدم في نموذج تسجيل سند الدفع
         $openInvoices = $vendor->purchaseInvoices
@@ -85,6 +99,8 @@ class PayableController extends Controller
             'vendor'       => $vendor,
             'timeline'     => $timeline,
             'balance'      => $balance,
+            'totalInvoiced'=> $totalInvoiced,
+            'totalPaid'    => $totalPaid,
             'openInvoices' => $openInvoices,
             'wallets'      => $wallets,
         ]);
@@ -101,7 +117,7 @@ class PayableController extends Controller
             return back()->with('error', $locale === 'ar' ? 'لا يوجد بريد إلكتروني مسجل لهذا المورد.' : 'No email address is registered for this vendor.');
         }
 
-        [$timeline, $balance] = $this->buildTimeline($vendor);
+        [$timeline, $balance, $totalInvoiced, $totalPaid] = $this->buildTimeline($vendor);
 
         try {
             Mail::to($vendor->email)->send(new VendorStatementMail($vendor, $timeline, $balance, $locale));
@@ -144,13 +160,33 @@ class PayableController extends Controller
 
         $timeline = $invoiceEntries->concat($paymentEntries)->sortBy('date')->values();
 
-        $running = 0;
+        $running = [];
         $timeline = $timeline->map(function ($entry) use (&$running) {
-            $running += $entry['amount'];
-            $entry['balance'] = $running;
+            $currency = $entry['currency'] ?? 'EGP';
+            if (!isset($running[$currency])) {
+                $running[$currency] = 0;
+            }
+            $running[$currency] += $entry['amount'];
+            
+            // Capture all current balances for this entry
+            $entry['running_balances'] = $running;
             return $entry;
         });
 
-        return [$timeline, $running];
+        // Compute total invoiced per currency
+        $totalInvoiced = [];
+        foreach ($invoiceEntries as $inv) {
+            $c = $inv['currency'] ?? 'EGP';
+            $totalInvoiced[$c] = ($totalInvoiced[$c] ?? 0) + $inv['amount'];
+        }
+
+        // Compute total paid per currency
+        $totalPaid = [];
+        foreach ($paymentEntries as $pay) {
+            $c = $pay['currency'] ?? 'EGP';
+            $totalPaid[$c] = ($totalPaid[$c] ?? 0) + abs($pay['amount']);
+        }
+
+        return [$timeline, $running, $totalInvoiced, $totalPaid];
     }
 }

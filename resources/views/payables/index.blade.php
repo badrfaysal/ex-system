@@ -78,8 +78,6 @@
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-100 text-gray-600 text-sm font-bold">
                         <th class="p-4">{{ $isAr ? 'المورد' : 'Vendor' }}</th>
-                        <th class="p-4">{{ $isAr ? 'إجمالي الفواتير' : 'Total Invoiced' }}</th>
-                        <th class="p-4">{{ $isAr ? 'إجمالي المدفوع' : 'Total Paid' }}</th>
                         <th class="p-4">{{ $isAr ? 'الرصيد المستحق' : 'Balance Due' }}</th>
                         <th class="p-4"></th>
                     </tr>
@@ -88,10 +86,15 @@
                     @forelse ($vendors as $vendor)
                         <tr class="hover:bg-red-50/30 cursor-pointer" onclick="location.href='{{ route('payables.show', $vendor) }}'">
                             <td class="p-4 font-bold text-gray-900">{{ $isAr ? $vendor->name_ar : ($vendor->name_en ?: $vendor->name_ar) }}</td>
-                            @php $c = $vendor->purchaseInvoices->last()?->currency ?? $vendor->default_currency ?? 'EGP'; @endphp
-                            <td class="p-4 text-gray-600" dir="ltr">{{ number_format($vendor->invoiced_total ?? 0, 2) }} {{ $c }}</td>
-                            <td class="p-4 text-gray-600" dir="ltr">{{ number_format($vendor->paid_total ?? 0, 2) }} {{ $c }}</td>
-                            <td class="p-4 font-extrabold {{ $vendor->balance > 0 ? 'text-red-600' : 'text-green-600' }}" dir="ltr">{{ number_format($vendor->balance, 2) }} {{ $c }}</td>
+                            <td class="p-4 font-extrabold" dir="ltr">
+                                @forelse($vendor->currencyBalances as $curr => $amt)
+                                    @if(abs($amt) > 0.001)
+                                        <div class="{{ $amt > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($amt, 2) }} {{ $curr }}</div>
+                                    @endif
+                                @empty
+                                    <div class="text-gray-400">0.00</div>
+                                @endforelse
+                            </td>
                             <td class="p-4 text-left">
                                 <a href="{{ route('payables.show', ['vendor' => $vendor->id, 'open_pay_modal' => 1]) }}" onclick="event.stopPropagation()" class="text-xs px-3 py-1.5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700">
                                     {{ $isAr ? 'تسجيل دفعة' : 'Pay' }}

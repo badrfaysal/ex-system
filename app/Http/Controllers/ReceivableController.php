@@ -57,8 +57,22 @@ class ReceivableController extends Controller
 
         $clients = $query->paginate(50)->withQueryString();
 
-        // Calculate balance for each model in the paginated collection
+        $clients->load(['salesInvoices', 'receipts']);
+
+        // Calculate grouped currency balance for each model in the paginated collection
         $clients->getCollection()->transform(function ($client) {
+            $currencyBalances = [];
+            foreach ($client->salesInvoices as $inv) {
+                $c = $inv->currency ?? 'EGP';
+                $currencyBalances[$c] = ($currencyBalances[$c] ?? 0) + $inv->grand_total;
+            }
+            foreach ($client->receipts as $rec) {
+                $c = $rec->foreign_currency ?? $rec->currency ?? 'EGP';
+                $currencyBalances[$c] = ($currencyBalances[$c] ?? 0) - ($rec->foreign_amount ?? $rec->amount);
+            }
+            $client->currencyBalances = $currencyBalances;
+
+            // Keep the raw single balance for legacy/sorting fallback if needed elsewhere
             $client->balance = (float) $client->invoiced_total - (float) $client->collected_total;
             return $client;
         });
@@ -71,7 +85,7 @@ class ReceivableController extends Controller
      */
     public function show(Client $client)
     {
-        [$timeline, $balance] = $this->buildTimeline($client);
+        [$timeline, $balance, $totalInvoiced, $totalPaid] = $this->buildTimeline($client);
 
         // فواتير البيع اللي لسه عليها رصيد — تُستخدم في نموذج تسجيل الدفعة (كامل/جزئي)
         $openInvoices = $client->salesInvoices
@@ -85,6 +99,8 @@ class ReceivableController extends Controller
             'client'       => $client,
             'timeline'     => $timeline,
             'balance'      => $balance,
+            'totalInvoiced'=> $totalInvoiced,
+            'totalPaid'    => $totalPaid,
             'openInvoices' => $openInvoices,
             'wallets'      => $wallets,
         ]);
@@ -101,7 +117,7 @@ class ReceivableController extends Controller
             return back()->with('error', $locale === 'ar' ? 'لا يوجد بريد إلكتروني مسجل لهذا العميل.' : 'No email address is registered for this client.');
         }
 
-        [$timeline, $balance] = $this->buildTimeline($client);
+        [$timeline, $balance, $totalInvoiced, $totalPaid] = $this->buildTimeline($client);
 
         try {
             Mail::to($client->email)->send(new ClientStatementMail($client, $timeline, $balance, $locale));
@@ -141,13 +157,30 @@ class ReceivableController extends Controller
 
         $timeline = $invoiceEntries->concat($receiptEntries)->sortBy('date')->values();
 
-        $running = 0;
+        $running = [];
         $timeline = $timeline->map(function ($entry) use (&$running) {
-            $running += $entry['amount'];
-            $entry['balance'] = $running;
+            $currency = $entry['currency'] ?? 'EGP';
+            if (!isset($running[$currency])) {
+                $running[$currency] = 0;
+            }
+            $running[$currency] += $entry['amount'];
+            
+            $entry['running_balances'] = $running;
             return $entry;
         });
 
-        return [$timeline, $running];
+        $totalInvoiced = [];
+        foreach ($invoiceEntries as $inv) {
+            $c = $inv['currency'] ?? 'EGP';
+            $totalInvoiced[$c] = ($totalInvoiced[$c] ?? 0) + $inv['amount'];
+        }
+
+        $totalPaid = [];
+        foreach ($receiptEntries as $rec) {
+            $c = $rec['currency'] ?? 'EGP';
+            $totalPaid[$c] = ($totalPaid[$c] ?? 0) + abs($rec['amount']);
+        }
+
+        return [$timeline, $running, $totalInvoiced, $totalPaid];
     }
 }

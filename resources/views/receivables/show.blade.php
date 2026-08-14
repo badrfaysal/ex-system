@@ -4,8 +4,6 @@
     $docDir = $isAr ? 'rtl' : 'ltr';
     $txtAlign = $isAr ? 'right' : 'left';
     $txtAlignOpp = $isAr ? 'left' : 'right';
-    $totalInvoiced = $timeline->where('type', 'invoice')->sum('amount');
-    $totalCollected = -1 * $timeline->where('type', 'receipt')->sum('amount');
 @endphp
 @section('header_title', $client->displayName($isAr ? 'ar' : 'en'))
 
@@ -112,19 +110,30 @@
             </div>
             <div class="text-{{ $txtAlignOpp }}">
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{{ $isAr ? 'الملخص' : 'Summary' }}</p>
-                @php $c = $client->salesInvoices->last()?->currency ?? $client->default_currency ?? 'EGP'; @endphp
                 <table class="text-xs w-full" dir="{{ $docDir }}">
                     <tr>
-                        <td class="text-gray-400 pb-1.5 {{ $isAr ? 'pl-3' : 'pr-3' }}">{{ $isAr ? 'إجمالي فواتير البيع:' : 'Total Invoiced:' }}</td>
-                        <td class="font-bold text-gray-700 pb-1.5 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($totalInvoiced, 2) }} {{ $c }}</td>
+                        <td class="text-gray-400 pb-1.5 {{ $isAr ? 'pl-3' : 'pr-3' }} align-top">{{ $isAr ? 'إجمالي فواتير البيع:' : 'Total Invoiced:' }}</td>
+                        <td class="font-bold text-gray-700 pb-1.5 text-{{ $txtAlignOpp }}" dir="ltr">
+                            @forelse($totalInvoiced as $curr => $amt)
+                                @if($amt != 0) <div>{{ number_format($amt, 2) }} {{ $curr }}</div> @endif
+                            @empty <div>0.00</div> @endforelse
+                        </td>
                     </tr>
                     <tr>
-                        <td class="text-gray-400 pb-1.5 {{ $isAr ? 'pl-3' : 'pr-3' }}">{{ $isAr ? 'إجمالي المدفوع:' : 'Total Paid:' }}</td>
-                        <td class="font-bold text-green-600 pb-1.5 text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($totalCollected, 2) }} {{ $c }}</td>
+                        <td class="text-gray-400 pb-1.5 {{ $isAr ? 'pl-3' : 'pr-3' }} align-top">{{ $isAr ? 'إجمالي المدفوع:' : 'Total Paid:' }}</td>
+                        <td class="font-bold text-green-600 pb-1.5 text-{{ $txtAlignOpp }}" dir="ltr">
+                            @forelse($totalPaid as $curr => $amt)
+                                @if($amt != 0) <div>{{ number_format($amt, 2) }} {{ $curr }}</div> @endif
+                            @empty <div>0.00</div> @endforelse
+                        </td>
                     </tr>
                     <tr>
-                        <td class="text-gray-400 {{ $isAr ? 'pl-3' : 'pr-3' }}">{{ $isAr ? 'الباقي:' : 'Remaining:' }}</td>
-                        <td class="font-extrabold text-{{ $balance > 0 ? 'red-600' : 'green-600' }} text-{{ $txtAlignOpp }}" dir="ltr">{{ number_format($balance, 2) }} {{ $c }}</td>
+                        <td class="text-gray-400 {{ $isAr ? 'pl-3' : 'pr-3' }} align-top">{{ $isAr ? 'الباقي:' : 'Remaining:' }}</td>
+                        <td class="font-extrabold text-{{ $txtAlignOpp }}" dir="ltr">
+                            @forelse($balance as $curr => $amt)
+                                @if($amt != 0) <div class="{{ $amt > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($amt, 2) }} {{ $curr }}</div> @endif
+                            @empty <div>0.00</div> @endforelse
+                        </td>
                     </tr>
                 </table>
             </div>
@@ -156,10 +165,19 @@
                                     <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700">{{ $isAr ? 'سند قبض' : 'Receipt' }}</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2 font-bold text-xs {{ $entry['amount'] >= 0 ? 'text-[#005B9F]' : 'text-green-600' }}" dir="ltr">
+                            <td class="px-3 py-2 font-bold text-xs {{ $entry['amount'] >= 0 ? 'text-[#005B9F]' : 'text-green-600' }} align-top" dir="ltr">
                                 {{ $entry['amount'] >= 0 ? '+' : '' }}{{ number_format($entry['amount'], 2) }} {{ $entry['currency'] ?? ($client->default_currency ?? 'EGP') }}
                             </td>
-                            <td class="px-3 py-2 font-extrabold text-gray-900 text-xs" style="text-align:{{ $txtAlignOpp }}" dir="ltr">{{ number_format($entry['balance'], 2) }} {{ $entry['currency'] ?? ($client->default_currency ?? 'EGP') }}</td>
+                            <td class="px-3 py-2 font-extrabold text-gray-900 text-xs align-top" style="text-align:{{ $txtAlignOpp }}" dir="ltr">
+                                @php $hasBal = false; @endphp
+                                @foreach($entry['running_balances'] as $curr => $amt)
+                                    @if(abs($amt) > 0.001)
+                                        @php $hasBal = true; @endphp
+                                        <div class="mb-0.5">{{ number_format($amt, 2) }} <span class="text-[10px] text-gray-500">{{ $curr }}</span></div>
+                                    @endif
+                                @endforeach
+                                @if(!$hasBal) <span class="text-gray-400">0.00</span> @endif
+                            </td>
                         </tr>
                     @empty
                         <tr><td colspan="5" class="p-8 text-center text-gray-500">{{ $isAr ? 'لا توجد حركات' : 'No transactions yet' }}</td></tr>
@@ -170,8 +188,16 @@
 
         <div class="px-8 py-4 flex justify-end">
             <div class="rounded-xl px-5 py-3" style="background:#008A3B;">
-                <span class="font-extrabold text-white text-sm">{{ $isAr ? 'الرصيد المستحق النهائي: ' : 'Final Balance Due: ' }}</span>
-                <span class="font-extrabold text-white text-lg" dir="ltr">{{ number_format($balance, 2) }} {{ $c }}</span>
+                <span class="font-extrabold text-white text-sm block mb-1">{{ $isAr ? 'الرصيد المستحق النهائي: ' : 'Final Balance Due: ' }}</span>
+                <div class="flex flex-col gap-1 items-end" dir="ltr">
+                    @forelse($balance as $curr => $amt)
+                        @if(abs($amt) > 0.001)
+                            <span class="font-extrabold text-white text-lg leading-none">{{ number_format($amt, 2) }} <span class="text-sm opacity-90">{{ $curr }}</span></span>
+                        @endif
+                    @empty
+                        <span class="font-extrabold text-white text-lg leading-none">0.00</span>
+                    @endforelse
+                </div>
             </div>
         </div>
 
