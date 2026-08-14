@@ -19,12 +19,6 @@
     </a>
 </div>
 
-@if(session('error'))
-<div class="max-w-5xl mx-auto mb-4 bg-red-50 border border-red-300 text-red-800 rounded-xl p-4 text-sm">{{ session('error') }}</div>
-@endif
-@if(session('warning'))
-<div class="max-w-5xl mx-auto mb-4 bg-amber-50 border border-amber-300 text-amber-800 rounded-xl p-4 text-sm">{{ session('warning') }}</div>
-@endif
 
 @if($errors->any())
 <div class="max-w-5xl mx-auto mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-xl p-5 shadow-sm animate-fade-in">

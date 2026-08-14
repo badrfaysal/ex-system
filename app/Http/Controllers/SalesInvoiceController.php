@@ -108,9 +108,13 @@ class SalesInvoiceController extends Controller
         $fullyInvoiced = $lines->isNotEmpty() && $lines->every(fn($row) => $row['remaining'] == 0);
 
         if ($fullyInvoiced) {
+            $invoiceLinks = $salesOrder->salesInvoices()->get()->map(function($inv) {
+                return '<a href="'.route('sales-invoices.show', $inv->id).'" class="underline text-blue-600 hover:text-blue-800 font-bold px-1">'.$inv->invoice_number.'</a>';
+            })->implode(' و ');
+            
             session()->now('warning', app()->getLocale() === 'ar'
-                ? 'ملاحظة: كل أصناف أمر البيع اتفوترت بالكامل مسبقاً. يمكنك إنشاء فاتورة بأصناف إضافية إذا أردت.'
-                : 'Note: All sales order items are already fully invoiced. You can still add extra lines.');
+                ? "ملاحظة: كل أصناف أمر البيع اتفوترت بالكامل مسبقاً في الفواتير ($invoiceLinks)."
+                : "Note: All sales order items are already fully invoiced in invoices ($invoiceLinks).");
         }
 
         $itemsList = \App\Models\Item::orderBy('name_ar')->get();

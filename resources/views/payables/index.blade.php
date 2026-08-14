@@ -92,7 +92,7 @@
                             <td class="p-4 text-gray-600" dir="ltr">{{ number_format($vendor->paid_total ?? 0, 2) }}</td>
                             <td class="p-4 font-extrabold {{ $vendor->balance > 0 ? 'text-red-600' : 'text-green-600' }}" dir="ltr">{{ number_format($vendor->balance, 2) }}</td>
                             <td class="p-4 text-left">
-                                <a href="{{ route('vendor-payments.create', ['vendor_id' => $vendor->id]) }}" onclick="event.stopPropagation()" class="text-xs px-3 py-1.5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700">
+                                <a href="{{ route('payables.show', ['vendor' => $vendor->id, 'open_pay_modal' => 1]) }}" onclick="event.stopPropagation()" class="text-xs px-3 py-1.5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700">
                                     {{ $isAr ? 'تسجيل دفعة' : 'Pay' }}
                                 </a>
                             </td>

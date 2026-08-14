@@ -59,9 +59,44 @@
     @endif
     @if(session('error'))
     <div class="no-print mb-4 bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3 flex items-center gap-3">
-        <i class="fas fa-exclamation-circle text-red-500 text-lg"></i>
+        <i class="fas fa-exclamation-triangle text-red-500 text-lg"></i>
         <span class="font-medium text-sm">{{ session('error') }}</span>
     </div>
+    @endif
+
+    @if($errors->any())
+    <div class="no-print mb-4 bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3">
+        <div class="flex items-center gap-3 mb-2">
+            <i class="fas fa-exclamation-triangle text-red-500 text-lg"></i>
+            <span class="font-bold text-sm">{{ $isAr ? 'يوجد خطأ في البيانات المدخلة:' : 'Validation Error:' }}</span>
+        </div>
+        <ul class="list-disc list-inside text-sm ml-6">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if(typeof openPayModal === 'function') {
+                @if(request('open_pay_modal'))
+                    openPayModal();
+                @endif
+                openPayModal();
+            }
+        });
+    </script>
+    @endif
+
+    @if(!request()->has('open_pay_modal') && !session('error') && !$errors->any())
+        {{-- If none of these are present, but the URL has open_pay_modal, we still need a script block --}}
+    @endif
+    @if(request('open_pay_modal'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if(typeof openPayModal === 'function') openPayModal();
+        });
+    </script>
     @endif
 
     {{-- ============ المستند القابل للطباعة ============ --}}
@@ -191,6 +226,15 @@
             <input type="hidden" name="payment_date" value="{{ now()->toDateString() }}">
 
             <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'الخزينة / الحساب البنكي' : 'Wallet / Bank' }} <span class="text-red-500">*</span></label>
+                <select name="wallet_id" id="payWalletSelect" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
+                    @foreach($wallets as $wallet)
+                        <option value="{{ $wallet->id }}" data-currency="{{ $wallet->currency }}">{{ $wallet->name }} ({{ $wallet->currency }})</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'فاتورة الشراء' : 'Purchase Invoice' }} <span class="text-red-500">*</span></label>
                 <select name="purchase_invoice_id" id="payOrderSelect" required
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
@@ -283,14 +327,7 @@
                 </select>
             </div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'الخزينة / الحساب البنكي' : 'Wallet / Bank' }} <span class="text-red-500">*</span></label>
-                <select name="wallet_id" id="payWalletSelect" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500">
-                    @foreach($wallets as $wallet)
-                        <option value="{{ $wallet->id }}" data-currency="{{ $wallet->currency }}">{{ $wallet->name }} ({{ $wallet->currency }})</option>
-                    @endforeach
-                </select>
-            </div>
+
 
             <div class="flex items-center gap-3 justify-end pt-2">
                 <button type="button" onclick="closePayModal()" class="px-5 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm font-medium">
