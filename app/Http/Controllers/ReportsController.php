@@ -207,7 +207,6 @@ class ReportsController extends Controller
             ->leftJoinSub($receiptsSub, 'rec', 'rec.sales_invoice_id', '=', 'si.id')
             
             ->where('si.due_date', '<', now()->startOfDay())
-            ->where('si.status', '!=', 'paid')
             ->selectRaw('si.*, (si.grand_total - COALESCE(rec.received_sum, 0)) as balance_due_calc, DATEDIFF(CURRENT_DATE, si.due_date) as days_overdue')
             ->having('balance_due_calc', '>', 0.01)
             ->orderByDesc('days_overdue')
