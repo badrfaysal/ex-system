@@ -108,20 +108,44 @@ class ReportsController extends Controller
 
     private function receivablesOutstanding(): float
     {
-        return (float) Client::query()
-            ->withSum('salesInvoices as invoiced_total', 'grand_total')
-            ->withSum(['receipts as collected_total' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
-            ->get(['id'])
-            ->sum(fn ($c) => max(0, (float) $c->invoiced_total - (float) $c->collected_total));
+        $invoicedSub = DB::table('sales_invoices')
+            ->selectRaw('client_id, SUM(grand_total) as invoiced_total')
+            
+            ->groupBy('client_id');
+            
+        $collectedSub = DB::table('client_receipts')
+            ->selectRaw('client_id, SUM(amount) as collected_total')
+            ->whereNull('reversed_at')
+            
+            ->groupBy('client_id');
+
+        return (float) DB::table('clients as c')
+            ->leftJoinSub($invoicedSub, 'inv', 'inv.client_id', '=', 'c.id')
+            ->leftJoinSub($collectedSub, 'col', 'col.client_id', '=', 'c.id')
+            
+            ->selectRaw('SUM(CASE WHEN (COALESCE(inv.invoiced_total, 0) - COALESCE(col.collected_total, 0)) > 0 THEN (COALESCE(inv.invoiced_total, 0) - COALESCE(col.collected_total, 0)) ELSE 0 END) as total_outstanding')
+            ->value('total_outstanding');
     }
 
     private function payablesOutstanding(): float
     {
-        return (float) Vendor::query()
-            ->withSum('purchaseInvoices as invoiced_total', 'grand_total')
-            ->withSum(['payments as paid_total' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
-            ->get(['id'])
-            ->sum(fn ($v) => max(0, (float) $v->invoiced_total - (float) $v->paid_total));
+        $invoicedSub = DB::table('purchase_invoices')
+            ->selectRaw('vendor_id, SUM(grand_total) as invoiced_total')
+            
+            ->groupBy('vendor_id');
+            
+        $paidSub = DB::table('vendor_payments')
+            ->selectRaw('vendor_id, SUM(amount) as paid_total')
+            ->whereNull('reversed_at')
+            
+            ->groupBy('vendor_id');
+
+        return (float) DB::table('vendors as v')
+            ->leftJoinSub($invoicedSub, 'inv', 'inv.vendor_id', '=', 'v.id')
+            ->leftJoinSub($paidSub, 'pay', 'pay.vendor_id', '=', 'v.id')
+            
+            ->selectRaw('SUM(CASE WHEN (COALESCE(inv.invoiced_total, 0) - COALESCE(pay.paid_total, 0)) > 0 THEN (COALESCE(inv.invoiced_total, 0) - COALESCE(pay.paid_total, 0)) ELSE 0 END) as total_outstanding')
+            ->value('total_outstanding');
     }
 
     /**
@@ -129,18 +153,20 @@ class ReportsController extends Controller
      */
     private function topReceivables(int $limit = 5): Collection
     {
-        return Client::query()
-            ->withSum('salesInvoices as invoiced_total', 'grand_total')
-            ->withSum(['receipts as collected_total' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
-            ->get(['id', 'company_name', 'company_name_en'])
-            ->map(function ($c) {
-                $c->balance_due = max(0, (float) $c->invoiced_total - (float) $c->collected_total);
-                return $c;
-            })
-            ->filter(fn ($c) => $c->balance_due > 0)
-            ->sortByDesc('balance_due')
-            ->take($limit)
-            ->values();
+        $invoicedSub = DB::table('sales_invoices')->selectRaw('client_id, SUM(grand_total) as invoiced_total')->groupBy('client_id');
+        $collectedSub = DB::table('client_receipts')->selectRaw('client_id, SUM(amount) as collected_total')->whereNull('reversed_at')->groupBy('client_id');
+
+        $rows = DB::table('clients as c')
+            ->leftJoinSub($invoicedSub, 'inv', 'inv.client_id', '=', 'c.id')
+            ->leftJoinSub($collectedSub, 'col', 'col.client_id', '=', 'c.id')
+            
+            ->selectRaw('c.id, c.company_name, c.company_name_en, (COALESCE(inv.invoiced_total, 0) - COALESCE(col.collected_total, 0)) as balance_due')
+            ->having('balance_due', '>', 0)
+            ->orderByDesc('balance_due')
+            ->limit($limit)
+            ->get();
+            
+        return Client::hydrate($rows->toArray());
     }
 
     /**
@@ -148,18 +174,20 @@ class ReportsController extends Controller
      */
     private function topPayables(int $limit = 5): Collection
     {
-        return Vendor::query()
-            ->withSum('purchaseInvoices as invoiced_total', 'grand_total')
-            ->withSum(['payments as paid_total' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
-            ->get(['id', 'name_ar', 'name_en'])
-            ->map(function ($v) {
-                $v->balance_due = max(0, (float) $v->invoiced_total - (float) $v->paid_total);
-                return $v;
-            })
-            ->filter(fn ($v) => $v->balance_due > 0)
-            ->sortByDesc('balance_due')
-            ->take($limit)
-            ->values();
+        $invoicedSub = DB::table('purchase_invoices')->selectRaw('vendor_id, SUM(grand_total) as invoiced_total')->groupBy('vendor_id');
+        $paidSub = DB::table('vendor_payments')->selectRaw('vendor_id, SUM(amount) as paid_total')->whereNull('reversed_at')->groupBy('vendor_id');
+
+        $rows = DB::table('vendors as v')
+            ->leftJoinSub($invoicedSub, 'inv', 'inv.vendor_id', '=', 'v.id')
+            ->leftJoinSub($paidSub, 'pay', 'pay.vendor_id', '=', 'v.id')
+            
+            ->selectRaw('v.id, v.name_ar, v.name_en, (COALESCE(inv.invoiced_total, 0) - COALESCE(pay.paid_total, 0)) as balance_due')
+            ->having('balance_due', '>', 0)
+            ->orderByDesc('balance_due')
+            ->limit($limit)
+            ->get();
+            
+        return Vendor::hydrate($rows->toArray());
     }
 
     /**
@@ -168,20 +196,24 @@ class ReportsController extends Controller
      */
     private function overdueInvoices(): Collection
     {
-        return SalesInvoice::query()
-            ->overdue()
-            ->with('client')
-            ->withSum(['receipts as received_sum' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
-            ->orderBy('due_date')
-            ->get()
-            ->map(function ($invoice) {
-                $invoice->balance_due_calc = (float) $invoice->grand_total - (float) ($invoice->received_sum ?? 0);
-                $invoice->days_overdue = (int) round(abs(now()->diffInSeconds($invoice->due_date)) / 86400);
-                return $invoice;
-            })
-            ->filter(fn ($invoice) => $invoice->balance_due_calc > 0.01)
-            ->sortByDesc('days_overdue')
-            ->values();
+        $receiptsSub = DB::table('client_receipts')
+            ->selectRaw('sales_invoice_id, SUM(amount) as received_sum')
+            ->whereNull('reversed_at')
+            
+            ->whereNotNull('sales_invoice_id')
+            ->groupBy('sales_invoice_id');
+
+        $rows = DB::table('sales_invoices as si')
+            ->leftJoinSub($receiptsSub, 'rec', 'rec.sales_invoice_id', '=', 'si.id')
+            
+            ->where('si.due_date', '<', now()->startOfDay())
+            ->where('si.status', '!=', 'paid')
+            ->selectRaw('si.*, (si.grand_total - COALESCE(rec.received_sum, 0)) as balance_due_calc, DATEDIFF(CURRENT_DATE, si.due_date) as days_overdue')
+            ->having('balance_due_calc', '>', 0.01)
+            ->orderByDesc('days_overdue')
+            ->get();
+            
+        return SalesInvoice::hydrate($rows->toArray())->load('client');
     }
 
     private function salesFunnel(): Collection
@@ -290,23 +322,37 @@ class ReportsController extends Controller
 
     private function costCenterInsights(int $limit = 5): array
     {
-        $quotations = Quotation::query()
-            ->withSum(['receipts as revenue_sum' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
-            ->withSum(['expenses as expenses_sum' => fn ($q) => $q->whereNull('reversed_at')], 'amount')
-            ->withSum('purchaseInvoices as purchases_sum', 'grand_total')
-            ->get(['id', 'quote_number', 'cost_center_name', 'client_id'])
-            ->map(function ($q) {
-                $q->revenue = (float) $q->revenue_sum;
-                $q->cost    = (float) $q->expenses_sum + (float) $q->purchases_sum;
-                $q->profit  = $q->revenue - $q->cost;
-                return $q;
-            });
+        $receiptsSub = DB::table('client_receipts')->selectRaw('quotation_id, SUM(amount) as revenue_sum')->whereNull('reversed_at')->whereNotNull('quotation_id')->groupBy('quotation_id');
+        $expensesSub = DB::table('expenses')->selectRaw('quotation_id, SUM(amount) as expenses_sum')->whereNull('reversed_at')->whereNotNull('quotation_id')->groupBy('quotation_id');
+        $purchasesSub = DB::table('purchase_invoices')->selectRaw('quotation_id, SUM(grand_total) as purchases_sum')->whereNotNull('quotation_id')->groupBy('quotation_id');
+
+        $baseQuery = DB::table('quotations as q')
+            ->leftJoinSub($receiptsSub, 'rec', 'rec.quotation_id', '=', 'q.id')
+            ->leftJoinSub($expensesSub, 'exp', 'exp.quotation_id', '=', 'q.id')
+            ->leftJoinSub($purchasesSub, 'pur', 'pur.quotation_id', '=', 'q.id')
+            ;
+
+        $totals = (clone $baseQuery)->selectRaw('COUNT(*) as total_count, SUM(COALESCE(rec.revenue_sum, 0) - (COALESCE(exp.expenses_sum, 0) + COALESCE(pur.purchases_sum, 0))) as total_profit')->first();
+
+        $topProfitable = (clone $baseQuery)
+            ->selectRaw('q.id, q.quote_number, q.cost_center_name, q.client_id, (COALESCE(rec.revenue_sum, 0) - (COALESCE(exp.expenses_sum, 0) + COALESCE(pur.purchases_sum, 0))) as profit')
+            ->having('profit', '>', 0)
+            ->orderByDesc('profit')
+            ->limit($limit)
+            ->get();
+
+        $topLosses = (clone $baseQuery)
+            ->selectRaw('q.id, q.quote_number, q.cost_center_name, q.client_id, (COALESCE(rec.revenue_sum, 0) - (COALESCE(exp.expenses_sum, 0) + COALESCE(pur.purchases_sum, 0))) as profit')
+            ->having('profit', '<', 0)
+            ->orderBy('profit', 'asc')
+            ->limit($limit)
+            ->get();
 
         return [
-            'total'          => $quotations->count(),
-            'total_profit'   => $quotations->sum('profit'),
-            'top_profitable' => $quotations->sortByDesc('profit')->filter(fn ($q) => $q->profit > 0)->take($limit)->values(),
-            'top_losses'     => $quotations->filter(fn ($q) => $q->profit < 0)->sortBy('profit')->take($limit)->values(),
+            'total'          => $totals->total_count ?? 0,
+            'total_profit'   => (float) ($totals->total_profit ?? 0),
+            'top_profitable' => Quotation::hydrate($topProfitable->toArray()),
+            'top_losses'     => Quotation::hydrate($topLosses->toArray()),
         ];
     }
 

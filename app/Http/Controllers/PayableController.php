@@ -28,33 +28,40 @@ class PayableController extends Controller
             });
         }
 
-        $vendors = $query->get()
-            ->map(function ($vendor) {
-                $vendor->balance = (float) $vendor->invoiced_total - (float) $vendor->paid_total;
-                return $vendor;
-            });
-
         $tab = $request->input('tab', 'active');
         if ($tab === 'paid') {
-            $vendors = $vendors->filter(fn ($v) => $v->balance <= 0);
+            $query->havingRaw('(COALESCE(invoiced_total, 0) - COALESCE(paid_total, 0)) <= 0');
         } else {
-            $vendors = $vendors->filter(fn ($v) => $v->balance > 0);
+            $query->havingRaw('(COALESCE(invoiced_total, 0) - COALESCE(paid_total, 0)) > 0');
         }
 
         $sort = $request->input('sort', 'balance_desc');
-        $vendors = match ($sort) {
-            'balance_asc' => $vendors->sortBy('balance'),
-            'newest'      => $vendors->sortByDesc('created_at'),
-            'oldest'      => $vendors->sortBy('created_at'),
-            default       => $vendors->sortByDesc('balance'), // balance_desc
+        match ($sort) {
+            'balance_asc' => $query->orderByRaw('(COALESCE(invoiced_total, 0) - COALESCE(paid_total, 0)) ASC'),
+            'newest'      => $query->orderByDesc('created_at'),
+            'oldest'      => $query->orderBy('created_at'),
+            default       => $query->orderByRaw('(COALESCE(invoiced_total, 0) - COALESCE(paid_total, 0)) DESC'), // balance_desc
         };
-        $vendors = $vendors->values();
+
+        // Summary
+        $summaryData = \Illuminate\Support\Facades\DB::query()
+            ->fromSub(clone $query, 'sub')
+            ->selectRaw('SUM(invoiced_total) as sum_invoiced, SUM(paid_total) as sum_paid, SUM(COALESCE(invoiced_total, 0) - COALESCE(paid_total, 0)) as sum_balance')
+            ->first();
 
         $summary = [
-            'invoiced' => $vendors->sum('invoiced_total'),
-            'paid'     => $vendors->sum('paid_total'),
-            'balance'  => $vendors->sum('balance'),
+            'invoiced' => $summaryData->sum_invoiced ?? 0,
+            'paid'     => $summaryData->sum_paid ?? 0,
+            'balance'  => $summaryData->sum_balance ?? 0,
         ];
+
+        $vendors = $query->paginate(50)->withQueryString();
+
+        // Calculate balance for each model in the paginated collection
+        $vendors->getCollection()->transform(function ($vendor) {
+            $vendor->balance = (float) $vendor->invoiced_total - (float) $vendor->paid_total;
+            return $vendor;
+        });
 
         return view('payables.index', compact('vendors', 'summary', 'sort'));
     }

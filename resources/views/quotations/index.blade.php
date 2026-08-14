@@ -29,11 +29,11 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
             </div>
             <div class="w-36">
-                <label class="block text-xs font-bold text-gray-500 mb-1">{{ __('messages.common.date_from') ?? 'Date From' }}</label>
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ __('messages.filter.from_date') }}</label>
                 <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
             </div>
             <div class="w-36">
-                <label class="block text-xs font-bold text-gray-500 mb-1">{{ __('messages.common.date_to') ?? 'Date To' }}</label>
+                <label class="block text-xs font-bold text-gray-500 mb-1">{{ __('messages.filter.to_date') }}</label>
                 <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#008A3B] bg-gray-50">
             </div>
             <div>
