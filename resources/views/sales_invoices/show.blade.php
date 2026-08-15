@@ -14,7 +14,12 @@
         <a href="{{ route('sales-orders.show', $salesInvoice->salesOrder) }}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium flex items-center gap-2">
             <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }}"></i> {{ $isAr ? 'رجوع لأمر البيع' : 'Back to Sales Order' }}
         </a>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            @if($salesInvoice->client)
+            <a href="{{ route('receivables.show', $salesInvoice->client) }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold text-sm hover:bg-gray-50 hover:text-[#008A3B] transition-colors flex items-center gap-2 shadow-sm">
+                <i class="fas fa-file-invoice-dollar text-[#008A3B]"></i> {{ $isAr ? 'كشف الحساب' : 'Account Statement' }}
+            </a>
+            @endif
             <a href="{{ route('sales-invoices.print', $salesInvoice) }}" target="_blank" class="px-5 py-2 bg-[#005B9F] text-white rounded-lg font-bold text-sm hover:bg-blue-800 flex items-center gap-2">
                 <i class="fas fa-print"></i> {{ $isAr ? 'طباعة الفاتورة' : 'Print Invoice' }}
             </a>
@@ -48,7 +53,14 @@
                 <p><span class="text-gray-400">{{ $isAr ? 'أمر البيع:' : 'Sales Order:' }}</span>
                    <a href="{{ route('sales-orders.show', $salesInvoice->salesOrder) }}" class="font-mono font-bold text-[#005B9F] hover:underline">{{ $salesInvoice->salesOrder->so_number }}</a></p>
                 <p><span class="text-gray-400">{{ $isAr ? 'العميل:' : 'Client:' }}</span>
-                   <span class="font-bold text-gray-800">{{ optional($salesInvoice->client)->displayName($isAr ? 'ar' : 'en') }}</span></p>
+                   @if($salesInvoice->client)
+                       <a href="{{ route('receivables.show', $salesInvoice->client) }}" class="font-bold text-gray-800 hover:text-[#008A3B] hover:underline" title="{{ $isAr ? 'عرض كشف الحساب' : 'View Statement' }}">
+                           {{ $salesInvoice->client->displayName($isAr ? 'ar' : 'en') }}
+                       </a>
+                   @else
+                       <span class="font-bold text-gray-800">—</span>
+                   @endif
+                </p>
                 <p><span class="text-gray-400">{{ $isAr ? 'التاريخ:' : 'Date:' }}</span>
                    <span class="font-bold text-gray-800">{{ $salesInvoice->invoice_date->format('Y-m-d') }}</span></p>
                 @if($salesInvoice->due_date)

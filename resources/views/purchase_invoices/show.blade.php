@@ -12,7 +12,12 @@
         <a href="{{ route('quotations.show', $purchaseInvoice->quotation) }}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium flex items-center gap-2">
             <i class="fas fa-arrow-{{ $isAr ? 'right' : 'left' }}"></i> {{ $isAr ? 'رجوع لعرض السعر' : 'Back to Quotation' }}
         </a>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            @if($purchaseInvoice->vendor)
+            <a href="{{ route('payables.show', $purchaseInvoice->vendor) }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold text-sm hover:bg-gray-50 hover:text-red-600 transition-colors flex items-center gap-2 shadow-sm">
+                <i class="fas fa-file-invoice-dollar text-red-600"></i> {{ $isAr ? 'كشف الحساب' : 'Account Statement' }}
+            </a>
+            @endif
             <a href="{{ route('purchase-invoices.print', $purchaseInvoice) }}" target="_blank" class="px-5 py-2 bg-[#005B9F] text-white rounded-lg font-bold text-sm hover:bg-blue-800 flex items-center gap-2">
                 <i class="fas fa-print"></i> {{ $isAr ? 'طباعة الفاتورة' : 'Print Invoice' }}
             </a>
@@ -30,6 +35,13 @@
             <div class="text-{{ $isAr ? 'left' : 'right' }} text-xs text-gray-500 space-y-1">
                 <p><span class="text-gray-400">{{ $isAr ? 'مركز التكلفة:' : 'Cost Center:' }}</span>
                    <a href="{{ route('cost-centers.show', $purchaseInvoice->quotation) }}" class="font-mono font-bold text-[#005B9F] hover:underline">{{ $purchaseInvoice->quotation->quote_number }}</a></p>
+                @if($purchaseInvoice->vendor)
+                <p><span class="text-gray-400">{{ $isAr ? 'المورد:' : 'Vendor:' }}</span>
+                   <a href="{{ route('payables.show', $purchaseInvoice->vendor) }}" class="font-bold text-gray-800 hover:text-red-600 hover:underline" title="{{ $isAr ? 'عرض كشف الحساب' : 'View Statement' }}">
+                       {{ $purchaseInvoice->vendor->displayName($isAr ? 'ar' : 'en') }}
+                   </a>
+                </p>
+                @endif
                 <p><span class="text-gray-400">{{ $isAr ? 'التاريخ:' : 'Date:' }}</span>
                    <span class="font-bold text-gray-800">{{ $purchaseInvoice->invoice_date->format('Y-m-d') }}</span></p>
                 @if($purchaseInvoice->vendor_invoice_number)

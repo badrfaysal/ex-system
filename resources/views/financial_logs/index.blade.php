@@ -27,24 +27,60 @@
         </div>
     </div>
 
-    <!-- الإحصائيات -->
+    <!-- الإحصائيات مفصلة حسب العملة -->
+    @php
+        $inList = [];
+        $outList = [];
+        foreach ($totalsByCurrency as $curr => $data) {
+            if ($data['in'] > 0) {
+                $inList[$curr] = $data['in'];
+            }
+            if ($data['out'] > 0) {
+                $outList[$curr] = $data['out'];
+            }
+        }
+        if (empty($inList)) {
+            $inList['EGP'] = 0.0;
+        }
+        if (empty($outList)) {
+            $outList['EGP'] = 0.0;
+        }
+    @endphp
+
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+        {{-- كارت إجمالي الوارد --}}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-start gap-4">
+            <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600 shrink-0 mt-0.5">
                 <i class="fas fa-arrow-down text-xl"></i>
             </div>
-            <div>
-                <p class="text-sm text-gray-500 font-bold mb-1">{{ $isAr ? 'إجمالي الوارد (خلال الفترة)' : 'Total In (Period)' }}</p>
-                <p class="text-2xl font-extrabold text-[#008A3B]" dir="ltr">{{ number_format($totalIn, 2) }}</p>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm text-gray-500 font-bold mb-2">{{ $isAr ? 'إجمالي الوارد (خلال الفترة)' : 'Total In (Period)' }}</p>
+                <div class="space-y-1.5">
+                    @foreach ($inList as $curr => $amount)
+                        <div class="flex items-center justify-between gap-3 {{ !$loop->last ? 'pb-1.5 border-b border-gray-50' : '' }}">
+                            <span class="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded">{{ $curr }}</span>
+                            <span class="text-2xl font-extrabold text-[#008A3B]" dir="ltr">{{ number_format($amount, 2) }}</span>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-600">
+
+        {{-- كارت إجمالي المنصرف --}}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-start gap-4">
+            <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-600 shrink-0 mt-0.5">
                 <i class="fas fa-arrow-up text-xl"></i>
             </div>
-            <div>
-                <p class="text-sm text-gray-500 font-bold mb-1">{{ $isAr ? 'إجمالي المنصرف (خلال الفترة)' : 'Total Out (Period)' }}</p>
-                <p class="text-2xl font-extrabold text-red-600" dir="ltr">{{ number_format($totalOut, 2) }}</p>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm text-gray-500 font-bold mb-2">{{ $isAr ? 'إجمالي المنصرف (خلال الفترة)' : 'Total Out (Period)' }}</p>
+                <div class="space-y-1.5">
+                    @foreach ($outList as $curr => $amount)
+                        <div class="flex items-center justify-between gap-3 {{ !$loop->last ? 'pb-1.5 border-b border-gray-50' : '' }}">
+                            <span class="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded">{{ $curr }}</span>
+                            <span class="text-2xl font-extrabold text-red-600" dir="ltr">{{ number_format($amount, 2) }}</span>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
     </div>
@@ -52,19 +88,19 @@
     <!-- الفلاتر -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
         <form method="GET" action="{{ route('financial-logs.index') }}" class="flex flex-col sm:flex-row gap-4 items-end flex-wrap">
-            <div class="flex-1 w-full min-w-[200px]">
+            <div class="flex-1 w-full min-w-[180px]">
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'بحث' : 'Search' }}</label>
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ $isAr ? 'رقم المستند أو التفاصيل' : 'Document no. or detail' }}" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
             </div>
-            <div class="flex-1 w-full">
+            <div class="flex-1 w-full min-w-[140px]">
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'من تاريخ' : 'Date From' }}</label>
                 <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
             </div>
-            <div class="flex-1 w-full">
+            <div class="flex-1 w-full min-w-[140px]">
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'إلى تاريخ' : 'Date To' }}</label>
                 <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
             </div>
-            <div class="flex-1 w-full">
+            <div class="flex-1 w-full min-w-[150px]">
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'نوع الحركة' : 'Transaction Type' }}</label>
                 <select name="type" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-bold">
                     <option value="" {{ $type == '' ? 'selected' : '' }}>{{ $isAr ? 'الكل' : 'All' }}</option>
@@ -75,7 +111,18 @@
                     <option value="vendor_payment" {{ $type == 'vendor_payment' ? 'selected' : '' }}>{{ $isAr ? 'سندات دفع فقط' : 'Vendor Payments Only' }}</option>
                 </select>
             </div>
-            <div class="flex-1 w-full">
+            <div class="flex-1 w-full min-w-[160px]">
+                <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'الحساب' : 'Account' }}</label>
+                <select name="wallet_id" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-bold">
+                    <option value="">{{ $isAr ? 'كل الحسابات' : 'All Accounts' }}</option>
+                    @foreach($allWallets as $w)
+                        <option value="{{ $w->id }}" {{ $selectedWalletId == $w->id ? 'selected' : '' }}>
+                            {{ $w->name }} ({{ $w->currency }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="flex-1 w-full min-w-[150px]">
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'ترتيب حسب' : 'Sort By' }}</label>
                 <select name="sort" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-bold">
                     <option value="date_desc" {{ $sort == 'date_desc' ? 'selected' : '' }}>{{ $isAr ? 'التاريخ (الأحدث أولاً)' : 'Date (Newest)' }}</option>
@@ -89,9 +136,9 @@
                     <i class="fas fa-filter"></i> {{ $isAr ? 'تطبيق الفلتر' : 'Apply Filter' }}
                 </button>
             </div>
-            @if(request()->anyFilled(['search', 'date_from', 'date_to', 'type', 'sort']))
+            @if(request()->anyFilled(['search', 'date_from', 'date_to', 'type', 'wallet_id', 'sort']))
                 <div>
-                    <a href="{{ route('financial-logs.index') }}" class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200 transition-colors w-full sm:w-auto h-[42px] flex items-center justify-center">
+                    <a href="{{ route('financial-logs.index') }}" class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200 transition-colors w-full sm:w-auto h-[42px] flex items-center justify-center" title="{{ $isAr ? 'إعادة ضبط' : 'Reset' }}">
                         <i class="fas fa-times"></i>
                     </a>
                 </div>
@@ -130,6 +177,7 @@
                             data-typecolor="{{ $t['color'] }}"
                             data-typename="{{ $isAr ? $t['ar'] : $t['en'] }}"
                             data-wallet="{{ $log->wallet_name }}"
+                            data-currency="{{ $log->currency }}"
                             data-details="{{ $log->detail ?? '—' }}"
                             data-amount="{{ number_format($log->amount, 2) }}"
                             data-amountdir="{{ $log->amount >= 0 ? 1 : -1 }}"
@@ -155,8 +203,9 @@
                             <td class="p-4 font-mono text-xs text-gray-500 {{ $isReversed ? 'line-through' : '' }}">{{ $log->ref }}</td>
                             <td class="p-4 font-bold text-gray-800">{{ $log->wallet_name }}</td>
                             <td class="p-4 text-gray-600 max-w-xs truncate" title="{{ $log->detail ?? '—' }}">{{ $log->detail ?? '—' }}</td>
-                            <td class="p-4 font-extrabold {{ $isReversed ? 'line-through text-gray-400' : ($log->amount >= 0 ? 'text-[#008A3B]' : 'text-red-600') }}" dir="ltr">
-                                {{ $log->amount >= 0 ? '+' : '' }}{{ number_format($log->amount, 2) }}
+                            <td class="p-4 whitespace-nowrap font-extrabold {{ $isReversed ? 'line-through text-gray-400' : ($log->amount >= 0 ? 'text-[#008A3B]' : 'text-red-600') }}" dir="ltr">
+                                <span>{{ $log->amount >= 0 ? '+' : '' }}{{ number_format($log->amount, 2) }}</span>
+                                <span class="text-xs font-bold {{ $isReversed ? 'text-gray-400' : 'text-gray-600' }} bg-gray-100 px-1.5 py-0.5 rounded ml-1">{{ $log->currency }}</span>
                             </td>
                             <td class="p-4 text-gray-500 text-xs">{{ $log->user_name }}</td>
                             <td class="p-4 text-center">
@@ -303,7 +352,7 @@
         document.getElementById('m-ref').textContent = row.dataset.ref;
         document.getElementById('m-date').textContent = row.dataset.date;
         document.getElementById('m-time').textContent = row.dataset.time;
-        document.getElementById('m-wallet').textContent = row.dataset.wallet;
+        document.getElementById('m-wallet').textContent = row.dataset.wallet + (row.dataset.currency ? ` (${row.dataset.currency})` : '');
         document.getElementById('m-details').textContent = row.dataset.details;
         document.getElementById('m-user').textContent = row.dataset.user;
 
@@ -321,7 +370,8 @@
 
         let amountEl = document.getElementById('m-amount');
         let isPositive = parseInt(row.dataset.amountdir) >= 0;
-        amountEl.textContent = (isPositive ? '+' : '') + row.dataset.amount;
+        let curr = row.dataset.currency ? ` ${row.dataset.currency}` : '';
+        amountEl.textContent = (isPositive ? '+' : '') + row.dataset.amount + curr;
         amountEl.className = 'text-3xl font-extrabold ' + (isPositive ? 'text-[#008A3B]' : 'text-red-600');
 
         document.getElementById('detailsModal').classList.remove('hidden');

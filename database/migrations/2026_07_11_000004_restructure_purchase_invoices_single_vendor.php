@@ -24,6 +24,7 @@ return new class extends Migration
         });
 
         Schema::table('purchase_invoice_items', function (Blueprint $table) {
+            $table->dropIndex(['vendor_id']);
             $table->dropForeign(['vendor_id']);
             $table->dropColumn('vendor_id');
             $table->dropForeign(['quotation_item_id']);
