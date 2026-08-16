@@ -203,6 +203,7 @@ return [
         'empty'           => 'The list is empty so far.',
         'lk' => [
             'client_type'       => ['title' => 'Client types',      'desc' => 'Define client types for pricing and reporting purposes.'],
+            'country'           => ['title' => 'Countries',         'desc' => 'List of countries available for clients.'],
             'vendor_group'      => ['title' => 'Vendor groups',     'desc' => 'Classify vendors geographically or functionally.'],
             'vendor_status'     => ['title' => 'Vendor statuses',   'desc' => 'Control eligibility to deal with the vendor.'],
             'currency'          => ['title' => 'Approved currencies','desc' => 'List of currencies in use.'],

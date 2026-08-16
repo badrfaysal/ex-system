@@ -83,6 +83,7 @@
             
             // عمل KeyBy لتسهيل البحث بالـ key_value
             $clientTypesMap = $lookups->get('client_type') ? $lookups->get('client_type')->keyBy('key_value') : collect();
+            $countriesMap   = $lookups->get('country') ? $lookups->get('country')->keyBy('key_value') : collect();
         @endphp
 
         <div class="overflow-x-auto">
@@ -101,17 +102,20 @@
                             // جلب اسم التصنيف الديناميكي O(1)
                             $typeObj = $clientTypesMap->get($client->client_type);
                             $typeName = $typeObj ? $typeObj->display_name : __('messages.common.not_set');
+
+                            $countryObj = $countriesMap->get($client->country);
+                            $countryName = $countryObj ? $countryObj->display_name : ($client->country ?? '—');
                         @endphp
                         
                         {{-- جعل الصف قابل للضغط (Clickable Row) وتشغيل وظيفة فتح النافذة مع تمرير الاسم المترجم --}}
-                        <tr onclick="openClientModal({{ json_encode($client) }}, '{{ $typeName }}')" class="hover:bg-green-50/50 cursor-pointer transition-colors group">
+                        <tr onclick="openClientModal({{ json_encode($client) }}, '{{ $typeName }}', '{{ $countryName }}')" class="hover:bg-green-50/50 cursor-pointer transition-colors group">
                             <td class="p-4 font-bold text-gray-900 group-hover:text-[#008A3B]">{{ $client->displayName() }}</td>
                             <td class="p-4">
                                 <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-[#EBF7F0] text-[#008A3B]">
                                     {{ $typeName }}
                                 </span>
                             </td>
-                            <td class="p-4"><i class="fas fa-globe text-gray-300 ml-1"></i> {{ $client->country }}</td>
+                            <td class="p-4"><i class="fas fa-globe text-gray-300 ml-1"></i> {{ $countryName }}</td>
                             <td class="p-4 text-gray-500" dir="ltr">{{ $client->created_at->format('Y-m-d') }}</td>
                         </tr>
                     @empty
@@ -202,14 +206,14 @@
     const modal = document.getElementById('clientModal');
     const modalContent = document.getElementById('modalContent');
 
-    // الدالة الآن تستقبل (client) وتستقبل (typeName) الذي تمت ترجمته مسبقاً في الـ Blade
-    function openClientModal(client, typeName) {
+    // الدالة الآن تستقبل (client) و (typeName) و (countryName) التي تمت ترجمتها مسبقاً في الـ Blade
+    function openClientModal(client, typeName, countryName) {
         document.getElementById('m_company').innerText = client.company_name;
         document.getElementById('m_person').innerText = client.contact_person || @json(__('messages.common.not_set'));
         document.getElementById('m_phone').innerText = client.phone;
         document.getElementById('m_email').innerText = client.email || @json(__('messages.common.not_reg'));
         document.getElementById('m_tax').innerText = client.tax_id || @json(__('messages.common.not_reg'));
-        document.getElementById('m_country').innerText = client.country;
+        document.getElementById('m_country').innerText = countryName || client.country || @json(__('messages.common.none'));
         document.getElementById('m_address').innerText = client.address || @json(__('messages.common.none'));
         
         // وضع الاسم الديناميكي في النافذة

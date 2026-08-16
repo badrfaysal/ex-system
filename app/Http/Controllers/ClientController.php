@@ -65,9 +65,10 @@ public function index(Request $request)
         $lookups = Cache::remember('system_settings', 60*60*24, fn() => Setting::all()->groupBy('category'));
         $clientTypes = $lookups->get('client_type') ?? collect();
         $currencies   = $lookups->get('currency')    ?? collect();
+        $countries    = $lookups->get('country')     ?? collect();
         $priceLists   = PriceList::where('status', 'active')->orderBy('name')->get();
 
-        return view('clients.create', compact('clientTypes', 'currencies', 'priceLists'));
+        return view('clients.create', compact('clientTypes', 'currencies', 'countries', 'priceLists'));
     }
 
     public function store(Request $request)
@@ -78,7 +79,7 @@ public function index(Request $request)
             'contact_person'        => 'nullable|string|max:255',
             'phone'                 => 'required|string|max:20',
             'email'                 => 'nullable|email|max:255',
-            'country'               => 'required|string|max:10',
+            'country'               => 'required|string|max:255',
             'tax_id'                => 'nullable|string|max:50',
             'client_type'           => 'required|string|max:50',
             'address'               => 'nullable|string',
@@ -97,9 +98,10 @@ public function index(Request $request)
         $lookups = Cache::remember('system_settings', 60*60*24, fn() => Setting::all()->groupBy('category'));
         $clientTypes = $lookups->get('client_type') ?? collect();
         $currencies   = $lookups->get('currency')    ?? collect();
+        $countries    = $lookups->get('country')     ?? collect();
         $priceLists   = PriceList::where('status', 'active')->orderBy('name')->get();
 
-        return view('clients.edit', compact('client', 'clientTypes', 'currencies', 'priceLists'));
+        return view('clients.edit', compact('client', 'clientTypes', 'currencies', 'countries', 'priceLists'));
     }
 
     public function update(Request $request, Client $client)
@@ -110,7 +112,7 @@ public function index(Request $request)
             'contact_person'        => 'nullable|string|max:255',
             'phone'                 => 'required|string|max:20',
             'email'                 => 'nullable|email|max:255',
-            'country'               => 'required|string|max:10',
+            'country'               => 'required|string|max:255',
             'tax_id'                => 'nullable|string|max:50',
             'client_type'           => 'required|string|max:50',
             'address'               => 'nullable|string',

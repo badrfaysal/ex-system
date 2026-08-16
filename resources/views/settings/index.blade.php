@@ -28,6 +28,7 @@
         $settingsMenu = [
             __('messages.settings.grp_clients') => [
                 'client_type'    => ['icon' => 'fa-users'],
+                'country'        => ['icon' => 'fa-globe'],
             ],
             __('messages.settings.grp_vendors') => [
                 'vendor_group'   => ['icon' => 'fa-truck'],

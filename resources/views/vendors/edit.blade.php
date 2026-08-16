@@ -281,28 +281,29 @@
                         <p class="text-[10px] text-gray-400 mt-1">{{ __('messages.vendors.f_rating_h') }}</p>
                     </div>
 
-                    {{-- الأصناف المعتمدة --}}
+                    {{-- الأصناف المعتمدة (Autocomplete Search) --}}
                     <div class="md:col-span-2">
-                        @php $selectedItems = old('approved_items', $vendor->approvedItems->pluck('id')->toArray()); @endphp
+                        @php $selectedItemIds = old('approved_items', $vendor->approvedItems->pluck('id')->toArray()); @endphp
                         <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ __('messages.vendors.f_items') }}</label>
-                        <div class="w-full h-[160px] overflow-y-auto border border-gray-300 bg-white rounded-lg p-3 space-y-1 shadow-inner">
-                            @forelse($items as $item)
-                                <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-md cursor-pointer border border-transparent hover:border-gray-200 transition-colors">
-                                    <input type="checkbox" name="approved_items[]" value="{{ $item->id }}"
-                                        {{ in_array($item->id, $selectedItems) ? 'checked' : '' }}
-                                        class="w-4 h-4 text-[#008A3B] border-gray-300 rounded focus:ring-[#008A3B]">
-                                    <div class="flex flex-col">
-                                        <span class="text-sm font-bold text-gray-800 leading-tight">{{ $item->name_ar }}</span>
-                                        <span class="text-[10px] font-mono text-gray-400 mt-0.5">{{ $item->item_code }}</span>
-                                    </div>
-                                </label>
-                            @empty
-                                <div class="text-center text-gray-400 text-sm py-8 flex flex-col items-center">
-                                    <i class="fas fa-box-open text-3xl mb-2 opacity-30"></i>
-                                    {{ __('messages.vendors.no_items') }}
-                                </div>
-                            @endforelse
+
+                        {{-- الأصناف المختارة (Chips) --}}
+                        <div id="selectedItemsChips" class="flex flex-wrap gap-2 mb-2 min-h-[8px]"></div>
+
+                        {{-- حقل البحث --}}
+                        <div class="relative">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                                <i class="fas fa-search text-sm"></i>
+                            </div>
+                            <input type="text" id="itemSearchInput" autocomplete="off"
+                                placeholder="{{ app()->getLocale() === 'ar' ? 'ابحث عن صنف بالاسم أو الكود...' : 'Search by item name or code...' }}"
+                                class="w-full pr-10 pl-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-[#008A3B] focus:ring-1 focus:ring-[#008A3B] transition-colors bg-gray-50 focus:bg-white text-sm">
+                            {{-- قائمة النتائج --}}
+                            <div id="itemSearchResults" class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-[220px] overflow-y-auto hidden sidebar-scroll"></div>
                         </div>
+
+                        {{-- Hidden inputs container --}}
+                        <div id="selectedItemsInputs"></div>
+
                         <p class="text-[10px] text-gray-500 mt-1"><i class="fas fa-info-circle"></i> {{ __('messages.vendors.f_items_h') }}</p>
                     </div>
                 </div>
@@ -366,5 +367,117 @@
         }
     }
     window.onload = toggleBlockReason;
+</script>
+
+<script>
+(function() {
+    @php
+        $itemsJson = $items->map(function($i) {
+            return ['id' => $i->id, 'name_ar' => $i->name_ar, 'name_en' => $i->name_en, 'item_code' => $i->item_code];
+        })->values();
+    @endphp
+    const allItems = @json($itemsJson);
+    const selectedItems = new Map();
+    const preSelected = @json($selectedItemIds);
+
+    const searchInput   = document.getElementById('itemSearchInput');
+    const resultsBox    = document.getElementById('itemSearchResults');
+    const chipsBox      = document.getElementById('selectedItemsChips');
+    const inputsBox     = document.getElementById('selectedItemsInputs');
+
+    // تحميل الأصناف المحفوظة مسبقاً
+    if (preSelected.length) {
+        preSelected.forEach(id => {
+            const item = allItems.find(i => i.id == id);
+            if (item) addItem(item);
+        });
+    }
+
+    searchInput.addEventListener('input', function() {
+        const q = this.value.trim().toLowerCase();
+        if (q.length === 0) { resultsBox.classList.add('hidden'); return; }
+
+        const matches = allItems.filter(item => {
+            if (selectedItems.has(item.id)) return false;
+            return (item.name_ar && item.name_ar.toLowerCase().includes(q))
+                || (item.name_en && item.name_en.toLowerCase().includes(q))
+                || (item.item_code && item.item_code.toLowerCase().includes(q));
+        }).slice(0, 15);
+
+        if (matches.length === 0) {
+            resultsBox.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm"><i class="fas fa-search text-lg mb-1 opacity-40"></i><br>{{ app()->getLocale() === "ar" ? "لا توجد نتائج" : "No results" }}</div>';
+        } else {
+            resultsBox.innerHTML = matches.map(item => `
+                <div class="item-result flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-[#EBF7F0] transition-colors border-b border-gray-50 last:border-0"
+                     data-id="${item.id}">
+                    <i class="fas fa-box text-gray-300 text-sm"></i>
+                    <div class="flex-1 min-w-0">
+                        <span class="text-sm font-bold text-gray-800 block truncate">${item.name_ar || item.name_en}</span>
+                        <span class="text-[10px] font-mono text-gray-400">${item.item_code || ''}</span>
+                    </div>
+                    <i class="fas fa-plus-circle text-[#008A3B] opacity-50"></i>
+                </div>
+            `).join('');
+
+            resultsBox.querySelectorAll('.item-result').forEach(el => {
+                el.addEventListener('click', function() {
+                    const id = parseInt(this.dataset.id);
+                    const item = allItems.find(i => i.id === id);
+                    if (item) addItem(item);
+                    searchInput.value = '';
+                    resultsBox.classList.add('hidden');
+                    searchInput.focus();
+                });
+            });
+        }
+        resultsBox.classList.remove('hidden');
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.classList.add('hidden');
+        }
+    });
+
+    searchInput.addEventListener('focus', function() {
+        if (this.value.trim().length > 0) {
+            this.dispatchEvent(new Event('input'));
+        }
+    });
+
+    function addItem(item) {
+        if (selectedItems.has(item.id)) return;
+        selectedItems.set(item.id, item);
+
+        const chip = document.createElement('span');
+        chip.className = 'inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 bg-[#EBF7F0] text-[#008A3B] text-xs font-bold rounded-full border border-[#008A3B]/20 transition-all hover:shadow-sm';
+        chip.dataset.id = item.id;
+        chip.innerHTML = `
+            <i class="fas fa-box text-[10px] opacity-60"></i>
+            <span>${item.name_ar || item.name_en}</span>
+            <span class="font-mono text-[9px] text-gray-400 mx-0.5">${item.item_code || ''}</span>
+            <button type="button" class="w-5 h-5 flex items-center justify-center rounded-full hover:bg-red-100 hover:text-red-500 text-gray-400 transition-colors ml-0.5" title="{{ app()->getLocale() === 'ar' ? 'إزالة' : 'Remove' }}">
+                <i class="fas fa-times text-[9px]"></i>
+            </button>
+        `;
+        chip.querySelector('button').addEventListener('click', () => removeItem(item.id));
+        chipsBox.appendChild(chip);
+
+        const inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'approved_items[]';
+        inp.value = item.id;
+        inp.id = 'item-input-' + item.id;
+        inputsBox.appendChild(inp);
+    }
+
+    function removeItem(id) {
+        selectedItems.delete(id);
+        const chip = chipsBox.querySelector(`[data-id="${id}"]`);
+        if (chip) chip.remove();
+        const inp = document.getElementById('item-input-' + id);
+        if (inp) inp.remove();
+    }
+})();
 </script>
 @endsection
