@@ -94,6 +94,7 @@ class VendorPaymentController extends Controller
         $purchaseInvoice = \App\Models\PurchaseInvoice::findOrFail($data['purchase_invoice_id']);
         $data['vendor_id'] = $purchaseInvoice->vendor_id;
         $data['created_by'] = auth()->id();
+        $data['base_amount'] = $data['currency'] === 'EGP' ? $data['amount'] : round($data['amount'] * ($data['exchange_rate'] ?? 1), 2);
 
         try {
             DB::transaction(function () use (&$data) {

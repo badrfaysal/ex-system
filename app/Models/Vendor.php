@@ -24,6 +24,14 @@ class Vendor extends Model
         return $this->hasMany(Item::class, 'default_vendor_id');
     }
 
+    public function displayName($locale = 'ar')
+    {
+        if ($locale === 'ar') {
+            return $this->name_ar ?: $this->name_en;
+        }
+        return $this->name_en ?: $this->name_ar;
+    }
+
 
     public function approvedItems() {
         return $this->belongsToMany(Item::class, 'item_vendor')

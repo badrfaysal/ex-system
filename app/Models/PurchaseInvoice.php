@@ -13,8 +13,8 @@ class PurchaseInvoice extends Model
     protected $periodLockDateColumn = 'invoice_date';
 
     protected $fillable = [
-        'invoice_number', 'vendor_invoice_number', 'quotation_id', 'sales_order_id', 'vendor_id', 'invoice_date', 'currency', 'notes',
-        'subtotal', 'extra_discount', 'total_discount', 'tax_amount', 'grand_total', 'created_by', 'attachments',
+        'invoice_number', 'vendor_invoice_number', 'quotation_id', 'sales_order_id', 'vendor_id', 'invoice_date', 'currency', 'exchange_rate', 'notes',
+        'subtotal', 'extra_discount', 'total_discount', 'tax_amount', 'grand_total', 'base_grand_total', 'created_by', 'attachments',
     ];
 
     protected $casts = [

@@ -88,6 +88,13 @@
                 </select>
                 <p class="text-[11px] text-amber-600 mt-1">{{ $isAr ? 'تنبيه: العملة نهائية بعد الحفظ — وهتبقى إلزامية عند سداد أي دفعة لهذه الفاتورة.' : 'Note: the currency is final once saved — it will be enforced on any payment made against this invoice.' }}</p>
             </div>
+            <div id="exchangeRateContainer" style="display: {{ old('currency', $cur) === 'EGP' ? 'none' : 'block' }};">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'سعر الصرف (إلى الجنيه EGP)' : 'Exchange Rate (to EGP)' }}</label>
+                <input type="number" step="0.000001" min="0.000001" name="exchange_rate" id="exchangeRate" value="{{ old('exchange_rate', 1) }}" dir="ltr"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 bg-amber-50 focus:bg-white">
+                <p class="text-[11px] text-amber-600 mt-1"><i class="fas fa-exclamation-circle"></i> {{ $isAr ? 'مطلوب لحساب مركز التكلفة بالعملة الأساسية' : 'Required to calculate cost center in base currency' }}</p>
+                @error('exchange_rate') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+            </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'ملاحظات' : 'Notes' }}</label>
                 <textarea name="notes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#008A3B]">{{ old('notes') }}</textarea>
@@ -175,6 +182,13 @@
     if (invoiceCurrencySel) {
         invoiceCurrencySel.addEventListener('change', function () {
             document.getElementById('grandTotalCur').textContent = this.value;
+            const exContainer = document.getElementById('exchangeRateContainer');
+            if (this.value !== 'EGP') {
+                exContainer.style.display = 'block';
+            } else {
+                exContainer.style.display = 'none';
+                document.getElementById('exchangeRate').value = '1';
+            }
         });
     }
 

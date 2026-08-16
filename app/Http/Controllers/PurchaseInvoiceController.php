@@ -120,6 +120,7 @@ class PurchaseInvoiceController extends Controller
             'vendor_id'                => 'required|exists:vendors,id',
             'invoice_date'             => 'required|date',
             'currency'                 => 'required|string',
+            'exchange_rate'            => 'nullable|numeric|min:0.000001',
             'vendor_invoice_number'    => 'nullable|string|max:255',
             'notes'                    => 'nullable|string',
             'extra_discount'           => 'nullable|numeric|min:0',
@@ -146,6 +147,7 @@ class PurchaseInvoiceController extends Controller
                 'vendor_id'              => $data['vendor_id'],
                 'invoice_date'           => $data['invoice_date'],
                 'currency'               => $data['currency'],
+                'exchange_rate'          => $data['exchange_rate'] ?? 1,
                 'vendor_invoice_number'  => $data['vendor_invoice_number'] ?? null,
                 'notes'                  => $data['notes'] ?? null,
                 'created_by'     => Auth::id(),
@@ -190,12 +192,14 @@ class PurchaseInvoiceController extends Controller
             $totalLineDiscounts = $lineDiscounts;
             $totalDiscount = $totalLineDiscounts + $extraDiscount;
 
+            $grandTotal = round($subtotal - $totalDiscount + $taxAmount, 2);
             $invoice->update([
-                'subtotal'       => round($subtotal, 2),
-                'extra_discount' => round($extraDiscount, 2),
-                'total_discount' => round($totalDiscount, 2),
-                'tax_amount'     => round($taxAmount, 2),
-                'grand_total'    => round($subtotal - $totalDiscount + $taxAmount, 2),
+                'subtotal'         => round($subtotal, 2),
+                'extra_discount'   => round($extraDiscount, 2),
+                'total_discount'   => round($totalDiscount, 2),
+                'tax_amount'       => round($taxAmount, 2),
+                'grand_total'      => $grandTotal,
+                'base_grand_total' => $grandTotal * $invoice->exchange_rate,
             ]);
 
             return $invoice;

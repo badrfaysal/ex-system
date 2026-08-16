@@ -13,9 +13,9 @@ class CostCenterController extends Controller
     public function index(Request $request)
     {
         $query = Quotation::query()
-            ->withSum('receipts as revenue_sum', 'amount')
-            ->withSum('expenses as expenses_sum', 'amount')
-            ->withSum('purchaseInvoices as purchases_sum', 'grand_total')
+            ->withSum('receipts as revenue_sum', 'base_amount')
+            ->withSum('expenses as expenses_sum', 'base_amount')
+            ->withSum('purchaseInvoices as purchases_sum', 'base_grand_total')
             ->with('client');
 
         if ($request->filled('search')) {
@@ -45,8 +45,8 @@ class CostCenterController extends Controller
     {
         $quotation->load(['client', 'expenses', 'purchaseInvoices', 'receipts', 'salesOrders']);
 
-        $revenue = (float) $quotation->receipts->sum('amount');
-        $cost    = (float) $quotation->expenses->sum('amount') + (float) $quotation->purchaseInvoices->sum('grand_total');
+        $revenue = (float) $quotation->receipts->sum('base_amount');
+        $cost    = (float) $quotation->expenses->sum('base_amount') + (float) $quotation->purchaseInvoices->sum('base_grand_total');
         $profit  = $revenue - $cost;
 
         return view('cost_centers.show', compact('quotation', 'revenue', 'cost', 'profit'));

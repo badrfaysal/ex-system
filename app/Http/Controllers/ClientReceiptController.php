@@ -101,6 +101,7 @@ class ClientReceiptController extends Controller
                 'quotation_id'     => $salesInvoice->quotation_id,
                 'wallet_id'        => $data['wallet_id'],
                 'amount'           => $data['amount'],
+                'base_amount'      => $data['currency'] === 'EGP' ? $data['amount'] : ($data['amount'] * ($data['exchange_rate'] ?? 1)),
                 'foreign_amount'   => $data['foreign_amount'] ?? null,
                 'foreign_currency' => $data['foreign_currency'] ?? null,
                 'exchange_rate'    => $data['exchange_rate'] ?? 1,

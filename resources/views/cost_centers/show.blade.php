@@ -44,17 +44,17 @@
         </div>
         <div class="grid grid-cols-3 divide-x divide-gray-100" dir="{{ $isAr ? 'rtl' : 'ltr' }}">
             <div class="p-6 text-center">
-                <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'الإيراد المحصّل' : 'Revenue Collected' }}</p>
+                <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'الإيراد المحصّل' : 'Revenue Collected' }} (EGP)</p>
                 <p class="text-xl font-extrabold text-green-600" dir="ltr">{{ number_format($revenue, 2) }}</p>
             </div>
             <div class="p-6 text-center">
-                <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'إجمالي التكلفة' : 'Total Cost' }}</p>
+                <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'إجمالي التكلفة' : 'Total Cost' }} (EGP)</p>
                 <p class="text-xl font-extrabold text-red-600" dir="ltr">{{ number_format($cost, 2) }}</p>
             </div>
             <div class="p-6 text-center {{ $profit >= 0 ? 'bg-green-50' : 'bg-red-50' }}">
-                <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'الربح / الخسارة' : 'Profit / Loss' }}</p>
+                <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'الربح / الخسارة' : 'Profit / Loss' }} (EGP)</p>
                 <p class="text-xl font-extrabold {{ $profit >= 0 ? 'text-green-700' : 'text-red-700' }}" dir="ltr">
-                    {{ $profit >= 0 ? '+' : '' }}{{ number_format($profit, 2) }} {{ $cur }}
+                    {{ $profit >= 0 ? '+' : '' }}{{ number_format($profit, 2) }}
                 </p>
             </div>
         </div>
@@ -71,7 +71,12 @@
                     <tr class="hover:bg-gray-50/60">
                         <td class="p-4"><a href="{{ route('purchase-invoices.show', $pi) }}" class="font-mono text-[#005B9F] hover:underline">{{ $pi->invoice_number }}</a></td>
                         <td class="p-4 text-gray-500" dir="ltr">{{ $pi->invoice_date->format('Y-m-d') }}</td>
-                        <td class="p-4 font-bold text-red-600" dir="ltr">{{ number_format($pi->grand_total, 2) }} {{ $pi->currency }}</td>
+                        <td class="p-4 text-left" dir="ltr">
+                            <span class="font-bold text-red-600">{{ number_format($pi->grand_total, 2) }} {{ $pi->currency }}</span>
+                            @if($pi->currency !== 'EGP')
+                                <br><span class="text-xs text-gray-400 font-bold">({{ number_format($pi->base_grand_total, 2) }} EGP)</span>
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr><td class="p-6 text-center text-gray-400">{{ $isAr ? 'لا توجد فواتير شراء' : 'No purchase invoices' }}</td></tr>
@@ -93,7 +98,12 @@
                         <td class="p-4 font-mono text-gray-700">{{ $e->expense_number }}</td>
                         <td class="p-4 text-gray-600">{{ $e->category }}</td>
                         <td class="p-4 text-gray-500" dir="ltr">{{ $e->expense_date->format('Y-m-d') }}</td>
-                        <td class="p-4 font-bold text-red-600" dir="ltr">{{ number_format($e->amount, 2) }} {{ $e->currency }}</td>
+                        <td class="p-4 text-left" dir="ltr">
+                            <span class="font-bold text-red-600">{{ number_format($e->amount, 2) }} {{ $e->currency }}</span>
+                            @if($e->currency !== 'EGP')
+                                <br><span class="text-xs text-gray-400 font-bold">({{ number_format($e->base_amount, 2) }} EGP)</span>
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr><td class="p-6 text-center text-gray-400">{{ $isAr ? 'لا توجد مصروفات' : 'No expenses' }}</td></tr>
@@ -113,7 +123,12 @@
                     <tr class="hover:bg-gray-50/60">
                         <td class="p-4 font-mono text-gray-700">{{ $r->receipt_number }}</td>
                         <td class="p-4 text-gray-500" dir="ltr">{{ $r->receipt_date->format('Y-m-d') }}</td>
-                        <td class="p-4 font-bold text-green-600" dir="ltr">{{ number_format($r->amount, 2) }} {{ $r->currency }}</td>
+                        <td class="p-4 text-left" dir="ltr">
+                            <span class="font-bold text-green-600">{{ number_format($r->amount, 2) }} {{ $r->currency }}</span>
+                            @if($r->currency !== 'EGP')
+                                <br><span class="text-xs text-gray-400 font-bold">({{ number_format($r->base_amount, 2) }} EGP)</span>
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr><td class="p-6 text-center text-gray-400">{{ $isAr ? 'لا توجد سندات قبض' : 'No receipts' }}</td></tr>

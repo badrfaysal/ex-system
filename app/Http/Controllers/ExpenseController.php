@@ -51,6 +51,8 @@ class ExpenseController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateData($request);
+        $data['exchange_rate'] = $data['exchange_rate'] ?? 1;
+        $data['base_amount'] = $data['amount'] * $data['exchange_rate'];
         $data['created_by'] = auth()->id();
 
         try {
@@ -83,6 +85,8 @@ class ExpenseController extends Controller
     public function update(Request $request, Expense $expense)
     {
         $data = $this->validateData($request);
+        $data['exchange_rate'] = $data['exchange_rate'] ?? 1;
+        $data['base_amount'] = $data['amount'] * $data['exchange_rate'];
         $data['created_by'] = auth()->id();
 
         try {
@@ -124,9 +128,7 @@ class ExpenseController extends Controller
             'description'  => 'nullable|string',
             'wallet_id'    => 'required|exists:wallets,id',
             'amount'       => 'required|numeric|min:0.01',
-            'foreign_amount'   => 'nullable|numeric|min:0.01',
-            'foreign_currency' => 'nullable|string',
-            'exchange_rate'    => 'nullable|numeric|min:0.000001',
+            'exchange_rate'=> 'nullable|numeric|min:0.000001',
             'currency'     => ['required', 'string', new MatchesWalletCurrency],
             'expense_date' => 'required|date',
             'notes'        => 'nullable|string',

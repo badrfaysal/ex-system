@@ -15,7 +15,7 @@ class Expense extends Model
 
     protected $fillable = [
         'expense_number', 'quotation_id', 'category', 'description',
-        'vendor_id', 'wallet_id', 'amount', 'foreign_amount', 'foreign_currency', 'exchange_rate', 'currency', 'expense_date', 'notes', 'created_by',
+        'vendor_id', 'wallet_id', 'amount', 'foreign_amount', 'foreign_currency', 'exchange_rate', 'base_amount', 'currency', 'expense_date', 'notes', 'created_by',
     ];
 
     protected $casts = [
