@@ -108,40 +108,6 @@
                 </div>
             </div>
 
-            <div class="bg-blue-50 p-3 rounded-xl border border-blue-100 space-y-3">
-                <p class="text-xs font-bold text-blue-800"><i class="fas fa-globe"></i> {{ $isAr ? 'إيداع بعملة أجنبية (اختياري)' : 'Foreign Currency Deposit' }}</p>
-                
-                <div>
-                    <label class="block text-[10px] text-gray-500 font-bold mb-1">{{ $isAr ? 'المبلغ الأجنبي' : 'Foreign Amount' }}</label>
-                    <input type="number" step="0.01" min="0.01" name="foreign_amount" id="revForeignAmount" class="w-full text-sm px-3 py-2 border border-blue-200 rounded focus:border-blue-500 font-bold text-blue-700" dir="ltr">
-                </div>
-
-                <div id="revRateContainer" class="hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="block text-[10px] text-gray-500 font-bold">{{ $isAr ? 'تحديد سعر الصرف' : 'Exchange Rate' }}</label>
-                        <button type="button" id="revSwapBtn" class="text-[10px] px-2 py-1 bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 rounded font-bold transition-colors shadow-sm">
-                            <i class="fas fa-exchange-alt"></i> {{ $isAr ? 'عكس' : 'Swap' }}
-                        </button>
-                    </div>
-                    <div class="flex items-center justify-center gap-2 bg-white p-2 rounded-lg border border-blue-200 shadow-inner">
-                        <div class="text-center flex-1">
-                            <span class="block text-sm font-black text-gray-800">1</span>
-                            <span class="block text-[10px] font-bold text-gray-500" id="revBaseCur"></span>
-                        </div>
-                        <div class="text-gray-400 font-bold text-sm">=</div>
-                        <div class="flex-1">
-                            <input type="number" step="0.000001" min="0.000001" id="revUiRate" dir="ltr"
-                                class="w-full px-2 py-1 border-2 border-blue-300 rounded focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-center font-mono text-sm font-bold text-blue-800 shadow-sm transition-all">
-                        </div>
-                        <div class="text-center flex-1">
-                            <span class="block text-sm font-black text-transparent select-none">-</span>
-                            <span class="block text-[10px] font-bold text-gray-500" id="revTargetCur"></span>
-                        </div>
-                    </div>
-                </div>
-                <input type="hidden" name="exchange_rate" id="revExchangeRate" value="1">
-            </div>
-
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'التصنيف / السبب' : 'Category / Reason' }} *</label>
                 <input type="text" name="category" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-[#008A3B] focus:border-[#008A3B] text-sm">
@@ -182,40 +148,6 @@
                 </div>
             </div>
 
-            <div class="bg-blue-50 p-3 rounded-xl border border-blue-100 space-y-3">
-                <p class="text-xs font-bold text-blue-800"><i class="fas fa-globe"></i> {{ $isAr ? 'صرف بعملة أجنبية (اختياري)' : 'Foreign Currency Expense' }}</p>
-                
-                <div>
-                    <label class="block text-[10px] text-gray-500 font-bold mb-1">{{ $isAr ? 'المبلغ الأجنبي' : 'Foreign Amount' }}</label>
-                    <input type="number" step="0.01" min="0.01" name="foreign_amount" id="expForeignAmount" class="w-full text-sm px-3 py-2 border border-blue-200 rounded focus:border-blue-500 font-bold text-blue-700" dir="ltr">
-                </div>
-
-                <div id="expRateContainer" class="hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="block text-[10px] text-gray-500 font-bold">{{ $isAr ? 'تحديد سعر الصرف' : 'Exchange Rate' }}</label>
-                        <button type="button" id="expSwapBtn" class="text-[10px] px-2 py-1 bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 rounded font-bold transition-colors shadow-sm">
-                            <i class="fas fa-exchange-alt"></i> {{ $isAr ? 'عكس' : 'Swap' }}
-                        </button>
-                    </div>
-                    <div class="flex items-center justify-center gap-2 bg-white p-2 rounded-lg border border-blue-200 shadow-inner">
-                        <div class="text-center flex-1">
-                            <span class="block text-sm font-black text-gray-800">1</span>
-                            <span class="block text-[10px] font-bold text-gray-500" id="expBaseCur"></span>
-                        </div>
-                        <div class="text-gray-400 font-bold text-sm">=</div>
-                        <div class="flex-1">
-                            <input type="number" step="0.000001" min="0.000001" id="expUiRate" dir="ltr"
-                                class="w-full px-2 py-1 border-2 border-blue-300 rounded focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-100 text-center font-mono text-sm font-bold text-blue-800 shadow-sm transition-all">
-                        </div>
-                        <div class="text-center flex-1">
-                            <span class="block text-sm font-black text-transparent select-none">-</span>
-                            <span class="block text-[10px] font-bold text-gray-500" id="expTargetCur"></span>
-                        </div>
-                    </div>
-                </div>
-                <input type="hidden" name="exchange_rate" id="expExchangeRate" value="1">
-            </div>
-
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'بند المصروف' : 'Expense Category' }} *</label>
                 <select name="category" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm">
@@ -239,79 +171,5 @@
     </div>
 </div>
 
-<script>
-window.addEventListener('load', function() {
-    function setupCalculator(prefix) {
-        var fAmt = document.getElementById(prefix + 'ForeignAmount');
-        var fRate = document.getElementById(prefix + 'ExchangeRate');
-        var nAmt = document.getElementById(prefix + 'NativeAmount');
-        var rateContainer = document.getElementById(prefix + 'RateContainer');
-        var uiRate = document.getElementById(prefix + 'UiRate');
-        var swapBtn = document.getElementById(prefix + 'SwapBtn');
-        var baseCurLabel = document.getElementById(prefix + 'BaseCur');
-        var targetCurLabel = document.getElementById(prefix + 'TargetCur');
 
-        if(!fAmt || !fRate || !nAmt) return;
-        
-        var curA = 'FRN'; // Generic Foreign Currency
-        var curB = '{{ $wallet->currency }}';
-        var rateDirection = 'direct';
-
-        function updateUI() {
-            if(rateDirection === 'direct') {
-                if(baseCurLabel) baseCurLabel.innerText = curA;
-                if(targetCurLabel) targetCurLabel.innerText = curB;
-            } else {
-                if(baseCurLabel) baseCurLabel.innerText = curB;
-                if(targetCurLabel) targetCurLabel.innerText = curA;
-            }
-        }
-
-        if(swapBtn) {
-            swapBtn.addEventListener('click', function() {
-                rateDirection = rateDirection === 'direct' ? 'inverse' : 'direct';
-                var v = parseFloat(uiRate.value) || 0;
-                if(v > 0) {
-                    uiRate.value = (1/v).toFixed(6);
-                }
-                updateUI();
-                calc();
-            });
-        }
-
-        if(uiRate) {
-            uiRate.addEventListener('input', function() {
-                var v = parseFloat(uiRate.value) || 0;
-                if(v > 0) {
-                    fRate.value = rateDirection === 'direct' ? v : (1/v).toFixed(6);
-                }
-                calc();
-            });
-        }
-
-        function calc() {
-            var fa = parseFloat(fAmt.value);
-            if (!isNaN(fa) && fa > 0) {
-                if(rateContainer) {
-                    rateContainer.classList.remove('hidden');
-                    updateUI();
-                }
-                var r = parseFloat(fRate.value) || 1;
-                nAmt.value = (fa * r).toFixed(2);
-                nAmt.readOnly = true;
-                nAmt.classList.add('bg-gray-100', 'cursor-not-allowed');
-            } else {
-                if(rateContainer) rateContainer.classList.add('hidden');
-                nAmt.readOnly = false;
-                nAmt.classList.remove('bg-gray-100', 'cursor-not-allowed');
-            }
-        }
-
-        fAmt.addEventListener('input', calc);
-    }
-
-    setupCalculator('rev');
-    setupCalculator('exp');
-});
-</script>
 @endsection
