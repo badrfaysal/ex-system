@@ -2,6 +2,22 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
 
+    {{-- كود العميل --}}
+    <div>
+        <label for="client_code" class="block text-sm font-semibold text-gray-700 mb-1.5">
+            {{ __('messages.clients.f_code') }}
+        </label>
+        <div class="relative">
+            <div class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400">
+                <i class="fas fa-barcode"></i>
+            </div>
+            <input type="text" id="client_code" name="client_code" value="{{ old('client_code', $entity?->client_code) }}" dir="ltr"
+                placeholder="{{ __('messages.clients.f_code_ph') }}"
+                class="w-full pr-11 pl-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-[#008A3B] focus:ring-1 focus:ring-[#008A3B] text-left transition-colors bg-gray-50 focus:bg-white font-mono tracking-wide">
+        </div>
+        @error('client_code') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+    </div>
+
     {{-- اسم الشركة (عربي) --}}
     <div>
         <label for="company_name" class="block text-sm font-semibold text-gray-700 mb-1.5">

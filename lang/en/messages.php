@@ -222,6 +222,7 @@ return [
         'title'     => 'Clients',
         'subtitle'  => 'Click any client to view its details',
         'add'       => 'Add Client',
+        'code'      => 'Client Code',
         'company'   => 'Company Name',
         'type'      => 'Type',
         'country'   => 'Country',
@@ -232,6 +233,8 @@ return [
         'edit_title'=> 'Edit client details',
         'edit_sub'  => 'Update the registered client details',
         // Form
+        'f_code'      => 'Client Code (auto / manual)',
+        'f_code_ph'   => 'Leave empty for auto-generation',
         'f_company'   => 'Company Name',
         'f_person'    => 'Contact Person',
         'f_phone'     => 'Phone Number',
@@ -243,6 +246,7 @@ return [
         'f_address'   => 'Full address',
         // Modal
         'card_title'  => 'Client info card',
+        'm_code'      => 'Client Code',
         'm_company'   => 'Company Name',
         'm_type'      => 'Type',
         'm_person'    => 'Contact Person',
@@ -254,7 +258,7 @@ return [
         'save_client' => 'Save client',
         'delete'      => 'Delete client',
         'confirm_del' => 'Are you sure you want to permanently delete this client?',
-        'search'      => 'Search by name, contact, phone, email, country, or tax ID...',
+        'search'      => 'Search by code, name, contact, phone, email, country, or tax ID...',
     ],
 
     // ===== Vendors =====

@@ -21,7 +21,8 @@ public function index(Request $request)
     if ($request->filled('search')) {
         $search = $request->search;
         $query->where(function ($q) use ($search) {
-            $q->where('company_name', 'like', "%{$search}%")
+            $q->where('client_code', 'like', "%{$search}%")
+              ->orWhere('company_name', 'like', "%{$search}%")
               ->orWhere('contact_person', 'like', "%{$search}%")
               ->orWhere('phone', 'like', "%{$search}%")
               ->orWhere('email', 'like', "%{$search}%")
@@ -74,6 +75,7 @@ public function index(Request $request)
     public function store(Request $request)
     {
         $validatedData = $request->validate([
+            'client_code'           => 'nullable|string|max:50|unique:clients,client_code',
             'company_name'          => 'required|string|max:255',
             'company_name_en'       => 'nullable|string|max:255',
             'contact_person'        => 'nullable|string|max:255',
@@ -87,6 +89,12 @@ public function index(Request $request)
             'default_sales_rep'     => 'nullable|string|max:255',
             'default_currency'      => 'nullable|string|max:255',
         ]);
+
+        // توليد كود تلقائي إذا لم يُدخل يدوياً
+        if (empty($validatedData['client_code'])) {
+            $nextId = (Client::max('id') ?? 0) + 1;
+            $validatedData['client_code'] = 'CLT-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+        }
 
         Client::create($validatedData);
 
@@ -107,6 +115,7 @@ public function index(Request $request)
     public function update(Request $request, Client $client)
     {
         $validatedData = $request->validate([
+            'client_code'           => 'nullable|string|max:50|unique:clients,client_code,' . $client->id,
             'company_name'          => 'required|string|max:255',
             'company_name_en'       => 'nullable|string|max:255',
             'contact_person'        => 'nullable|string|max:255',
@@ -120,6 +129,11 @@ public function index(Request $request)
             'default_sales_rep'     => 'nullable|string|max:255',
             'default_currency'      => 'nullable|string|max:255',
         ]);
+
+        // إذا ترك فارغاً نحتفظ بالكود الحالي أو نولد جديد
+        if (empty($validatedData['client_code'])) {
+            $validatedData['client_code'] = $client->client_code ?: ('CLT-' . str_pad($client->id, 4, '0', STR_PAD_LEFT));
+        }
 
         $client->update($validatedData);
 

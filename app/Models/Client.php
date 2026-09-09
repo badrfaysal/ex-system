@@ -11,6 +11,7 @@ class Client extends Model
 
     // تحديد الحقول المسموح بحفظها لتجنب ثغرة Mass Assignment
     protected $fillable = [
+        'client_code',
         'company_name',
         'company_name_en',
         'contact_person',

@@ -90,6 +90,7 @@
             <table class="w-full text-right border-collapse">
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-100 text-gray-600 text-sm font-bold">
+                        <th class="p-4">{{ __('messages.clients.code') }}</th>
                         <th class="p-4">{{ __('messages.clients.company') }}</th>
                         <th class="p-4">{{ __('messages.clients.type') }}</th>
                         <th class="p-4">{{ __('messages.clients.country') }}</th>
@@ -109,6 +110,7 @@
                         
                         {{-- جعل الصف قابل للضغط (Clickable Row) وتشغيل وظيفة فتح النافذة مع تمرير الاسم المترجم --}}
                         <tr onclick="openClientModal({{ json_encode($client) }}, '{{ $typeName }}', '{{ $countryName }}')" class="hover:bg-green-50/50 cursor-pointer transition-colors group">
+                            <td class="p-4 font-mono text-sm text-[#005B9F] font-bold">{{ $client->client_code ?? '—' }}</td>
                             <td class="p-4 font-bold text-gray-900 group-hover:text-[#008A3B]">{{ $client->displayName() }}</td>
                             <td class="p-4">
                                 <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-[#EBF7F0] text-[#008A3B]">
@@ -119,7 +121,7 @@
                             <td class="p-4 text-gray-500" dir="ltr">{{ $client->created_at->format('Y-m-d') }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="4" class="p-8 text-center text-gray-500">{{ __('messages.clients.no_data') }}</td></tr>
+                        <tr><td colspan="5" class="p-8 text-center text-gray-500">{{ __('messages.clients.no_data') }}</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -143,6 +145,10 @@
 
         <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase">{{ __('messages.clients.m_code') }}</p>
+                    <p class="text-lg font-bold text-[#005B9F] mt-1 font-mono" id="m_code"></p>
+                </div>
                 <div>
                     <p class="text-xs font-bold text-gray-400 uppercase">{{ __('messages.clients.m_company') }}</p>
                     <p class="text-lg font-bold text-gray-900 mt-1" id="m_company"></p>
@@ -208,6 +214,7 @@
 
     // الدالة الآن تستقبل (client) و (typeName) و (countryName) التي تمت ترجمتها مسبقاً في الـ Blade
     function openClientModal(client, typeName, countryName) {
+        document.getElementById('m_code').innerText = client.client_code || @json(__('messages.common.not_set'));
         document.getElementById('m_company').innerText = client.company_name;
         document.getElementById('m_person').innerText = client.contact_person || @json(__('messages.common.not_set'));
         document.getElementById('m_phone').innerText = client.phone;
