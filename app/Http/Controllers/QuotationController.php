@@ -179,7 +179,7 @@ class QuotationController extends Controller
      */
     public const STATUS_FLOW = [
         'draft'     => ['approved', 'rejected', 'cancelled'],
-        'approved'  => ['converted', 'cancelled'],
+        'approved'  => ['cancelled'],
         'rejected'  => ['draft', 'cancelled'],
         'sent'      => [],
         'converted' => [],
@@ -424,9 +424,10 @@ class QuotationController extends Controller
     {
         $client = Client::find($data['client_id']);
         $clientName = $client ? $client->displayName('ar') : '';
-        $date = \Illuminate\Support\Carbon::parse($data['quote_date'])->format('Y-m-d');
+        $quoteNo = $data['quote_number'] ?? time();
 
-        return trim("مركز تكلفة العميل {$clientName} بتاريخ {$date}");
+        // Adding quote number makes it unique, keeping it short prevents truncation
+        return trim("مركز تكلفة {$clientName} - {$quoteNo}");
     }
 
     /**

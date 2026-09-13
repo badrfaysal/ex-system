@@ -14,21 +14,32 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('purchase_invoices', function (Blueprint $table) {
-            $table->foreignId('sales_order_id')->after('quotation_id')
-                ->constrained('sales_orders')->restrictOnDelete();
-            $table->foreignId('vendor_id')->after('sales_order_id')
-                ->constrained('vendors')->restrictOnDelete();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->index('sales_order_id');
-            $table->index('vendor_id');
+            if (!Schema::hasColumn('purchase_invoices', 'sales_order_id')) {
+                $table->foreignId('sales_order_id')->after('quotation_id')
+                    ->constrained('sales_orders')->restrictOnDelete();
+                $table->index('sales_order_id');
+            }
+            if (!Schema::hasColumn('purchase_invoices', 'vendor_id')) {
+                $table->foreignId('vendor_id')->after('sales_order_id')
+                    ->constrained('vendors')->restrictOnDelete();
+                $table->index('vendor_id');
+            }
+            if (!Schema::hasColumn('purchase_invoices', 'created_by')) {
+                $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            }
         });
 
         Schema::table('purchase_invoice_items', function (Blueprint $table) {
-            $table->dropIndex(['vendor_id']);
-            $table->dropForeign(['vendor_id']);
-            $table->dropColumn('vendor_id');
-            $table->dropForeign(['quotation_item_id']);
-            $table->dropColumn('quotation_item_id');
+            if (Schema::hasColumn('purchase_invoice_items', 'vendor_id')) {
+                // Drop foreign key first, then index, then column
+                try { $table->dropForeign(['vendor_id']); } catch (\Exception $e) {}
+                try { $table->dropIndex(['vendor_id']); } catch (\Exception $e) {}
+                $table->dropColumn('vendor_id');
+            }
+            if (Schema::hasColumn('purchase_invoice_items', 'quotation_item_id')) {
+                try { $table->dropForeign(['quotation_item_id']); } catch (\Exception $e) {}
+                $table->dropColumn('quotation_item_id');
+            }
         });
     }
 

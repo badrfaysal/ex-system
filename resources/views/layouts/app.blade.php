@@ -455,16 +455,7 @@
                     </div>
                 </div>
 
-                @if(app()->environment('local'))
-                <form action="{{ route('settings.reset-database') }}" method="POST" class="mx-2 mt-1"
-                    onsubmit="return confirm({{ json_encode($rtl ? 'تصفير قاعدة البيانات بالكامل؟ هذا الإجراء لا يمكن التراجع عنه.' : 'Reset the entire database? This cannot be undone.') }});">
-                    @csrf
-                    <button type="submit" class="sb-link w-full text-red-500 hover:bg-red-50 hover:text-red-600">
-                        <i class="fas fa-skull-crossbones sb-group-icon text-red-500"></i>
-                        <span>{{ $rtl ? 'تصفير قاعدة البيانات' : 'Reset Database' }}</span>
-                    </button>
-                </form>
-                @endif
+
 
             </nav>
 
@@ -1013,6 +1004,17 @@
             });
         });
     </script>
+
+    @if($errors->has('amount'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var msg = @json($errors->first('amount'));
+            if (msg.includes('رصيد محفظة') || msg.includes('Insufficient balance') || msg.includes('أقل من المطلوب') || msg.includes('غير كاف') || msg.includes('المتاح')) {
+                alert("شيك: المبلغ الموجود في الحساب أقل من المطلوب!\n\n" + msg);
+            }
+        });
+    </script>
+    @endif
 
 </body>
 </html>

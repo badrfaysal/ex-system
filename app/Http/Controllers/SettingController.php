@@ -15,7 +15,7 @@ class SettingController extends Controller
         // جلب كل الإعدادات وتصنيفها حسب نوع القائمة (category)
         $settings = Setting::all()->groupBy('category');
         $wallets = \App\Models\Wallet::orderBy('name')->get();
-        return view('settings.index', compact('settings', 'wallets'));
+        return view('settings.index_new', compact('settings', 'wallets'));
     }
 
     public function store(Request $request)
@@ -103,20 +103,35 @@ class SettingController extends Controller
         return back()->with('success', 'تم حذف العنصر من النظام');
     }
 
-    /**
-     * تصفير قاعدة البيانات بالكامل — مسح كل الجداول وإعادة تشغيل الميجريشنز من الصفر.
-     * محمي بيئيًا: يعمل فقط على بيئة local، عشان محدش يعمله بالغلط على بيانات حقيقية.
-     */
-    public function resetDatabase()
+    public function resetDatabase(Request $request)
     {
-        abort_unless(app()->environment('local'), 403, 'تصفير قاعدة البيانات متاح فقط في بيئة التطوير المحلية.');
+        if ($request->input('confirm_text') !== 'تصفير') {
+            return back()->with('error', 'كلمة التأكيد غير صحيحة، لم يتم تصفير النظام.');
+        }
 
-        Auth::logout();
+        try {
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-        Artisan::call('migrate:fresh', ['--force' => true]);
-        Artisan::call('db:seed', ['--force' => true]);
+            $tablesToTruncate = [
+                'activity_logs', 'client_receipts', 'clients', 'contact_groups', 'contacts', 
+                'document_counters', 'expenses', 'item_images', 'item_vendor', 'items', 
+                'period_locks', 'price_list_items', 'price_lists', 'purchase_invoice_items', 
+                'purchase_invoices', 'quotation_items', 'quotation_sends', 'quotations', 
+                'revenues', 'sales_invoice_items', 'sales_invoices', 'sales_order_items', 
+                'sales_orders', 'vendor_addresses', 'vendor_payments', 'vendors', 
+                'wallet_transfers', 'wallets'
+            ];
 
-        return redirect()->route('login')
-            ->with('success', 'تم تصفير قاعدة البيانات بالكامل. سجّل الدخول بحساب: test@example.com / password');
+            foreach ($tablesToTruncate as $table) {
+                \Illuminate\Support\Facades\DB::table($table)->truncate();
+            }
+
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+            return back()->with('success', 'تم تصفير جميع البيانات بنجاح، مع الاحتفاظ بالمستخدمين والإعدادات الأساسية.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            return back()->with('error', 'حدث خطأ أثناء التصفير: ' . $e->getMessage());
+        }
     }
 }

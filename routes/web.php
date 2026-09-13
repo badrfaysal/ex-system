@@ -61,7 +61,7 @@ Route::middleware('auth')->group(function () {
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [SettingController::class, 'store'])->name('settings.store');
     Route::delete('settings/{setting}', [SettingController::class, 'destroy'])->name('settings.destroy');
-    Route::post('settings/reset-database', [SettingController::class, 'resetDatabase'])->name('settings.reset-database');
+
 
     // إغلاق الفترات المحاسبية
     Route::get('period-locks', [PeriodLockController::class, 'index'])->name('period-locks.index');
@@ -177,3 +177,4 @@ Route::middleware('auth')->group(function () {
     })->name('lang.switch');
 
 });
+Route::post('settings/reset-database', [\App\Http\Controllers\SettingController::class, 'resetDatabase'])->name('settings.reset-database')->middleware('auth');
