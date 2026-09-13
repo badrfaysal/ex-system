@@ -307,14 +307,14 @@
         if (costCenterTouched) return;
         const input = document.getElementById('costCenterNameInput');
         const clientEl = document.getElementById('clientIdSelect');
-        const dateEl = document.getElementById('quoteDateInput');
+        const quoteNoEl = document.querySelector('input[name="quote_number"]');
         if (!input || !clientEl || !clientEl.value) return;
 
         const clientName = CLIENTS_MAP[clientEl.value] || '';
-        const date = dateEl && dateEl.value ? dateEl.value : '';
+        const quoteNo = quoteNoEl ? quoteNoEl.value : '';
         input.value = CC_ISAR
-            ? `مركز تكلفة العميل ${clientName} بتاريخ ${date}`.trim()
-            : `Cost center for ${clientName} dated ${date}`.trim();
+            ? `مركز تكلفة ${clientName} - ${quoteNo}`.trim()
+            : `Cost center ${clientName} - ${quoteNo}`.trim();
     }
 
 

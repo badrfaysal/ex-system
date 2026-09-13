@@ -585,19 +585,19 @@
             <div class="p-4 md:p-8 flex-1">
                 {{-- رسائل النجاح / الخطأ العامة --}}
                 @if (session('success'))
-                    <div class="max-w-7xl mx-auto mb-6 flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-3.5 shadow-sm animate-fade-in">
+                    <div class="print:hidden max-w-7xl mx-auto mb-6 flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-3.5 shadow-sm animate-fade-in">
                         <i class="fas fa-check-circle text-green-500 text-lg"></i>
                         <span class="font-bold">{!! session('success') !!}</span>
                     </div>
                 @endif
                 @if (session('error'))
-                    <div class="max-w-7xl mx-auto mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-800 rounded-xl px-5 py-3.5 shadow-sm animate-fade-in">
+                    <div class="print:hidden max-w-7xl mx-auto mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-800 rounded-xl px-5 py-3.5 shadow-sm animate-fade-in">
                         <i class="fas fa-exclamation-circle text-red-500 text-lg"></i>
                         <span class="font-bold">{!! session('error') !!}</span>
                     </div>
                 @endif
                 @if (session('warning'))
-                    <div class="max-w-7xl mx-auto mb-6 flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-5 py-3.5 shadow-sm animate-fade-in">
+                    <div class="print:hidden max-w-7xl mx-auto mb-6 flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-5 py-3.5 shadow-sm animate-fade-in">
                         <i class="fas fa-exclamation-triangle text-amber-500 text-lg"></i>
                         <span class="font-bold">{!! session('warning') !!}</span>
                     </div>

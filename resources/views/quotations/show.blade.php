@@ -76,19 +76,7 @@
     }
 </style>
 
-{{-- Flash messages --}}
-@if(session('success'))
-<div class="no-print mb-4 max-w-5xl mx-auto bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 flex items-center gap-3">
-    <i class="fas fa-check-circle text-green-500 text-lg"></i>
-    <span class="font-medium text-sm">{{ session('success') }}</span>
-</div>
-@endif
-@if(session('error'))
-<div class="no-print mb-4 max-w-5xl mx-auto bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3 flex items-center gap-3">
-    <i class="fas fa-exclamation-circle text-red-500 text-lg"></i>
-    <span class="font-medium text-sm">{{ session('error') }}</span>
-</div>
-@endif
+
 
 {{-- أزرار التحكم --}}
 <div class="no-print mb-4 flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto">
