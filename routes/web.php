@@ -178,3 +178,57 @@ Route::middleware('auth')->group(function () {
 
 });
 Route::post('settings/reset-database', [\App\Http\Controllers\SettingController::class, 'resetDatabase'])->name('settings.reset-database')->middleware('auth');
+
+// مسار مؤقت لحذف عرض السعر
+Route::get('/delete-qt-10', function () {
+    $quoteNumber = 'QT-2026-09-0010';
+    $quote = \App\Models\Quotation::with(['items', 'sends', 'salesOrders', 'expenses', 'purchaseInvoices', 'salesInvoices', 'receipts'])
+        ->where('quote_number', $quoteNumber)->first();
+
+    // مسح السجلات (حتى لو العرض نفسه اتحذف من قبل، نمسح السجلات اللي باقية باسمه)
+    \App\Models\ActivityLog::where('subject_label', 'like', '%' . $quoteNumber . '%')->delete();
+
+    if (!$quote) {
+        return "تم حذف سجلات العمليات، ولكن لم يتم العثور على عرض السعر نفسه (ربما تم حذفه مسبقاً): " . $quoteNumber;
+    }
+
+    \Illuminate\Support\Facades\DB::transaction(function() use ($quote) {
+        // حذف سجلات العمليات المرتبطة بالـ ID أيضاً للتأكيد
+        \App\Models\ActivityLog::where('subject_type', \App\Models\Quotation::class)->where('subject_id', $quote->id)->delete();
+
+        if ($quote->items()->exists()) $quote->items()->delete();
+        if ($quote->sends()->exists()) $quote->sends()->delete();
+        
+        foreach($quote->salesOrders as $so) {
+            $so->items()->delete();
+            \App\Models\ActivityLog::where('subject_type', \App\Models\SalesOrder::class)->where('subject_id', $so->id)->delete();
+            $so->delete();
+        }
+        foreach($quote->purchaseInvoices as $pi) {
+            $pi->items()->delete();
+            \App\Models\ActivityLog::where('subject_type', \App\Models\PurchaseInvoice::class)->where('subject_id', $pi->id)->delete();
+            $pi->delete();
+        }
+        foreach($quote->salesInvoices as $si) {
+            $si->items()->delete();
+            \App\Models\ActivityLog::where('subject_type', \App\Models\SalesInvoice::class)->where('subject_id', $si->id)->delete();
+            $si->delete();
+        }
+        if ($quote->expenses()->exists()) {
+            foreach($quote->expenses as $ex) {
+                \App\Models\ActivityLog::where('subject_type', \App\Models\Expense::class)->where('subject_id', $ex->id)->delete();
+            }
+            $quote->expenses()->delete();
+        }
+        if ($quote->receipts()->exists()) {
+            foreach($quote->receipts as $re) {
+                \App\Models\ActivityLog::where('subject_type', \App\Models\ClientReceipt::class)->where('subject_id', $re->id)->delete();
+            }
+            $quote->receipts()->delete();
+        }
+        
+        $quote->delete();
+    });
+
+    return "تم حذف عرض السعر وكل ما يرتبط به من فواتير وسجلات العمليات بالكامل بنجاح!";
+});
