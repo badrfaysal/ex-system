@@ -62,6 +62,7 @@
             border-radius: 0 !important; font-size: 11px !important;
         }
         .print-doc * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .print-uncolored { background: transparent !important; border: none !important; color: #1f2937 !important; padding: 0 !important; }
         @page { margin: 8mm 10mm; size: A4 portrait; }
         .doc-header  { padding: 10px 20px !important; }
         .doc-info    { padding: 8px 20px !important; }
@@ -240,12 +241,12 @@
             <p class="text-2xl font-extrabold text-[#005B9F] tracking-tight leading-none">{{ __('messages.quotations.show_title') }}</p>
             <p class="font-mono font-bold text-gray-600 mt-1 text-sm" dir="ltr">{{ $quotation->quote_number }}</p>
             @if($quotation->cost_center_name)
-            <p class="text-xs text-purple-600 mt-1 flex items-center gap-1 justify-{{ $isAr ? 'start' : 'end' }}">
+            <p class="no-print text-xs text-purple-600 mt-1 flex items-center gap-1 justify-{{ $isAr ? 'start' : 'end' }}">
                 <i class="fas fa-layer-group"></i>
                 <a href="{{ route('cost-centers.show', $quotation) }}" class="hover:underline">{{ $quotation->cost_center_name }}</a>
             </p>
             @endif
-            <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $st['cls'] }}">{{ $st['label'] }}</span>
+            <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $st['cls'] }} print-uncolored">{{ $st['label'] }}</span>
         </div>
     </div>
 
@@ -318,7 +319,7 @@
                     <th class="px-3 py-2.5 text-[11px] font-bold">{{ __('messages.quotations.show_th_desc') }}</th>
                     <th class="px-3 py-2.5 text-center text-[11px] font-bold ">{{ __('messages.quotations.show_th_qty') }}</th>
                     <th class="px-3 py-2.5 text-center text-[11px] font-bold ">{{ __('messages.quotations.show_th_price') }}</th>
-                    <th class="px-3 py-2.5 text-center text-[11px] font-bold ">{{ __('messages.quotations.show_th_disc') }}</th>
+                    <th class="px-3 py-2.5 text-center text-[11px] font-bold ">{{ __('messages.quotations.th_uom') }}</th>
                     <th class="px-3 py-2.5 text-[11px] font-bold w-32" style="text-align:{{ $txtAlignOpp }}">{{ __('messages.quotations.show_th_total') }}</th>
                 </tr>
             </thead>
@@ -341,11 +342,8 @@
                         <td class="px-3 py-2 text-center text-gray-600 text-xs" dir="ltr">
                             {{ number_format($line->list_price, 2) }}
                         </td>
-                        <td class="px-3 py-2 text-center text-gray-400 text-xs" dir="ltr">
-                            @if($line->discount_percent > 0)
-                                {{ rtrim(rtrim(number_format($line->discount_percent, 2), '0'), '.') }}%
-                            @else —
-                            @endif
+                        <td class="px-3 py-2 text-center text-gray-600 text-xs" dir="ltr">
+                            {{ $line->uom ?? '—' }}
                         </td>
                         <td class="px-3 py-2 font-extrabold text-gray-900 text-xs" style="text-align:{{ $txtAlignOpp }}" dir="ltr">
                             {{ number_format($line->net_total, 2) }}
@@ -369,14 +367,8 @@
                     </td>
                     {{-- سعر الوحدة — فارغ --}}
                     <td class="px-3 py-2.5 text-center text-gray-300 text-xs">—</td>
-                    {{-- إجمالي الخصم بالقيمة --}}
-                    <td class="px-3 py-2.5 text-center font-bold text-red-600 text-xs" dir="ltr">
-                        @if($totalDisc > 0)
-                            - {{ number_format($totalDisc, 2) }}
-                        @else
-                            —
-                        @endif
-                    </td>
+                    {{-- الوحدة — فارغ --}}
+                    <td class="px-3 py-2.5 text-center text-gray-300 text-xs">—</td>
                     {{-- إجمالي الأصناف الصافي --}}
                     <td class="px-3 py-2.5 font-extrabold text-[#005B9F] text-sm" style="text-align:{{ $txtAlignOpp }}" dir="ltr">
                         {{ number_format($totalNet, 2) }}

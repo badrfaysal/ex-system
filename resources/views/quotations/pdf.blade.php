@@ -195,7 +195,7 @@
             <td style="width: 33%;" class="col-directional">{{ $isAr ? 'البيان / الوصف' : 'Description' }}</td>
             <td style="width: 8%;" class="col-center">{{ $isAr ? 'الكمية' : 'Qty' }}</td>
             <td style="width: 12%;" class="col-center">{{ $isAr ? 'سعر الوحدة' : 'Unit Price' }}</td>
-            <td style="width: 10%;" class="col-center">{{ $isAr ? 'خصم%' : 'Disc%' }}</td>
+            <td style="width: 10%;" class="col-center">{{ $isAr ? 'الوحدة' : 'UOM' }}</td>
             <td style="width: 18%;" class="col-directional">{{ $isAr ? 'الإجمالي' : 'Total' }}</td>
         </tr>
     </thead>
@@ -213,8 +213,8 @@
             <td class="col-directional item-description-cell">{{ $line->displayDescription($isAr ? 'ar' : 'en') }}</td>
             <td class="col-center item-qty-cell">{{ rtrim(rtrim(number_format($line->quantity, 2), '0'), '.') }}</td>
             <td class="col-center">{{ number_format($line->list_price, 2) }}</td>
-            <td class="col-center item-discount-cell">
-                @if($line->discount_percent > 0){{ rtrim(rtrim(number_format($line->discount_percent, 2), '0'), '.') }}%@else—@endif
+            <td class="col-center">
+                {{ $line->uom ?? '—' }}
             </td>
             <td class="col-directional item-total-cell">{{ number_format($line->net_total, 2) }}</td>
         </tr>
@@ -227,9 +227,7 @@
             </td>
             <td class="col-center">{{ rtrim(rtrim(number_format($totalQty, 2), '0'), '.') }}</td>
             <td></td>
-            <td class="col-center" style="color: #dc2626;">
-                @if($totalDisc > 0)- {{ number_format($totalDisc, 2) }}@else—@endif
-            </td>
+            <td class="col-center" style="color: #94a3b8;">—</td>
             <td class="col-directional" style="color: #005B9F; font-weight: bold; font-size: 12px;">
                 {{ number_format($totalNet, 2) }} <span style="font-size: 8px; color: #94a3b8; font-weight: normal;">{{ $quotation->currency }}</span>
             </td>

@@ -375,8 +375,11 @@
                     oninput="recalc()" class="w-full px-2 py-1.5 border border-gray-300 rounded text-center calc-q">
             </td>
             <td class="p-2">
-                <input type="text" name="items[${i}][uom]" value="${data.uom ?? ''}"
+                <input type="text" name="items[${i}][uom]" value="${data.uom ?? ''}" list="uom_list_${i}"
                     class="w-full px-2 py-1.5 border border-gray-200 rounded text-center text-xs">
+                <datalist id="uom_list_${i}">
+                    ${Object.keys(Q_UOM).map(k => `<option value="${Q_UOM[k]}"></option>`).join('')}
+                </datalist>
             </td>
             <td class="p-2">
                 <input type="number" step="0.01" min="0" name="items[${i}][list_price]" value="${data.list_price ?? 0}"

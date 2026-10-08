@@ -46,7 +46,7 @@ class QuotationMail extends Mailable
         $statusLabel = $statusLabels[$this->quotation->status] ?? $this->quotation->status;
 
         // مجلد كاش mpdf
-        $cacheDir = storage_path('app/mpdf-tmp');
+        $cacheDir = storage_path('app' . DIRECTORY_SEPARATOR . 'mpdf-tmp');
         if (!is_dir($cacheDir)) @mkdir($cacheDir, 0755, true);
 
         $mpdf = new Mpdf([
