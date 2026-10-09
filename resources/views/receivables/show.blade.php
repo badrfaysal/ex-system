@@ -360,7 +360,7 @@
 
     function syncPayCurrency() {
         const walletSel = document.getElementById('payWalletSelect');
-        if(walletSel && walletSel.value) {
+        if(walletSel && walletSel.value && walletSel.selectedIndex >= 0) {
             const walletCur = walletSel.options[walletSel.selectedIndex].dataset.currency;
             document.getElementById('payCurrencyInput').value = walletCur || 'EGP';
         }
@@ -458,7 +458,7 @@
         const invoiceCur = opt.dataset.currency;
         const invoiceBalance = parseFloat(opt.dataset.balance) || 0;
         const walletSel = document.getElementById('payWalletSelect');
-        const walletCur = walletSel ? walletSel.options[walletSel.selectedIndex].dataset.currency : invoiceCur;
+        const walletCur = (walletSel && walletSel.selectedIndex >= 0) ? walletSel.options[walletSel.selectedIndex].dataset.currency : invoiceCur;
         
         let walletAmt = invoiceBalance;
         if (walletCur !== invoiceCur) {
