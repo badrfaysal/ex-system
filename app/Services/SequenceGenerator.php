@@ -37,4 +37,11 @@ class SequenceGenerator
             return $prefix . '-' . now()->format('Y-m') . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
         });
     }
+
+    public static function preview(string $prefix): string
+    {
+        $counter = DB::table('document_counters')->where('key', $prefix)->first();
+        $seq = $counter ? $counter->next_number : 1;
+        return $prefix . '-' . now()->format('Y-m') . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+    }
 }

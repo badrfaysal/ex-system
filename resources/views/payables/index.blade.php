@@ -31,15 +31,42 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'إجمالي الفواتير' : 'Total Invoiced' }}</p>
-            <p class="text-2xl font-extrabold text-gray-900" dir="ltr">{{ number_format($summary['invoiced'], 2) }}</p>
+            @php $hasInvoiced = false; @endphp
+            @foreach($summary as $curr => $data)
+                @if(abs($data['invoiced']) > 0.001)
+                    @php $hasInvoiced = true; @endphp
+                    <p class="text-2xl font-extrabold text-gray-900" dir="ltr">{{ number_format($data['invoiced'], 2) }} <span class="text-sm font-normal text-gray-400">{{ $curr }}</span></p>
+                @endif
+            @endforeach
+            @if(!$hasInvoiced)
+                <p class="text-2xl font-extrabold text-gray-900" dir="ltr">0.00 <span class="text-sm font-normal text-gray-400">EGP</span></p>
+            @endif
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'إجمالي المدفوع' : 'Total Paid' }}</p>
-            <p class="text-2xl font-extrabold text-green-600" dir="ltr">{{ number_format($summary['paid'], 2) }}</p>
+            @php $hasPaid = false; @endphp
+            @foreach($summary as $curr => $data)
+                @if(abs($data['paid']) > 0.001)
+                    @php $hasPaid = true; @endphp
+                    <p class="text-2xl font-extrabold text-green-600" dir="ltr">{{ number_format($data['paid'], 2) }} <span class="text-sm font-normal text-green-400">{{ $curr }}</span></p>
+                @endif
+            @endforeach
+            @if(!$hasPaid)
+                <p class="text-2xl font-extrabold text-green-600" dir="ltr">0.00 <span class="text-sm font-normal text-green-400">EGP</span></p>
+            @endif
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5" style="background:linear-gradient(135deg,#fef2f2,#ffffff);">
             <p class="text-xs text-gray-400 mb-1">{{ $isAr ? 'إجمالي الرصيد المستحق' : 'Total Balance Due' }}</p>
-            <p class="text-2xl font-extrabold text-red-600" dir="ltr">{{ number_format($summary['balance'], 2) }}</p>
+            @php $hasBalance = false; @endphp
+            @foreach($summary as $curr => $data)
+                @if(abs($data['balance']) > 0.001)
+                    @php $hasBalance = true; @endphp
+                    <p class="text-2xl font-extrabold text-red-600" dir="ltr">{{ number_format($data['balance'], 2) }} <span class="text-sm font-normal text-red-400">{{ $curr }}</span></p>
+                @endif
+            @endforeach
+            @if(!$hasBalance)
+                <p class="text-2xl font-extrabold text-red-600" dir="ltr">0.00 <span class="text-sm font-normal text-red-400">EGP</span></p>
+            @endif
         </div>
     </div>
 

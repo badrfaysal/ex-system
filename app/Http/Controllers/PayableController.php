@@ -43,17 +43,35 @@ class PayableController extends Controller
             default       => $query->orderByRaw('(COALESCE(invoiced_total, 0) - COALESCE(paid_total, 0)) DESC'), // balance_desc
         };
 
-        // Summary
-        $summaryData = \Illuminate\Support\Facades\DB::query()
-            ->fromSub(clone $query, 'sub')
-            ->selectRaw('SUM(invoiced_total) as sum_invoiced, SUM(paid_total) as sum_paid, SUM(COALESCE(invoiced_total, 0) - COALESCE(paid_total, 0)) as sum_balance')
-            ->first();
+        // Summary grouped by currency
+        $vendorIds = (clone $query)->pluck('vendors.id');
 
-        $summary = [
-            'invoiced' => $summaryData->sum_invoiced ?? 0,
-            'paid'     => $summaryData->sum_paid ?? 0,
-            'balance'  => $summaryData->sum_balance ?? 0,
-        ];
+        $invoicedByCurrency = \Illuminate\Support\Facades\DB::table('purchase_invoices')
+            ->whereIn('vendor_id', $vendorIds)
+            ->groupByRaw('COALESCE(currency, "EGP")')
+            ->selectRaw('COALESCE(currency, "EGP") as currency_group, SUM(grand_total) as total')
+            ->pluck('total', 'currency_group');
+
+        $paidByCurrency = \Illuminate\Support\Facades\DB::table('vendor_payments')
+            ->whereIn('vendor_id', $vendorIds)
+            ->groupByRaw('COALESCE(foreign_currency, currency, "EGP")')
+            ->selectRaw('COALESCE(foreign_currency, currency, "EGP") as currency_group, SUM(COALESCE(foreign_amount, amount)) as total')
+            ->pluck('total', 'currency_group');
+
+        $currencies = collect(array_keys($invoicedByCurrency->toArray()))
+            ->merge(array_keys($paidByCurrency->toArray()))
+            ->unique();
+
+        $summary = [];
+        foreach ($currencies as $curr) {
+            $inv = $invoicedByCurrency[$curr] ?? 0;
+            $paid = $paidByCurrency[$curr] ?? 0;
+            $summary[$curr] = [
+                'invoiced' => $inv,
+                'paid'     => $paid,
+                'balance'  => $inv - $paid,
+            ];
+        }
 
         $vendors = $query->paginate(50)->withQueryString();
 

@@ -70,19 +70,19 @@ class Quotation extends Model
     }
 
     /**
-     * إجمالي الإيراد المحصّل فعليًا (سندات القبض) لمركز التكلفة ده
+     * إجمالي الإيراد بناءً على المبالغ الأساسية (بالعملة المحلية)
      */
     public function getTotalRevenueAttribute(): float
     {
-        return (float) $this->receipts()->sum('amount');
+        return (float) $this->receipts()->sum('base_amount');
     }
 
     /**
-     * إجمالي التكلفة: مصروفات + فواتير شراء
+     * إجمالي التكلفة بناءً على المبالغ الأساسية (بالعملة المحلية)
      */
     public function getTotalCostAttribute(): float
     {
-        return (float) $this->expenses()->sum('amount') + (float) $this->purchaseInvoices()->sum('grand_total');
+        return (float) $this->expenses()->sum('base_amount') + (float) $this->purchaseInvoices()->sum('base_grand_total');
     }
 
     public function getProfitAttribute(): float

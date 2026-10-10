@@ -43,17 +43,35 @@ class ReceivableController extends Controller
             default       => $query->orderByRaw('(COALESCE(invoiced_total, 0) - COALESCE(collected_total, 0)) DESC'), // balance_desc
         };
 
-        // Summary
-        $summaryData = \Illuminate\Support\Facades\DB::query()
-            ->fromSub(clone $query, 'sub')
-            ->selectRaw('SUM(invoiced_total) as sum_invoiced, SUM(collected_total) as sum_collected, SUM(COALESCE(invoiced_total, 0) - COALESCE(collected_total, 0)) as sum_balance')
-            ->first();
+        // Summary grouped by currency
+        $clientIds = (clone $query)->pluck('clients.id');
 
-        $summary = [
-            'invoiced'  => $summaryData->sum_invoiced ?? 0,
-            'collected' => $summaryData->sum_collected ?? 0,
-            'balance'   => $summaryData->sum_balance ?? 0,
-        ];
+        $invoicedByCurrency = \Illuminate\Support\Facades\DB::table('sales_invoices')
+            ->whereIn('client_id', $clientIds)
+            ->groupByRaw('COALESCE(currency, "EGP")')
+            ->selectRaw('COALESCE(currency, "EGP") as currency_group, SUM(grand_total) as total')
+            ->pluck('total', 'currency_group');
+
+        $collectedByCurrency = \Illuminate\Support\Facades\DB::table('client_receipts')
+            ->whereIn('client_id', $clientIds)
+            ->groupByRaw('COALESCE(foreign_currency, currency, "EGP")')
+            ->selectRaw('COALESCE(foreign_currency, currency, "EGP") as currency_group, SUM(COALESCE(foreign_amount, amount)) as total')
+            ->pluck('total', 'currency_group');
+
+        $currencies = collect(array_keys($invoicedByCurrency->toArray()))
+            ->merge(array_keys($collectedByCurrency->toArray()))
+            ->unique();
+
+        $summary = [];
+        foreach ($currencies as $curr) {
+            $inv = $invoicedByCurrency[$curr] ?? 0;
+            $col = $collectedByCurrency[$curr] ?? 0;
+            $summary[$curr] = [
+                'invoiced'  => $inv,
+                'collected' => $col,
+                'balance'   => $inv - $col,
+            ];
+        }
 
         $clients = $query->paginate(50)->withQueryString();
 

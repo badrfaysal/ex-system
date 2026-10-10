@@ -106,16 +106,18 @@ class PurchaseInvoiceController extends Controller
         })->get('currency') ?? collect();
 
         return view('purchase_invoices.create', [
-            'salesOrder'        => $salesOrder,
-            'vendors'           => $vendors,
-            'items'             => $items,
-            'currencies'        => $currencies,
+            'salesOrder'             => $salesOrder,
+            'vendors'                => $vendors,
+            'items'                  => $items,
+            'currencies'             => $currencies,
+            'invoice_number_preview' => \App\Services\SequenceGenerator::preview('PI'),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
+            'invoice_number' => 'required|string|max:50|unique:purchase_invoices,invoice_number',
             'sales_order_id'           => 'required|exists:sales_orders,id',
             'vendor_id'                => 'required|exists:vendors,id',
             'invoice_date'             => 'required|date',
@@ -238,3 +240,5 @@ class PurchaseInvoiceController extends Controller
         return view('purchase_invoices.print', compact('purchaseInvoice'));
     }
 }
+
+

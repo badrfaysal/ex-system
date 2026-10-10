@@ -124,10 +124,11 @@ class SalesInvoiceController extends Controller
         })->get('currency') ?? collect();
 
         return view('sales_invoices.create', [
-            'salesOrder'        => $salesOrder,
-            'lines'             => $lines,
-            'itemsList'         => $itemsList,
-            'currencies'        => $currencies,
+            'salesOrder'             => $salesOrder,
+            'lines'                  => $lines,
+            'itemsList'              => $itemsList,
+            'currencies'             => $currencies,
+            'invoice_number_preview' => \App\Services\SequenceGenerator::preview('SI'),
         ]);
     }
 
@@ -177,7 +178,7 @@ class SalesInvoiceController extends Controller
 
         $invoice = DB::transaction(function () use ($data, $salesOrder, $selectedItems, $extraLines, $extraDiscount) {
             $invoice = SalesInvoice::create([
-                'invoice_number' => SequenceGenerator::next('SI'),
+                'invoice_number' => $data['invoice_number'],
                 'sales_order_id' => $salesOrder->id,
                 'client_id'      => $salesOrder->client_id,
                 'quotation_id'   => $salesOrder->quotation_id,
@@ -365,3 +366,5 @@ class SalesInvoiceController extends Controller
     }
 
 }
+
+

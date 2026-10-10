@@ -55,8 +55,11 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'رقم الفاتورة' : 'Invoice No.' }}</label>
-                <input type="text" value="{{ $isAr ? '— يُولَّد تلقائيًا عند الحفظ —' : '— Generated automatically on save —' }}" disabled dir="ltr"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono bg-gray-100 text-gray-400 italic cursor-not-allowed">
+                <input type="text" name="invoice_number" value="{{ old('invoice_number', $invoice_number_preview ?? '') }}" required dir="ltr"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono focus:outline-none focus:border-[#008A3B]">
+                @error('invoice_number')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">{{ $isAr ? 'تاريخ الفاتورة' : 'Invoice Date' }} <span class="text-red-500">*</span></label>
@@ -459,3 +462,4 @@
 })();
 </script>
 @endsection
+
