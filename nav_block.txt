@@ -1,0 +1,284 @@
+<nav id="sidebar-nav" class="flex-grow py-2 sidebar-scroll overflow-y-auto">
+
+                {{-- الرئيسية --}}
+                <a href="{{ url('/') }}" class="sb-link mx-2 {{ request()->is('/') || request()->is('efc/public') ? 'active' : '' }}">
+                    <i class="fas fa-th-large sb-group-icon text-[#008A3B]"></i>
+                    <span>{{ __('messages.nav.dashboard') }}</span>
+                </a>
+
+                {{-- التقارير --}}
+                <a href="{{ route('reports.index') }}" class="sb-link mx-2 {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-line sb-group-icon text-violet-600"></i>
+                    <span>{{ $rtl ? 'التقارير والتحليلات' : 'Reports & Analytics' }}</span>
+                </a>
+
+                {{-- ===== العملاء والمستحقات ===== --}}
+                <p class="sb-section">{{ $rtl ? 'العملاء والمستحقات' : 'Clients & Receivables' }}</p>
+
+                {{-- العملاء --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-users sb-group-icon text-sky-600"></i>
+                        <span>{{ __('messages.nav.clients') }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('clients.index') }}"  class="sb-sub {{ request()->routeIs('clients.index')  ? 'active' : '' }}">{{ __('messages.nav.view_clients') }}</a>
+                        <a href="{{ route('clients.create') }}" class="sb-sub {{ request()->routeIs('clients.create') ? 'active' : '' }}">{{ __('messages.nav.add_client') }}</a>
+                    </div>
+                </div>
+
+                {{-- المستحقات (عملاء) --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-hand-holding-usd sb-group-icon text-lime-600"></i>
+                        <span>{{ $rtl ? 'المستحقات (عملاء)' : 'Receivables' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('receivables.index') }}" class="sb-sub {{ request()->routeIs('receivables.*') || request()->routeIs('client-receipts.*') ? 'active' : '' }}">{{ $rtl ? 'عرض المستحقات' : 'View Receivables' }}</a>
+                    </div>
+                </div>
+
+                {{-- قوائم الأسعار --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-tags sb-group-icon text-teal-600"></i>
+                        <span>{{ __('messages.nav.price_lists') }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('price-lists.index') }}"  class="sb-sub {{ request()->routeIs('price-lists.index')  ? 'active' : '' }}">{{ __('messages.nav.view_price_lists') }}</a>
+                        <a href="{{ route('price-lists.create') }}" class="sb-sub {{ request()->routeIs('price-lists.create') ? 'active' : '' }}">{{ __('messages.nav.add_price_list') }}</a>
+                    </div>
+                </div>
+
+
+                {{-- ===== الفواتير والأوامر ===== --}}
+                <p class="sb-section">{{ $rtl ? 'الفواتير والأوامر' : 'Invoices & Orders' }}</p>
+
+                {{-- فواتير البيع --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-file-invoice sb-group-icon text-emerald-600"></i>
+                        <span>{{ $rtl ? 'فواتير البيع' : 'Sales Invoices' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('sales-invoices.index') }}" class="sb-sub {{ request()->routeIs('sales-invoices.*') ? 'active' : '' }}">
+                            {{ $rtl ? 'عرض فواتير البيع' : 'View Sales Invoices' }}
+                        </a>
+                    </div>
+                </div>
+
+                {{-- فواتير الشراء --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-file-invoice sb-group-icon text-cyan-600"></i>
+                        <span>{{ $rtl ? 'فواتير الشراء' : 'Purchase Invoices' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('purchase-invoices.index') }}" class="sb-sub {{ request()->routeIs('purchase-invoices.*') ? 'active' : '' }}">{{ $rtl ? 'عرض فواتير الشراء' : 'View Purchase Invoices' }}</a>
+                    </div>
+                </div>
+
+                {{-- أوامر البيع --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-file-contract sb-group-icon text-blue-600"></i>
+                        <span>{{ $rtl ? 'أوامر البيع' : 'Sales Orders' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('sales-orders.index') }}" class="sb-sub {{ request()->routeIs('sales-orders.*') ? 'active' : '' }}">
+                            {{ $rtl ? 'كل أوامر البيع' : 'All Sales Orders' }}
+                        </a>
+                    </div>
+                </div>
+
+
+                {{-- ===== المشتريات والموردين ===== --}}
+                <p class="sb-section">{{ $rtl ? 'المشتريات والموردين' : 'Purchases & Vendors' }}</p>
+
+                {{-- الموردون --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-truck sb-group-icon text-indigo-600"></i>
+                        <span>{{ __('messages.nav.vendors') }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('vendors.index') }}"  class="sb-sub {{ request()->routeIs('vendors.index')  ? 'active' : '' }}">{{ __('messages.nav.view_vendors') }}</a>
+                        <a href="{{ route('vendors.create') }}" class="sb-sub {{ request()->routeIs('vendors.create') ? 'active' : '' }}">{{ __('messages.nav.add_vendor') }}</a>
+                    </div>
+                </div>
+
+                {{-- الالتزامات (موردين) --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-file-invoice-dollar sb-group-icon text-rose-600"></i>
+                        <span>{{ $rtl ? 'الالتزامات (موردين)' : 'Payables' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('payables.index') }}" class="sb-sub {{ request()->routeIs('payables.*') || request()->routeIs('vendor-payments.*') ? 'active' : '' }}">{{ $rtl ? 'عرض الالتزامات' : 'View Payables' }}</a>
+                    </div>
+                </div>
+
+
+                {{-- ===== المخزون والأصناف ===== --}}
+                <p class="sb-section">{{ $rtl ? 'المخزون والأصناف' : 'Inventory & Items' }}</p>
+
+                {{-- الأصناف --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-box sb-group-icon text-orange-600"></i>
+                        <span>{{ __('messages.nav.items') }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('items.index') }}"  class="sb-sub {{ request()->routeIs('items.index')  ? 'active' : '' }}">{{ __('messages.nav.view_items') }}</a>
+                        <a href="{{ route('items.create') }}" class="sb-sub {{ request()->routeIs('items.create') ? 'active' : '' }}">{{ __('messages.nav.add_item') }}</a>
+                    </div>
+                </div>
+
+                {{-- طباعة الملصقات --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-print sb-group-icon text-pink-600"></i>
+                        <span>{{ $rtl ? 'طباعة الملصقات' : 'Print Labels' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('labels.create') }}" class="sb-sub {{ request()->routeIs('labels.*') ? 'active' : '' }}">{{ $rtl ? 'طباعة ملصق جديد' : 'Print New Label' }}</a>
+                    </div>
+                </div>
+
+
+                {{-- التوريد --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-network-wired sb-group-icon text-fuchsia-600"></i>
+                        <span>{{ __('messages.nav.sourcing') }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('sourcing.index') }}" class="sb-sub {{ request()->routeIs('sourcing.*') ? 'active' : '' }}">{{ __('messages.nav.sourcing_link') }}</a>
+                    </div>
+                </div>
+
+
+                {{-- ===== عروض الأسعار والتكاليف ===== --}}
+                <p class="sb-section">{{ $rtl ? 'عروض الأسعار والتكاليف' : 'Quotations & Cost Centers' }}</p>
+
+                {{-- عروض الأسعار --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-file-invoice-dollar sb-group-icon text-amber-600"></i>
+                        <span>{{ __('messages.nav.quotations') }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('quotations.index') }}"  class="sb-sub {{ request()->routeIs('quotations.index')  ? 'active' : '' }}">{{ __('messages.nav.view_quotations') }}</a>
+                        <a href="{{ route('quotations.create') }}" class="sb-sub {{ request()->routeIs('quotations.create') ? 'active' : '' }}">{{ __('messages.nav.add_quotation') }}</a>
+                        <a href="{{ route('quotations.sent-log') }}" class="sb-sub {{ request()->routeIs('quotations.sent-log') ? 'active' : '' }}">{{ __('messages.nav.sent_log') }}</a>
+                    </div>
+                </div>
+
+                {{-- مراكز التكلفة --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-layer-group sb-group-icon text-yellow-600"></i>
+                        <span>{{ $rtl ? 'مراكز التكلفة' : 'Cost Centers' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('cost-centers.index') }}" class="sb-sub {{ request()->routeIs('cost-centers.*') ? 'active' : '' }}">{{ $rtl ? 'عرض مراكز التكلفة' : 'View Cost Centers' }}</a>
+                    </div>
+                </div>
+
+
+                {{-- ===== الإدارة المالية ===== --}}
+                <p class="sb-section">{{ $rtl ? 'الإدارة المالية' : 'Financial Management' }}</p>
+
+                {{-- الحسابات البنكية --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-wallet sb-group-icon text-[#005B9F]"></i>
+                        <span>{{ $rtl ? 'الحسابات البنكية والصناديق' : 'Bank Accounts & Cash Boxes' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('wallets.index') }}" class="sb-sub {{ request()->routeIs('wallets.*') ? 'active' : '' }}">{{ $rtl ? 'عرض الحسابات' : 'View Accounts' }}</a>
+                        <a href="{{ route('wallet-transfers.create') }}" class="sb-sub {{ request()->routeIs('wallet-transfers.*') ? 'active' : '' }}">{{ $rtl ? 'تحويل بين حسابات' : 'Transfer Between Accounts' }}</a>
+                    </div>
+                </div>
+
+                {{-- المصروفات --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-receipt sb-group-icon text-red-600"></i>
+                        <span>{{ $rtl ? 'المصروفات' : 'Expenses' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('expenses.index') }}" class="sb-sub {{ request()->routeIs('expenses.index') ? 'active' : '' }}">{{ $rtl ? 'عرض المصروفات' : 'View Expenses' }}</a>
+                        <a href="{{ route('expenses.create') }}" class="sb-sub {{ request()->routeIs('expenses.create') ? 'active' : '' }}">{{ $rtl ? 'إضافة مصروف' : 'Add Expense' }}</a>
+                    </div>
+                </div>
+
+
+                {{-- ===== السجلات ===== --}}
+                <p class="sb-section">{{ $rtl ? 'السجلات' : 'Logs & Records' }}</p>
+
+                {{-- سجل الماليات --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-chart-line sb-group-icon text-purple-600"></i>
+                        <span>{{ $rtl ? 'سجل الماليات' : 'Financial Logs' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('financial-logs.index') }}" class="sb-sub {{ request()->routeIs('financial-logs.*') ? 'active' : '' }}">{{ $rtl ? 'عرض السجل' : 'View Log' }}</a>
+                    </div>
+                </div>
+
+                {{-- سجل العمليات --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-history sb-group-icon text-slate-500"></i>
+                        <span>{{ app()->getLocale() === 'ar' ? 'سجل العمليات' : 'Activity Logs' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('activity-logs.index') }}" class="sb-sub {{ request()->routeIs('activity-logs.*') ? 'active' : '' }}">{{ app()->getLocale() === 'ar' ? 'عرض السجل' : 'View Log' }}</a>
+                    </div>
+                </div>
+
+
+                {{-- ===== المجموعات والدليل ===== --}}
+                <p class="sb-section">{{ app()->getLocale() === 'ar' ? 'المجموعات والدليل' : 'Groups & Directory' }}</p>
+
+                {{-- مجموعات جهات الاتصال --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-layer-group sb-group-icon text-indigo-500"></i>
+                        <span>{{ app()->getLocale() === 'ar' ? 'سجل المجموعات' : 'Contact Groups' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('contact-groups.index') }}" class="sb-sub {{ request()->routeIs('contact-groups.*') || request()->routeIs('contacts.*') ? 'active' : '' }}">{{ app()->getLocale() === 'ar' ? 'عرض المجموعات' : 'View Groups' }}</a>
+                    </div>
+                </div>
+
+                {{-- ===== الإعدادات والنظام ===== --}}
+                <p class="sb-section">{{ __('messages.nav.system') }}</p>
+                
+                {{-- إغلاق الفترات --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-lock sb-group-icon text-pink-600"></i>
+                        <span>{{ $rtl ? 'إغلاق الفترات المحاسبية' : 'Period Locks' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('period-locks.index') }}" class="sb-sub {{ request()->routeIs('period-locks.*') ? 'active' : '' }}">{{ $rtl ? 'إدارة الفترات' : 'Manage Periods' }}</a>
+                    </div>
+                </div>
+
+                {{-- الإعدادات --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-cogs sb-group-icon text-gray-500"></i>
+                        <span>{{ __('messages.nav.settings') }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('settings.index') }}" class="sb-sub {{ request()->routeIs('settings.*') ? 'active' : '' }}">{{ __('messages.nav.settings') }}</a>
+                    </div>
+                </div>
+
+
+
+            </nav>

@@ -24,6 +24,7 @@ use App\Http\Controllers\WalletTransferController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\PeriodLockController;
+use App\Http\Controllers\LabelController;
 
 use App\Models\Quotation;
 
@@ -56,6 +57,12 @@ Route::middleware('auth')->group(function () {
     // الموردون والأصناف
     Route::resource('vendors', VendorController::class);
     Route::resource('items', ItemController::class);
+    
+    // طباعة الملصقات
+    Route::get('/labels/history', [LabelController::class, 'index'])->name('labels.index');
+    Route::get('/labels/create', [LabelController::class, 'create'])->name('labels.create');
+    Route::post('/labels/print', [LabelController::class, 'print'])->name('labels.print');
+
 
     // الإعدادات
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index');

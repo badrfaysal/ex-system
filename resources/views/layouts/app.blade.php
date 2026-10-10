@@ -201,9 +201,7 @@
                 </a>
 
                 {{-- ===== العملاء والمستحقات ===== --}}
-                <p class="sb-section">{{ $rtl ? 'العملاء والمستحقات' : 'Clients & Receivables' }}</p>
-
-                {{-- العملاء --}}
+                                <p class="sb-section">{{ $rtl ? 'العمليات الأساسية' : 'Basic Operations' }}</p>
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-users sb-group-icon text-sky-600"></i>
@@ -215,75 +213,6 @@
                     </div>
                 </div>
 
-                {{-- المستحقات (عملاء) --}}
-                <div class="mx-2 mb-0.5">
-                    <div class="sb-title">
-                        <i class="fas fa-hand-holding-usd sb-group-icon text-lime-600"></i>
-                        <span>{{ $rtl ? 'المستحقات (عملاء)' : 'Receivables' }}</span>
-                    </div>
-                    <div class="sb-indent space-y-0.5">
-                        <a href="{{ route('receivables.index') }}" class="sb-sub {{ request()->routeIs('receivables.*') || request()->routeIs('client-receipts.*') ? 'active' : '' }}">{{ $rtl ? 'عرض المستحقات' : 'View Receivables' }}</a>
-                    </div>
-                </div>
-
-                {{-- قوائم الأسعار --}}
-                <div class="mx-2 mb-0.5">
-                    <div class="sb-title">
-                        <i class="fas fa-tags sb-group-icon text-teal-600"></i>
-                        <span>{{ __('messages.nav.price_lists') }}</span>
-                    </div>
-                    <div class="sb-indent space-y-0.5">
-                        <a href="{{ route('price-lists.index') }}"  class="sb-sub {{ request()->routeIs('price-lists.index')  ? 'active' : '' }}">{{ __('messages.nav.view_price_lists') }}</a>
-                        <a href="{{ route('price-lists.create') }}" class="sb-sub {{ request()->routeIs('price-lists.create') ? 'active' : '' }}">{{ __('messages.nav.add_price_list') }}</a>
-                    </div>
-                </div>
-
-
-                {{-- ===== الفواتير والأوامر ===== --}}
-                <p class="sb-section">{{ $rtl ? 'الفواتير والأوامر' : 'Invoices & Orders' }}</p>
-
-                {{-- فواتير البيع --}}
-                <div class="mx-2 mb-0.5">
-                    <div class="sb-title">
-                        <i class="fas fa-file-invoice sb-group-icon text-emerald-600"></i>
-                        <span>{{ $rtl ? 'فواتير البيع' : 'Sales Invoices' }}</span>
-                    </div>
-                    <div class="sb-indent space-y-0.5">
-                        <a href="{{ route('sales-invoices.index') }}" class="sb-sub {{ request()->routeIs('sales-invoices.*') ? 'active' : '' }}">
-                            {{ $rtl ? 'عرض فواتير البيع' : 'View Sales Invoices' }}
-                        </a>
-                    </div>
-                </div>
-
-                {{-- فواتير الشراء --}}
-                <div class="mx-2 mb-0.5">
-                    <div class="sb-title">
-                        <i class="fas fa-file-invoice sb-group-icon text-cyan-600"></i>
-                        <span>{{ $rtl ? 'فواتير الشراء' : 'Purchase Invoices' }}</span>
-                    </div>
-                    <div class="sb-indent space-y-0.5">
-                        <a href="{{ route('purchase-invoices.index') }}" class="sb-sub {{ request()->routeIs('purchase-invoices.*') ? 'active' : '' }}">{{ $rtl ? 'عرض فواتير الشراء' : 'View Purchase Invoices' }}</a>
-                    </div>
-                </div>
-
-                {{-- أوامر البيع --}}
-                <div class="mx-2 mb-0.5">
-                    <div class="sb-title">
-                        <i class="fas fa-file-contract sb-group-icon text-blue-600"></i>
-                        <span>{{ $rtl ? 'أوامر البيع' : 'Sales Orders' }}</span>
-                    </div>
-                    <div class="sb-indent space-y-0.5">
-                        <a href="{{ route('sales-orders.index') }}" class="sb-sub {{ request()->routeIs('sales-orders.*') ? 'active' : '' }}">
-                            {{ $rtl ? 'كل أوامر البيع' : 'All Sales Orders' }}
-                        </a>
-                    </div>
-                </div>
-
-
-                {{-- ===== المشتريات والموردين ===== --}}
-                <p class="sb-section">{{ $rtl ? 'المشتريات والموردين' : 'Purchases & Vendors' }}</p>
-
-                {{-- الموردون --}}
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-truck sb-group-icon text-indigo-600"></i>
@@ -295,22 +224,6 @@
                     </div>
                 </div>
 
-                {{-- الالتزامات (موردين) --}}
-                <div class="mx-2 mb-0.5">
-                    <div class="sb-title">
-                        <i class="fas fa-file-invoice-dollar sb-group-icon text-rose-600"></i>
-                        <span>{{ $rtl ? 'الالتزامات (موردين)' : 'Payables' }}</span>
-                    </div>
-                    <div class="sb-indent space-y-0.5">
-                        <a href="{{ route('payables.index') }}" class="sb-sub {{ request()->routeIs('payables.*') || request()->routeIs('vendor-payments.*') ? 'active' : '' }}">{{ $rtl ? 'عرض الالتزامات' : 'View Payables' }}</a>
-                    </div>
-                </div>
-
-
-                {{-- ===== المخزون والأصناف ===== --}}
-                <p class="sb-section">{{ $rtl ? 'المخزون والأصناف' : 'Inventory & Items' }}</p>
-
-                {{-- الأصناف --}}
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-box sb-group-icon text-orange-600"></i>
@@ -322,7 +235,16 @@
                     </div>
                 </div>
 
-                {{-- التوريد --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-print sb-group-icon text-pink-600"></i>
+                        <span>{{ $rtl ? 'طباعة الملصقات' : 'Print Labels' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('labels.create') }}" class="sb-sub {{ request()->routeIs('labels.*') ? 'active' : '' }}">{{ $rtl ? 'طباعة ملصق جديد' : 'Print New Label' }}</a>
+                    </div>
+                </div>
+
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-network-wired sb-group-icon text-fuchsia-600"></i>
@@ -333,11 +255,37 @@
                     </div>
                 </div>
 
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-tags sb-group-icon text-teal-600"></i>
+                        <span>{{ __('messages.nav.price_lists') }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('price-lists.index') }}"  class="sb-sub {{ request()->routeIs('price-lists.index')  ? 'active' : '' }}">{{ __('messages.nav.view_price_lists') }}</a>
+                        <a href="{{ route('price-lists.create') }}" class="sb-sub {{ request()->routeIs('price-lists.create') ? 'active' : '' }}">{{ __('messages.nav.add_price_list') }}</a>
+                    </div>
+                </div>
 
-                {{-- ===== عروض الأسعار والتكاليف ===== --}}
-                <p class="sb-section">{{ $rtl ? 'عروض الأسعار والتكاليف' : 'Quotations & Cost Centers' }}</p>
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-hand-holding-usd sb-group-icon text-lime-600"></i>
+                        <span>{{ $rtl ? 'المستحقات (عملاء)' : 'Receivables' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('receivables.index') }}" class="sb-sub {{ request()->routeIs('receivables.*') || request()->routeIs('client-receipts.*') ? 'active' : '' }}">{{ $rtl ? 'عرض المستحقات' : 'View Receivables' }}</a>
+                    </div>
+                </div>
 
-                {{-- عروض الأسعار --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-file-invoice-dollar sb-group-icon text-rose-600"></i>
+                        <span>{{ $rtl ? 'الالتزامات (موردين)' : 'Payables' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('payables.index') }}" class="sb-sub {{ request()->routeIs('payables.*') || request()->routeIs('vendor-payments.*') ? 'active' : '' }}">{{ $rtl ? 'عرض الالتزامات' : 'View Payables' }}</a>
+                    </div>
+                </div>
+
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-file-invoice-dollar sb-group-icon text-amber-600"></i>
@@ -350,7 +298,6 @@
                     </div>
                 </div>
 
-                {{-- مراكز التكلفة --}}
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-layer-group sb-group-icon text-yellow-600"></i>
@@ -361,11 +308,41 @@
                     </div>
                 </div>
 
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-file-contract sb-group-icon text-blue-600"></i>
+                        <span>{{ $rtl ? 'أوامر البيع' : 'Sales Orders' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('sales-orders.index') }}" class="sb-sub {{ request()->routeIs('sales-orders.*') ? 'active' : '' }}">
+                            {{ $rtl ? 'كل أوامر البيع' : 'All Sales Orders' }}
+                        </a>
+                    </div>
+                </div>
 
-                {{-- ===== الإدارة المالية ===== --}}
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-file-invoice sb-group-icon text-emerald-600"></i>
+                        <span>{{ $rtl ? 'فواتير البيع' : 'Sales Invoices' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('sales-invoices.index') }}" class="sb-sub {{ request()->routeIs('sales-invoices.*') ? 'active' : '' }}">
+                            {{ $rtl ? 'عرض فواتير البيع' : 'View Sales Invoices' }}
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mx-2 mb-0.5">
+                    <div class="sb-title">
+                        <i class="fas fa-file-invoice sb-group-icon text-cyan-600"></i>
+                        <span>{{ $rtl ? 'فواتير الشراء' : 'Purchase Invoices' }}</span>
+                    </div>
+                    <div class="sb-indent space-y-0.5">
+                        <a href="{{ route('purchase-invoices.index') }}" class="sb-sub {{ request()->routeIs('purchase-invoices.*') ? 'active' : '' }}">{{ $rtl ? 'عرض فواتير الشراء' : 'View Purchase Invoices' }}</a>
+                    </div>
+                </div>
+
                 <p class="sb-section">{{ $rtl ? 'الإدارة المالية' : 'Financial Management' }}</p>
-
-                {{-- الحسابات البنكية --}}
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-wallet sb-group-icon text-[#005B9F]"></i>
@@ -377,7 +354,6 @@
                     </div>
                 </div>
 
-                {{-- المصروفات --}}
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-receipt sb-group-icon text-red-600"></i>
@@ -389,11 +365,7 @@
                     </div>
                 </div>
 
-
-                {{-- ===== السجلات ===== --}}
                 <p class="sb-section">{{ $rtl ? 'السجلات' : 'Logs & Records' }}</p>
-
-                {{-- سجل الماليات --}}
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-chart-line sb-group-icon text-purple-600"></i>
@@ -404,7 +376,6 @@
                     </div>
                 </div>
 
-                {{-- سجل العمليات --}}
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-history sb-group-icon text-slate-500"></i>
@@ -415,11 +386,7 @@
                     </div>
                 </div>
 
-
-                {{-- ===== المجموعات والدليل ===== --}}
                 <p class="sb-section">{{ app()->getLocale() === 'ar' ? 'المجموعات والدليل' : 'Groups & Directory' }}</p>
-
-                {{-- مجموعات جهات الاتصال --}}
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-layer-group sb-group-icon text-indigo-500"></i>
@@ -430,10 +397,7 @@
                     </div>
                 </div>
 
-                {{-- ===== الإعدادات والنظام ===== --}}
                 <p class="sb-section">{{ __('messages.nav.system') }}</p>
-                
-                {{-- إغلاق الفترات --}}
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-lock sb-group-icon text-pink-600"></i>
@@ -444,7 +408,6 @@
                     </div>
                 </div>
 
-                {{-- الإعدادات --}}
                 <div class="mx-2 mb-0.5">
                     <div class="sb-title">
                         <i class="fas fa-cogs sb-group-icon text-gray-500"></i>
@@ -454,8 +417,6 @@
                         <a href="{{ route('settings.index') }}" class="sb-sub {{ request()->routeIs('settings.*') ? 'active' : '' }}">{{ __('messages.nav.settings') }}</a>
                     </div>
                 </div>
-
-
 
             </nav>
 
@@ -585,6 +546,30 @@
             <div class="p-4 md:p-8 flex-1">
                 {{-- رسائل النجاح / الخطأ العامة --}}
                 @if (session('success'))
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            try {
+                                var AudioContext = window.AudioContext || window.webkitAudioContext;
+                                if (!AudioContext) return;
+                                var ctx = new AudioContext();
+                                var playTone = function(freq, startTime, duration) {
+                                    var osc = ctx.createOscillator();
+                                    var gain = ctx.createGain();
+                                    osc.type = 'sine';
+                                    osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+                                    gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
+                                    gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + startTime + 0.05);
+                                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + startTime + duration);
+                                    osc.connect(gain);
+                                    gain.connect(ctx.destination);
+                                    osc.start(ctx.currentTime + startTime);
+                                    osc.stop(ctx.currentTime + startTime + duration);
+                                };
+                                playTone(659.25, 0, 0.2);
+                                playTone(783.99, 0.1, 0.4);
+                            } catch (e) {}
+                        });
+                    </script>
                     <div class="print:hidden max-w-7xl mx-auto mb-6 flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-3.5 shadow-sm animate-fade-in">
                         <i class="fas fa-check-circle text-green-500 text-lg"></i>
                         <span class="font-bold">{!! session('success') !!}</span>
@@ -976,7 +961,13 @@
 
     <script>
         // منع الإرسال المزدوج للنماذج (Double Submit Prevention)
+        var submittedForms = new WeakSet();
         document.addEventListener('submit', function (e) {
+            if (submittedForms.has(e.target)) {
+                e.preventDefault();
+                return false;
+            }
+            submittedForms.add(e.target);
             // تجاهل النماذج التي تم استثناؤها
             if (e.target.hasAttribute('data-allow-multiple')) return;
 
