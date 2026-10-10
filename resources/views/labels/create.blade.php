@@ -26,7 +26,7 @@
         </a>
     </div>
 
-    <form action="{{ route('labels.print') }}" method="POST" target="_blank" onsubmit="setTimeout(() => window.location.reload(), 500);">
+    <form action="{{ route('labels.print') }}" method="POST" target="_blank" onsubmit="setTimeout(() => { let b = this.querySelector('button[type=submit]'); if(b){ b.disabled=false; b.classList.remove('opacity-75','cursor-not-allowed'); b.innerHTML = b.innerHTML.replace('<i class=\'fas fa-spinner fa-spin mx-1\'></i>', '').trim(); } if(typeof submittedForms !== 'undefined') submittedForms.delete(this); }, 1500);">
         @csrf
         
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">

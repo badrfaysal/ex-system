@@ -239,3 +239,33 @@ Route::get('/delete-qt-10', function () {
 
     return "تم حذف عرض السعر وكل ما يرتبط به من فواتير وسجلات العمليات بالكامل بنجاح!";
 });
+
+Route::get('/migrate-database', function () {
+    try {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('printed_labels')) {
+            \Illuminate\Support\Facades\Schema::create('printed_labels', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('item_name');
+                $table->string('brand_name')->nullable();
+                $table->string('manufacturer')->nullable();
+                $table->string('manufacturer_address')->nullable();
+                $table->string('exporter')->nullable();
+                $table->string('exporter_address')->nullable();
+                $table->string('importer')->nullable();
+                $table->string('importer_address')->nullable();
+                $table->string('production_date')->nullable();
+                $table->string('expiry_date')->nullable();
+                $table->string('batch_code')->nullable();
+                $table->string('website')->nullable();
+                $table->integer('copies')->default(1);
+                $table->timestamps();
+            });
+            return 'Table created successfully! You can now use the labels feature.';
+        }
+        return 'Table already exists!';
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
+});
+
+

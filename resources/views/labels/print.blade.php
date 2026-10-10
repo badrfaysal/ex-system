@@ -5,7 +5,6 @@
     <title>طباعة ملصق</title>
     <style>
         @page {
-            size: 50mm 50mm; /* 5x5 cm */
             margin: 0;
         }
         body {
@@ -25,9 +24,9 @@
             flex-direction: column;
             justify-content: space-between;
             overflow: hidden;
-            font-size: 13px; /* Slightly lower to allow for more gap */
-            line-height: 1.3;
-            padding: 1.5mm 2mm;
+            font-size: 20px; 
+            line-height: 1.1; /* Reduced to fit */
+            padding: 0.5mm 2mm 1.5mm 2mm; /* Less padding on top */
             page-break-after: always;
             font-weight: 900;
         }
@@ -35,11 +34,11 @@
         .header {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: 1.5mm;
+            margin-bottom: 1mm; /* Reduced */
         }
         
         .logo {
-            height: 17mm;
+            height: 21mm; /* Increased slightly */
             width: auto;
         }
 
@@ -47,7 +46,7 @@
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            gap: 1.5mm; /* Nice breathing space between lines */
+            gap: 1.2mm; /* Added breathing room between lines */
         }
 
         .line {
@@ -66,9 +65,11 @@
 
         .footer {
             text-align: center;
-            font-size: 11px;
-            border-top: 1px solid #000;
-            padding-top: 1.5mm;
+            font-size: 16px; /* Reduced to ensure it stays on one line */
+            white-space: nowrap;
+            overflow: hidden;
+            border-top: 2px solid #000;
+            padding-top: 1mm;
             margin-top: auto;
             width: 100%;
         }
@@ -91,7 +92,7 @@
             </div>
 
             <div class="content">
-                <div style="font-size: 17px; margin-bottom: 2mm;">
+                <div style="font-size: 20px; margin-bottom: 1mm;">
                     {{ $data['brand_name'] }} - {{ $data['item_name'] }}
                 </div>
                 <div class="line">
@@ -120,10 +121,12 @@
                 </div>
             </div>
 
-            <div style="margin-top: 2mm; font-size: 13px; display: flex; flex-direction: column; gap: 1.5mm;">
-                <div><span style="text-decoration: underline;">انتاج:</span> {{ $data['production_date'] }}</div>
-                <div><span style="text-decoration: underline;">انتهاء:</span> {{ $data['expiry_date'] }}</div>
-                <div><span style="text-decoration: underline;">تشغيلة:</span> {{ $data['batch_code'] }}</div>
+            <div style="margin-top: 2mm; font-size: 20px; display: flex; flex-direction: column; gap: 1.2mm;">
+                <div style="display: flex; justify-content: space-between;">
+                    <div><span style="text-decoration: underline;">انتاج:</span> {{ $data['production_date'] }}</div>
+                    <div><span style="text-decoration: underline;">انتهاء:</span> {{ $data['expiry_date'] }}</div>
+                </div>
+                <div><span>تشغيلة:</span> {{ $data['batch_code'] }}</div>
             </div>
 
             <div class="footer">

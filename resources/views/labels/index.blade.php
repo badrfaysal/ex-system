@@ -51,7 +51,7 @@
                             <td class="px-4 py-3">{{ $label->copies }}</td>
                             <td class="px-4 py-3" dir="ltr">{{ $label->created_at->format('Y-m-d H:i') }}</td>
                             <td class="px-4 py-3 text-center">
-                                <form action="{{ route('labels.print') }}" method="POST" target="_blank" class="inline" onsubmit="setTimeout(() => window.location.reload(), 500);">
+                                <form action="{{ route('labels.print') }}" method="POST" target="_blank" class="inline" onsubmit="setTimeout(() => { let b = this.querySelector('button[type=submit]'); if(b){ b.disabled=false; b.classList.remove('opacity-75','cursor-not-allowed'); b.innerHTML = b.innerHTML.replace('<i class=\'fas fa-spinner fa-spin mx-1\'></i>', '').trim(); } if(typeof submittedForms !== 'undefined') submittedForms.delete(this); }, 1500);">
                                     @csrf
                                     <!-- Hidden inputs to resubmit -->
                                     <input type="hidden" name="brand_name" value="{{ $label->brand_name }}">
