@@ -122,38 +122,45 @@
                         @php 
                             $item = $row['item']; 
                             $isZero = $row['remaining'] == 0;
+                            $isCert = $item->isCertificate();
                         @endphp
-                        <tr class="border-b border-gray-100 si-line {{ $isZero ? 'opacity-50' : '' }}" data-id="{{ $item->id }}">
+                        <tr class="border-b border-gray-100 si-line {{ $isCert ? 'bg-slate-200/80 border-y-2 border-slate-300' : '' }} {{ $isZero ? 'opacity-50' : '' }}" data-id="{{ $item->id }}">
                             <td class="p-3 text-center">
                                 <input type="checkbox" name="selected_items[]" value="{{ $item->id }}" class="si-check w-4 h-4 rounded" {{ $isZero ? '' : 'checked' }}>
                             </td>
-                            <td class="p-3 text-gray-800">{{ $item->displayDescription($isAr ? 'ar' : 'en') }}</td>
-                            <td class="p-3 text-center" dir="ltr">{{ rtrim(rtrim(number_format($item->quantity, 2), '0'), '.') }}</td>
-                            <td class="p-3 text-center font-bold text-amber-600" dir="ltr">{{ rtrim(rtrim(number_format($row['remaining'], 2), '0'), '.') }}</td>
-                            <td class="p-3">
-                                <input type="number" step="any" min="0.001" name="quantities[{{ $item->id }}]"
-                                    value="{{ old('quantities.'.$item->id, $isZero ? '' : $row['remaining']) }}"
-                                    class="si-qty w-full px-2 py-1.5 border border-gray-300 rounded text-center"
+                            <td class="p-3 {{ $isCert ? 'text-slate-900 font-extrabold' : 'text-gray-800' }}">
+                                @if($isCert)<i class="fas fa-certificate text-amber-600 me-1"></i>@endif
+                                {{ $item->displayDescription($isAr ? 'ar' : 'en') }}
+                            </td>
+                            <td class="p-3 text-center" dir="ltr">{{ $isCert ? '—' : rtrim(rtrim(number_format($item->quantity, 2), '0'), '.') }}</td>
+                            <td class="p-3 text-center font-bold text-amber-600" dir="ltr">{{ $isCert ? '—' : rtrim(rtrim(number_format($row['remaining'], 2), '0'), '.') }}</td>
+                            <td class="p-3 text-center">
+                                <input type="{{ $isCert ? 'hidden' : 'number' }}" step="any" min="0.001" name="quantities[{{ $item->id }}]"
+                                    value="{{ old('quantities.'.$item->id, $isZero ? '' : ($isCert ? 1 : $row['remaining'])) }}"
+                                    class="si-qty w-full px-2 py-1.5 border border-gray-300 rounded text-center bg-white"
                                     data-discount="{{ $item->discount_percent }}" data-tax="{{ $item->tax_percent }}"
                                     {{ $isZero ? 'disabled' : '' }}>
+                                @if($isCert)<span class="text-slate-400 text-xs font-bold">—</span>@endif
                             </td>
                             <td class="p-3 text-center" dir="ltr">
                                 <input type="number" step="any" min="0" name="prices[{{ $item->id }}]"
                                     value="{{ old('prices.'.$item->id, $item->list_price) }}"
-                                    class="si-price w-24 px-2 py-1.5 border border-gray-300 rounded text-center mx-auto"
+                                    class="si-price w-24 px-2 py-1.5 border border-gray-300 rounded text-center mx-auto bg-white"
                                     {{ $isZero ? 'disabled' : '' }}>
                             </td>
                             <td class="p-3 text-center" dir="ltr">
-                                <input type="number" step="any" min="0" max="100" name="discount_percents[{{ $item->id }}]"
-                                    value="{{ old('discount_percents.'.$item->id, $item->discount_percent ?? 0) }}"
-                                    class="si-disc w-16 px-2 py-1.5 border border-gray-300 rounded text-center mx-auto"
+                                <input type="{{ $isCert ? 'hidden' : 'number' }}" step="any" min="0" max="100" name="discount_percents[{{ $item->id }}]"
+                                    value="{{ old('discount_percents.'.$item->id, $isCert ? 0 : ($item->discount_percent ?? 0)) }}"
+                                    class="si-disc w-16 px-2 py-1.5 border border-gray-300 rounded text-center mx-auto bg-white"
                                     {{ $isZero ? 'disabled' : '' }}>
+                                @if($isCert)<span class="text-slate-400 text-xs font-bold">—</span>@endif
                             </td>
                             <td class="p-3 text-center" dir="ltr">
-                                <input type="number" step="any" min="0" max="100" name="tax_percents[{{ $item->id }}]"
-                                    value="{{ old('tax_percents.'.$item->id, $item->tax_percent ?? 0) }}"
-                                    class="si-tax w-16 px-2 py-1.5 border border-gray-300 rounded text-center mx-auto"
+                                <input type="{{ $isCert ? 'hidden' : 'number' }}" step="any" min="0" max="100" name="tax_percents[{{ $item->id }}]"
+                                    value="{{ old('tax_percents.'.$item->id, $isCert ? 0 : ($item->tax_percent ?? 0)) }}"
+                                    class="si-tax w-16 px-2 py-1.5 border border-gray-300 rounded text-center mx-auto bg-white"
                                     {{ $isZero ? 'disabled' : '' }}>
+                                @if($isCert)<span class="text-slate-400 text-xs font-bold">—</span>@endif
                             </td>
                             <td class="p-3 font-bold text-[#008A3B] si-net" dir="ltr">0.00</td>
                         </tr>

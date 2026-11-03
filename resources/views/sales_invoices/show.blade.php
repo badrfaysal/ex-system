@@ -4,6 +4,9 @@
     $cur  = $salesInvoice->currency ?? 'EGP';
     $received = $salesInvoice->received_amount;
     $due = $salesInvoice->balance_due;
+    $regularItems = $salesInvoice->items->reject(fn($l) => $l->isCertificate());
+    $certItems    = $salesInvoice->items->filter(fn($l) => $l->isCertificate());
+    $docBankInfo  = \App\Models\Setting::documentBankDetails();
 @endphp
 @section('header_title', $salesInvoice->invoice_number)
 
@@ -85,7 +88,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($salesInvoice->items as $line)
+                    @foreach($regularItems as $line)
                     <tr class="border-b border-gray-100">
                         <td class="px-3 py-2 text-gray-800">{{ $line->displayDescription($isAr ? 'ar' : 'en') }}</td>
                         <td class="px-3 py-2 text-center" dir="ltr">{{ rtrim(rtrim(number_format($line->quantity, 2), '0'), '.') }}</td>
@@ -94,11 +97,35 @@
                     </tr>
                     @endforeach
                 </tbody>
+                @if($certItems->isNotEmpty())
+                <tfoot>
+                    @foreach($certItems as $cert)
+                    <tr style="background:#cbd5e1;border-top:1px solid #94a3b8;border-bottom:1px solid #94a3b8;">
+                        <td colspan="3" class="px-4 py-2 font-extrabold text-gray-900 text-center">
+                            {{ $cert->displayDescription($isAr ? 'ar' : 'en') }}
+                        </td>
+                        <td class="px-3 py-2 font-extrabold text-gray-900" style="border-{{ $isAr ? 'right' : 'left' }}:1px solid #94a3b8;" dir="ltr">
+                            {{ number_format($cert->net_total, 2) }} {{ $cur }}
+                        </td>
+                    </tr>
+                    @endforeach
+                </tfoot>
+                @endif
             </table>
         </div>
 
-        <div class="px-8 py-4 flex justify-end">
-            <div class="w-72 rounded-xl border border-gray-200 overflow-hidden text-sm">
+        <div class="px-8 py-4 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div class="space-y-3">
+                @if($salesInvoice->notes)
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">{{ $isAr ? 'ملاحظات' : 'Notes' }}</p>
+                        <p class="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{{ $salesInvoice->notes }}</p>
+                    </div>
+                @endif
+            </div>
+
+            <div class="flex justify-end">
+                <div class="w-72 rounded-xl border border-gray-200 overflow-hidden text-sm">
                 <div class="flex justify-between items-center px-4 py-2.5 border-b border-gray-100">
                     <span class="text-gray-500">{{ $isAr ? 'الإجمالي الفرعي' : 'Subtotal' }}</span>
                     <span class="font-bold text-gray-800" dir="ltr">{{ number_format($salesInvoice->subtotal, 2) }} {{ $cur }}</span>
@@ -134,8 +161,36 @@
                     <span class="font-extrabold text-white text-sm">{{ $isAr ? 'الإجمالي النهائي' : 'Grand Total' }}</span>
                     <span class="font-extrabold text-white text-base" dir="ltr">{{ number_format($salesInvoice->grand_total, 2) }} {{ $cur }}</span>
                 </div>
+                </div>
             </div>
         </div>
+
+        @if(array_filter($docBankInfo))
+            <div class="px-8 pb-5 pt-3 border-t border-gray-100 text-xs text-gray-800 space-y-1 text-left" dir="ltr">
+                @if(!empty($docBankInfo['note']))
+                    <p class="font-extrabold text-gray-900 mb-2">{{ $docBankInfo['note'] }}</p>
+                @endif
+                @if(!empty($docBankInfo['beneficiary_name']))
+                    <p><span class="font-bold text-gray-900">Beneficiary Name:</span> {{ $docBankInfo['beneficiary_name'] }}</p>
+                @endif
+                @if(!empty($docBankInfo['bank_name']))
+                    <p><span class="font-bold text-gray-900">Bank Name:</span> {{ $docBankInfo['bank_name'] }}</p>
+                @endif
+                @if(!empty($docBankInfo['iban']) || !empty($docBankInfo['acc_usd']))
+                    <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 max-w-xl">
+                        @if(!empty($docBankInfo['iban']))
+                            <p><span class="font-bold text-gray-900">IBAN:</span> <span class="font-mono">{{ $docBankInfo['iban'] }}</span></p>
+                        @endif
+                        @if(!empty($docBankInfo['acc_usd']))
+                            <p><span class="font-bold text-gray-900">Acc # USD:</span> <span class="font-mono">{{ $docBankInfo['acc_usd'] }}</span></p>
+                        @endif
+                    </div>
+                @endif
+                @if(!empty($docBankInfo['swift_code']))
+                    <p><span class="font-bold text-gray-900">Swift Code:</span> <span class="font-mono">{{ $docBankInfo['swift_code'] }}</span></p>
+                @endif
+            </div>
+        @endif
     </div>
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8 no-print">

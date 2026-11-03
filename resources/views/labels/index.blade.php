@@ -43,32 +43,55 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         @foreach($labels as $label)
+                        @php $isCompact = ($label->batch_code === 'COMPACT'); @endphp
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-4 py-3">{{ $label->id }}</td>
-                            <td class="px-4 py-3 font-bold text-gray-800">{{ $label->brand_name }}</td>
-                            <td class="px-4 py-3">{{ $label->item_name }}</td>
-                            <td class="px-4 py-3"><span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-mono">{{ $label->batch_code }}</span></td>
-                            <td class="px-4 py-3">{{ $label->copies }}</td>
-                            <td class="px-4 py-3" dir="ltr">{{ $label->created_at->format('Y-m-d H:i') }}</td>
+                            <td class="px-4 py-3 font-bold text-gray-800">
+                                {{ $label->brand_name }}
+                                @if($isCompact)
+                                    <span class="inline-block ms-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-pink-100 text-pink-700">
+                                        <i class="fas fa-barcode text-[9px]"></i> ملصق صغير
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 font-bold text-gray-900">{{ $label->item_name }}</td>
+                            <td class="px-4 py-3">
+                                @if($isCompact)
+                                    <span class="text-xs text-gray-400 font-mono">—</span>
+                                @else
+                                    <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-mono">{{ $label->batch_code }}</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 font-bold">{{ $label->copies }}</td>
+                            <td class="px-4 py-3 text-xs" dir="ltr">{{ $label->created_at->format('Y-m-d H:i') }}</td>
                             <td class="px-4 py-3 text-center">
                                 <form action="{{ route('labels.print') }}" method="POST" target="_blank" class="inline" onsubmit="setTimeout(() => { let b = this.querySelector('button[type=submit]'); if(b){ b.disabled=false; b.classList.remove('opacity-75','cursor-not-allowed'); b.innerHTML = b.innerHTML.replace('<i class=\'fas fa-spinner fa-spin mx-1\'></i>', '').trim(); } if(typeof submittedForms !== 'undefined') submittedForms.delete(this); }, 1500);">
                                     @csrf
-                                    <!-- Hidden inputs to resubmit -->
-                                    <input type="hidden" name="brand_name" value="{{ $label->brand_name }}">
-                                    <input type="hidden" name="item_name" value="{{ $label->item_name }}">
-                                    <input type="hidden" name="manufacturer" value="{{ $label->manufacturer }}">
-                                    <input type="hidden" name="manufacturer_address" value="{{ $label->manufacturer_address }}">
-                                    <input type="hidden" name="exporter" value="{{ $label->exporter }}">
-                                    <input type="hidden" name="exporter_address" value="{{ $label->exporter_address }}">
-                                    <input type="hidden" name="importer" value="{{ $label->importer }}">
-                                    <input type="hidden" name="importer_address" value="{{ $label->importer_address }}">
-                                    <input type="hidden" name="production_date" value="{{ $label->production_date }}">
-                                    <input type="hidden" name="expiry_date" value="{{ $label->expiry_date }}">
-                                    <input type="hidden" name="batch_code" value="{{ $label->batch_code }}">
-                                    <input type="hidden" name="website" value="{{ $label->website }}">
-                                    <input type="hidden" name="copies" value="{{ $label->copies }}">
+                                    @if($isCompact)
+                                        <input type="hidden" name="label_type" value="compact">
+                                        <input type="hidden" name="company_name" value="{{ $label->brand_name ?: ($label->exporter ?: 'ايجيبيشن فودز') }}">
+                                        <input type="hidden" name="item_name" value="{{ $label->item_name }}">
+                                        <input type="hidden" name="date" value="{{ $label->production_date }}">
+                                        <input type="hidden" name="copies" value="{{ $label->copies }}">
+                                        <input type="hidden" name="show_logo" value="1">
+                                    @else
+                                        <input type="hidden" name="label_type" value="standard">
+                                        <input type="hidden" name="brand_name" value="{{ $label->brand_name }}">
+                                        <input type="hidden" name="item_name" value="{{ $label->item_name }}">
+                                        <input type="hidden" name="manufacturer" value="{{ $label->manufacturer }}">
+                                        <input type="hidden" name="manufacturer_address" value="{{ $label->manufacturer_address }}">
+                                        <input type="hidden" name="exporter" value="{{ $label->exporter }}">
+                                        <input type="hidden" name="exporter_address" value="{{ $label->exporter_address }}">
+                                        <input type="hidden" name="importer" value="{{ $label->importer }}">
+                                        <input type="hidden" name="importer_address" value="{{ $label->importer_address }}">
+                                        <input type="hidden" name="production_date" value="{{ $label->production_date }}">
+                                        <input type="hidden" name="expiry_date" value="{{ $label->expiry_date }}">
+                                        <input type="hidden" name="batch_code" value="{{ $label->batch_code }}">
+                                        <input type="hidden" name="website" value="{{ $label->website }}">
+                                        <input type="hidden" name="copies" value="{{ $label->copies }}">
+                                    @endif
                                     
-                                    <button type="submit" class="text-[#008A3B] hover:text-[#007030] bg-[#EBF7F0] hover:bg-[#cceedb] px-3 py-1.5 rounded-md transition-colors text-xs font-bold inline-flex items-center gap-1">
+                                    <button type="submit" class="text-pink-700 hover:text-pink-900 bg-pink-50 hover:bg-pink-100 px-3 py-1.5 rounded-md transition-colors text-xs font-bold inline-flex items-center gap-1">
                                         <i class="fas fa-print"></i> إعادة طباعة
                                     </button>
                                 </form>

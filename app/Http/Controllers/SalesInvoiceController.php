@@ -135,6 +135,7 @@ class SalesInvoiceController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
+            'invoice_number'           => 'nullable|string|unique:sales_invoices,invoice_number',
             'sales_order_id'           => 'required|exists:sales_orders,id',
             'invoice_date'             => 'required|date',
             'due_date'                 => 'required|date|after_or_equal:invoice_date',
@@ -178,7 +179,7 @@ class SalesInvoiceController extends Controller
 
         $invoice = DB::transaction(function () use ($data, $salesOrder, $selectedItems, $extraLines, $extraDiscount) {
             $invoice = SalesInvoice::create([
-                'invoice_number' => $data['invoice_number'],
+                'invoice_number' => !empty($data['invoice_number']) ? $data['invoice_number'] : SequenceGenerator::next('SI'),
                 'sales_order_id' => $salesOrder->id,
                 'client_id'      => $salesOrder->client_id,
                 'quotation_id'   => $salesOrder->quotation_id,

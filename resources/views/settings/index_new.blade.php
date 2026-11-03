@@ -48,11 +48,13 @@
             ],
             'المالية والحسابات' => [
                 'wallets'          => ['icon' => 'fa-wallet', 'custom' => true, 'title' => 'الحسابات البنكية والصناديق المالية'],
+                'doc_bank_info'    => ['icon' => 'fa-university', 'custom' => true, 'title' => 'بيانات البنك بالمستندات'],
                 'expense_category' => ['icon' => 'fa-file-invoice-dollar'],
             ],
         ];
         $allUsers     = \App\Models\User::orderBy('name')->get();
         $notifyEmails = \App\Models\Setting::where('category', 'notify_email')->orderBy('display_name')->get();
+        $docBankInfo  = \App\Models\Setting::documentBankDetails();
     @endphp
 
     <div class="flex flex-col md:flex-row gap-8 items-start">
@@ -575,6 +577,113 @@
                         </tbody>
                     </table>
                 </div>
+
+            </div>
+
+            {{-- ===== panel بيانات البنك بالمستندات (custom) ===== --}}
+            <div id="panel-doc_bank_info" class="tab-panel hidden p-6 animate-fade-in">
+
+                <div class="border-b border-gray-100 pb-4 mb-6">
+                    <h3 class="text-xl font-bold text-[#005B9F] flex items-center gap-2">
+                        <i class="fas fa-university"></i> بيانات البنك وملاحظات المستندات
+                    </h3>
+                    <p class="text-sm text-gray-500 mt-1.5 leading-relaxed">
+                        تُعرض هذه البيانات تلقائياً في أسفل <strong>عروض الأسعار</strong> و<strong>أوامر البيع</strong> و<strong>فواتير البيع</strong> (في شاشة العرض وملفات الطباعة والـ PDF).
+                    </p>
+                </div>
+
+                <form action="{{ route('settings.store') }}" method="POST" class="space-y-5 max-w-3xl" onsubmit="sessionStorage.setItem('activeSettingTab', 'doc_bank_info');">
+                    @csrf
+                    <input type="hidden" name="category" value="doc_bank_info">
+
+                    <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1.5">
+                                <i class="fas fa-pallet text-[#008A3B] me-1"></i> ملاحظة أعلى بيانات البنك (اختياري)
+                            </label>
+                            <input type="text" name="note" value="{{ old('note', $docBankInfo['note']) }}" dir="ltr"
+                                placeholder="مثال: The price includes pallets."
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white font-semibold">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Beneficiary Name (اسم المستفيد / الشركة)</label>
+                                <input type="text" name="beneficiary_name" value="{{ old('beneficiary_name', $docBankInfo['beneficiary_name']) }}" dir="ltr"
+                                    placeholder="مثال: Ismailia National Company for food industries (FOODICO)"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Bank Name (اسم البنك)</label>
+                                <input type="text" name="bank_name" value="{{ old('bank_name', $docBankInfo['bank_name']) }}" dir="ltr"
+                                    placeholder="مثال: QNB Al AHLI"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Swift Code (سويفت كود)</label>
+                                <input type="text" name="swift_code" value="{{ old('swift_code', $docBankInfo['swift_code']) }}" dir="ltr"
+                                    placeholder="مثال: QNBAEGCxxxx"
+                                    class="w-full px-3 py-2 text-sm font-mono border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">IBAN (رقم الآيبان)</label>
+                                <input type="text" name="iban" value="{{ old('iban', $docBankInfo['iban']) }}" dir="ltr"
+                                    placeholder="مثال: EG680037070808402031980204271"
+                                    class="w-full px-3 py-2 text-sm font-mono border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Acc # USD (رقم الحساب بالدولار)</label>
+                                <input type="text" name="acc_usd" value="{{ old('acc_usd', $docBankInfo['acc_usd']) }}" dir="ltr"
+                                    placeholder="مثال: 20319802042-71"
+                                    class="w-full px-3 py-2 text-sm font-mono border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- معاينة لشكل الظهور في المستندات --}}
+                    <div class="border border-dashed border-gray-300 rounded-xl p-4 bg-white" dir="ltr">
+                        <p class="text-[11px] text-gray-400 font-bold mb-2 text-right" dir="rtl">معاينة الشكل في المستندات:</p>
+                        @if(array_filter($docBankInfo))
+                        <div class="text-xs text-gray-900 space-y-1 font-sans">
+                            @if(!empty($docBankInfo['note']))
+                                <p class="font-bold mb-2">{{ $docBankInfo['note'] }}</p>
+                            @endif
+                            @if(!empty($docBankInfo['beneficiary_name']))
+                                <p><span class="font-bold">Beneficiary Name:</span> {{ $docBankInfo['beneficiary_name'] }}</p>
+                            @endif
+                            @if(!empty($docBankInfo['bank_name']))
+                                <p><span class="font-bold">Bank Name:</span> {{ $docBankInfo['bank_name'] }}</p>
+                            @endif
+                            <div class="flex flex-wrap items-center justify-between gap-4">
+                                @if(!empty($docBankInfo['iban']))
+                                    <p><span class="font-bold">IBAN:</span> <span class="font-mono">{{ $docBankInfo['iban'] }}</span></p>
+                                @endif
+                                @if(!empty($docBankInfo['acc_usd']))
+                                    <p><span class="font-bold">Acc # USD:</span> <span class="font-mono">{{ $docBankInfo['acc_usd'] }}</span></p>
+                                @endif
+                            </div>
+                            @if(!empty($docBankInfo['swift_code']))
+                                <p><span class="font-bold">Swift Code:</span> <span class="font-mono">{{ $docBankInfo['swift_code'] }}</span></p>
+                            @endif
+                        </div>
+                        @else
+                        <div class="text-center py-4 text-xs text-gray-400 font-sans" dir="rtl">
+                            <i class="fas fa-info-circle text-gray-300 mb-1 block text-base"></i>
+                            لم يتم إدخال بيانات بنكية حتى الآن. أدخل بياناتك أعلاه واضغط "حفظ" لتظهر تلقائياً في فواتيرك وعروض الأسعار.
+                        </div>
+                        @endif
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-2.5 bg-[#005B9F] text-white text-sm font-bold rounded-lg hover:bg-[#004680] transition-colors flex items-center gap-2 shadow-sm">
+                            <i class="fas fa-save"></i> حفظ بيانات البنك
+                        </button>
+                    </div>
+                </form>
 
             </div>
 

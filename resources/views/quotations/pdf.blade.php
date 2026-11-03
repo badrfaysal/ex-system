@@ -201,14 +201,20 @@
     </thead>
     <tbody>
         @php
-            $totalQty  = $quotation->items->sum('quantity');
-            $totalDisc = $quotation->items->sum(fn($l) => $l->quantity * $l->list_price * $l->discount_percent / 100);
-            $totalNet  = $quotation->items->sum('net_total');
+            $regularItems = $quotation->items->reject(fn($l) => $l->isCertificate());
+            $certItems    = $quotation->items->filter(fn($l) => $l->isCertificate());
+            $totalQty     = $regularItems->sum('quantity');
+            $totalDisc    = $quotation->items->sum(fn($l) => $l->quantity * $l->list_price * $l->discount_percent / 100);
+            $totalNet     = $regularItems->sum('net_total');
+            $docBankInfo  = \App\Models\Setting::documentBankDetails();
+            $rowNo        = 0;
         @endphp
 
         @foreach($quotation->items as $idx => $line)
+        @if($line->isCertificate()) @continue @endif
+        @php $rowNo++; @endphp
         <tr>
-            <td class="col-center" style="color: #94a3b8;">{{ $idx + 1 }}</td>
+            <td class="col-center" style="color: #94a3b8;">{{ $rowNo }}</td>
             <td class="col-center item-code-cell">{{ $line->item_code ?? '—' }}</td>
             <td class="col-directional item-description-cell">{{ $line->displayDescription($isAr ? 'ar' : 'en') }}</td>
             <td class="col-center item-qty-cell">{{ rtrim(rtrim(number_format($line->quantity, 2), '0'), '.') }}</td>
@@ -223,7 +229,7 @@
     <tfoot>
         <tr>
             <td colspan="3" class="col-directional">
-                {{ $isAr ? 'الإجمالي' : 'Total' }} <span style="font-weight: normal; color: #94a3b8; font-size: 9px;">({{ $quotation->items->count() }} {{ $isAr ? 'صنف' : 'items' }})</span>
+                {{ $isAr ? 'الإجمالي' : 'Total' }} <span style="font-weight: normal; color: #94a3b8; font-size: 9px;">({{ $regularItems->count() }} {{ $isAr ? 'صنف' : 'items' }})</span>
             </td>
             <td class="col-center">{{ rtrim(rtrim(number_format($totalQty, 2), '0'), '.') }}</td>
             <td></td>
@@ -232,6 +238,16 @@
                 {{ number_format($totalNet, 2) }} <span style="font-size: 8px; color: #94a3b8; font-weight: normal;">{{ $quotation->currency }}</span>
             </td>
         </tr>
+        @foreach($certItems as $cert)
+        <tr>
+            <td colspan="6" class="col-center" style="background-color: #cbd5e1; color: #0f172a; font-weight: bold; border-top: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8;">
+                {{ $cert->displayDescription($isAr ? 'ar' : 'en') }}
+            </td>
+            <td class="col-directional" style="background-color: #cbd5e1; color: #0f172a; font-weight: bold; font-size: 12px; border-top: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8; border-{{ $isAr ? 'right' : 'left' }}: 1px solid #94a3b8;" dir="ltr">
+                {{ number_format($cert->net_total, 2) }} {{ $quotation->currency }}
+            </td>
+        </tr>
+        @endforeach
     </tfoot>
 </table>
 
@@ -278,6 +294,35 @@
         </td>
     </tr>
 </table>
+
+{{-- ========== بيانات البنك على الشمال دائماً ========== --}}
+@if(array_filter($docBankInfo))
+<table dir="ltr" style="width: 100%; border-collapse: collapse; margin-bottom: 18px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+    <tr>
+        <td style="text-align: left; font-size: 10px; color: #0f172a; line-height: 1.5; padding-top: 8px;">
+            @if(!empty($docBankInfo['note']))
+                <div style="font-weight: bold; margin-bottom: 5px;">{{ $docBankInfo['note'] }}</div>
+            @endif
+            @if(!empty($docBankInfo['beneficiary_name']))
+                <div><strong>Beneficiary Name:</strong> {{ $docBankInfo['beneficiary_name'] }}</div>
+            @endif
+            @if(!empty($docBankInfo['bank_name']))
+                <div><strong>Bank Name:</strong> {{ $docBankInfo['bank_name'] }}</div>
+            @endif
+            @if(!empty($docBankInfo['iban']) || !empty($docBankInfo['acc_usd']))
+                <div>
+                    @if(!empty($docBankInfo['iban']))<strong>IBAN:</strong> <span style="font-family: monospace;">{{ $docBankInfo['iban'] }}</span>@endif
+                    @if(!empty($docBankInfo['iban']) && !empty($docBankInfo['acc_usd']))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@endif
+                    @if(!empty($docBankInfo['acc_usd']))<strong>Acc # USD:</strong> <span style="font-family: monospace;">{{ $docBankInfo['acc_usd'] }}</span>@endif
+                </div>
+            @endif
+            @if(!empty($docBankInfo['swift_code']))
+                <div><strong>Swift Code:</strong> <span style="font-family: monospace;">{{ $docBankInfo['swift_code'] }}</span></div>
+            @endif
+        </td>
+    </tr>
+</table>
+@endif
 
 {{-- ========== التوقيعات المعتمدة ========== --}}
 <table class="signature-layout">

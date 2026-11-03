@@ -201,6 +201,9 @@
                 <button type="button" onclick="addBlankRow()" class="px-4 py-2 border border-dashed border-gray-400 text-gray-600 rounded-lg text-sm hover:border-[#008A3B] hover:text-[#008A3B] flex items-center gap-2">
                     <i class="fas fa-plus"></i> {{ app()->getLocale()==='ar' ? 'سطر يدوي (خدمة)' : 'Manual line (service)' }}
                 </button>
+                <button type="button" onclick="addCertificateRow()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 border border-slate-400 text-slate-800 font-bold rounded-lg text-sm flex items-center gap-2 transition-colors shadow-sm">
+                    <i class="fas fa-certificate text-amber-600"></i> {{ app()->getLocale()==='ar' ? 'إضافة بند شهادات (Certificates)' : 'Add Certificates Line' }}
+                </button>
             </div>
         </div>
 
@@ -361,44 +364,59 @@
     function rowTemplate(data) {
         const i = qIndex++;
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-green-50/30 align-top';
+        const isCert = String(data.code || '').toUpperCase().trim() === 'CERT'
+            || String(data.description || '').toLowerCase().includes('certificate')
+            || String(data.description || '').includes('شهادات')
+            || String(data.description || '').includes('شهادة');
+        tr.className = isCert
+            ? 'bg-slate-200/80 hover:bg-slate-200 align-top border-y-2 border-slate-300 cert-row'
+            : 'hover:bg-green-50/30 align-top';
         tr.innerHTML = `
-            <td class="p-2 text-center text-gray-400 row-num"></td>
+            <td class="p-2 text-center ${isCert ? 'text-amber-600 font-bold' : 'text-gray-400'} row-num"></td>
             <td class="p-2">
                 <input type="text" name="items[${i}][item_code]" value="${data.code ?? ''}" dir="ltr"
-                    class="w-full px-2 py-1.5 border border-gray-200 rounded text-right font-mono text-xs bg-gray-50">
+                    class="w-full px-2 py-1.5 border ${isCert ? 'border-slate-400 bg-slate-100 font-bold text-slate-800' : 'border-gray-200 bg-gray-50'} rounded text-right font-mono text-xs">
                 <input type="hidden" name="items[${i}][item_id]" value="${data.item_id ?? ''}">
             </td>
             <td class="p-2">
-                <input type="text" name="items[${i}][description]" required value="${(data.description ?? '').replace(/"/g,'&quot;')}"
-                    class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#008A3B]">
+                <div class="relative flex items-center">
+                    ${isCert ? '<i class="fas fa-certificate text-amber-600 mx-1.5"></i>' : ''}
+                    <input type="text" name="items[${i}][description]" required value="${(data.description ?? '').replace(/"/g,'&quot;')}"
+                        class="w-full px-2 py-1.5 border ${isCert ? 'border-slate-400 bg-white font-extrabold text-slate-900' : 'border-gray-300'} rounded text-sm focus:outline-none focus:border-[#008A3B]">
+                </div>
             </td>
-            <td class="p-2">
-                <input type="number" step="0.01" min="0" name="items[${i}][quantity]" value="${data.quantity ?? 1}"
-                    oninput="recalc()" class="w-full px-2 py-1.5 border border-gray-300 rounded text-center calc-q">
-            </td>
-            <td class="p-2">
-                <input type="text" name="items[${i}][uom]" value="${data.uom ?? ''}" list="uom_list_${i}"
-                    class="w-full px-2 py-1.5 border border-gray-200 rounded text-center text-xs">
-                <datalist id="uom_list_${i}">
-                    ${Object.keys(Q_UOM).map(k => `<option value="${Q_UOM[k]}"></option>`).join('')}
-                </datalist>
-            </td>
-            <td class="p-2">
-                <input type="number" step="0.01" min="0" name="items[${i}][list_price]" value="${data.list_price ?? 0}"
-                    oninput="recalc()" class="w-full px-2 py-1.5 border border-gray-300 rounded text-center calc-p">
-            </td>
-            <td class="p-2">
-                <input type="number" step="0.01" min="0" max="100" name="items[${i}][discount_percent]" value="${data.discount_percent ?? 0}"
-                    oninput="recalc()" class="w-full px-2 py-1.5 border border-gray-300 rounded text-center calc-d">
-            </td>
-            <td class="p-2">
-                <input type="number" step="0.01" min="0" max="100" name="items[${i}][tax_percent]" value="${data.tax_percent ?? 14}"
-                    oninput="recalc()" class="w-full px-2 py-1.5 border border-gray-300 rounded text-center calc-t">
-            </td>
-            <td class="p-2 text-left font-bold text-[#008A3B] net-cell" dir="ltr">0.00</td>
             <td class="p-2 text-center">
-                <button type="button" onclick="qRemove(this)" class="text-gray-300 hover:text-red-500" title="@lang('messages.quotations.remove_row')"><i class="fas fa-times-circle"></i></button>
+                ${isCert
+                    ? `<input type="hidden" name="items[${i}][quantity]" value="1" class="calc-q"><span class="text-slate-400 text-xs font-bold block py-1.5">—</span>`
+                    : `<input type="number" step="0.01" min="0" name="items[${i}][quantity]" value="${data.quantity ?? 1}" oninput="recalc()" class="w-full px-2 py-1.5 border border-gray-300 rounded text-center calc-q bg-white">`
+                }
+            </td>
+            <td class="p-2 text-center">
+                ${isCert
+                    ? `<input type="hidden" name="items[${i}][uom]" value=""><span class="text-slate-400 text-xs font-bold block py-1.5">—</span>`
+                    : `<input type="text" name="items[${i}][uom]" value="${data.uom ?? ''}" list="uom_list_${i}" class="w-full px-2 py-1.5 border border-gray-200 rounded text-center text-xs bg-white">
+                       <datalist id="uom_list_${i}">${Object.keys(Q_UOM).map(k => `<option value="${Q_UOM[k]}"></option>`).join('')}</datalist>`
+                }
+            </td>
+            <td class="p-2">
+                <input type="number" step="0.01" min="0" name="items[${i}][list_price]" value="${data.list_price ?? (isCert ? '' : 0)}" placeholder="${isCert ? '0.00' : ''}" ${isCert ? 'required' : ''}
+                    oninput="recalc()" class="w-full px-2 py-1.5 border ${isCert ? 'border-slate-400 font-bold' : 'border-gray-300'} rounded text-center calc-p bg-white">
+            </td>
+            <td class="p-2 text-center">
+                ${isCert
+                    ? `<input type="hidden" name="items[${i}][discount_percent]" value="0" class="calc-d"><span class="text-slate-400 text-xs font-bold block py-1.5">—</span>`
+                    : `<input type="number" step="0.01" min="0" max="100" name="items[${i}][discount_percent]" value="${data.discount_percent ?? 0}" oninput="recalc()" class="w-full px-2 py-1.5 border border-gray-300 rounded text-center calc-d bg-white">`
+                }
+            </td>
+            <td class="p-2 text-center">
+                ${isCert
+                    ? `<input type="hidden" name="items[${i}][tax_percent]" value="0" class="calc-t"><span class="text-slate-400 text-xs font-bold block py-1.5">—</span>`
+                    : `<input type="number" step="0.01" min="0" max="100" name="items[${i}][tax_percent]" value="${data.tax_percent ?? 14}" oninput="recalc()" class="w-full px-2 py-1.5 border border-gray-300 rounded text-center calc-t bg-white">`
+                }
+            </td>
+            <td class="p-2 text-left font-bold ${isCert ? 'text-slate-900 font-extrabold' : 'text-[#008A3B]'} net-cell" dir="ltr">0.00</td>
+            <td class="p-2 text-center">
+                <button type="button" onclick="qRemove(this)" class="text-gray-400 hover:text-red-500" title="@lang('messages.quotations.remove_row')"><i class="fas fa-times-circle"></i></button>
             </td>`;
         document.getElementById('quoteItemsBody').appendChild(tr);
         qRenumber();
@@ -429,6 +447,22 @@
 
     function addBlankRow() {
         rowTemplate({ quantity: 1, list_price: 0, discount_percent: 0, tax_percent: 14 });
+    }
+
+    function addCertificateRow() {
+        const tr = rowTemplate({
+            code: 'CERT',
+            description: 'Certificates',
+            uom: '',
+            quantity: 1,
+            list_price: '',
+            discount_percent: 0,
+            tax_percent: 0
+        });
+        const priceInp = tr.querySelector('.calc-p');
+        if (priceInp) {
+            priceInp.focus();
+        }
     }
 
     function qRemove(btn) { btn.closest('tr').remove(); qRenumber(); recalc(); }

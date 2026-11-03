@@ -9,9 +9,12 @@
     $cur         = $salesOrder->currency ?? 'EGP';
     $clientDisplay = optional($salesOrder->client)->displayName($isAr ? 'ar' : 'en') ?? '—';
 
-    $totalQty  = $salesOrder->items->sum('quantity');
-    $totalDisc = $salesOrder->items->sum(fn($l) => $l->quantity * $l->list_price * $l->discount_percent / 100);
-    $totalNet  = $salesOrder->items->sum('net_total');
+    $regularItems = $salesOrder->items->reject(fn($l) => $l->isCertificate());
+    $certItems    = $salesOrder->items->filter(fn($l) => $l->isCertificate());
+    $totalQty     = $regularItems->sum('quantity');
+    $totalDisc    = $salesOrder->items->sum(fn($l) => $l->quantity * $l->list_price * $l->discount_percent / 100);
+    $totalNet     = $regularItems->sum('net_total');
+    $docBankInfo  = \App\Models\Setting::documentBankDetails();
 
     $jsLines = $salesOrder->items->map(fn($l) => [
         'code'  => $l->item_code ?? '—',
@@ -274,9 +277,12 @@
                 </tr>
             </thead>
             <tbody>
+                @php $rowNo = 0; @endphp
                 @foreach($salesOrder->items as $idx => $line)
-                    <tr class="tbl-row {{ $idx % 2 === 0 ? '' : 'bg-gray-50/70' }} border-b border-gray-100">
-                        <td class="px-3 py-2 text-center text-gray-400 text-[11px]">{{ $idx + 1 }}</td>
+                    @if($line->isCertificate()) @continue @endif
+                    @php $rowNo++; @endphp
+                    <tr class="tbl-row {{ $rowNo % 2 === 1 ? '' : 'bg-gray-50/70' }} border-b border-gray-100">
+                        <td class="px-3 py-2 text-center text-gray-400 text-[11px]">{{ $rowNo }}</td>
                         <td class="px-3 py-2 text-[11px] font-mono font-extrabold text-[#005B9F]" dir="ltr">
                             {{ $line->item_code ?? '—' }}
                         </td>
@@ -307,7 +313,7 @@
                         style="text-align:{{ $txtAlign }}">
                         {{ $isAr ? 'الإجمالي' : 'Total' }}
                         <span class="font-normal text-gray-400 text-[10px] mr-1">
-                            ({{ $salesOrder->items->count() }} {{ $isAr ? 'صنف' : 'items' }})
+                            ({{ $regularItems->count() }} {{ $isAr ? 'صنف' : 'items' }})
                         </span>
                     </td>
                     <td class="px-3 py-2.5 text-center font-extrabold text-gray-800 text-xs" dir="ltr">
@@ -322,16 +328,28 @@
                         <span class="text-[10px] font-normal text-gray-400 mr-0.5">{{ $cur }}</span>
                     </td>
                 </tr>
+                @foreach($certItems as $cert)
+                    <tr class="tbl-row" style="background:#cbd5e1;border-top:1px solid #94a3b8;border-bottom:1px solid #94a3b8;">
+                        <td colspan="6" class="px-4 py-2.5 font-extrabold text-gray-900 text-xs text-center tracking-wide">
+                            {{ $cert->displayDescription($isAr ? 'ar' : 'en') }}
+                        </td>
+                        <td class="px-3 py-2.5 font-extrabold text-gray-900 text-sm" style="text-align:{{ $txtAlignOpp }}; border-{{ $isAr ? 'right' : 'left' }}:1px solid #94a3b8;" dir="ltr">
+                            {{ number_format($cert->net_total, 2) }} {{ $cur }}
+                        </td>
+                    </tr>
+                @endforeach
             </tfoot>
         </table>
     </div>
 
     {{-- الشروط + الإجماليات --}}
     <div class="doc-footer-section px-8 py-4 grid grid-cols-2 gap-8 items-start">
-        <div>
+        <div class="space-y-3">
             @if($salesOrder->terms)
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{{ $isAr ? 'الشروط والأحكام' : 'Terms & Conditions' }}</p>
-                <p class="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{{ $salesOrder->terms }}</p>
+                <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{{ $isAr ? 'الشروط والأحكام' : 'Terms & Conditions' }}</p>
+                    <p class="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{{ $salesOrder->terms }}</p>
+                </div>
             @endif
         </div>
         <div class="rounded-xl border border-gray-200 overflow-hidden text-xs">
@@ -375,6 +393,34 @@
             </div>
         </div>
     </div>
+
+    {{-- بيانات البنك والملاحظة على الشمال دائماً --}}
+    @if(array_filter($docBankInfo))
+    <div class="px-8 pb-4 pt-2 border-t border-gray-100 text-xs text-gray-800 space-y-1 text-left" dir="ltr">
+        @if(!empty($docBankInfo['note']))
+            <p class="font-extrabold text-gray-900 mb-2">{{ $docBankInfo['note'] }}</p>
+        @endif
+        @if(!empty($docBankInfo['beneficiary_name']))
+            <p><span class="font-bold text-gray-900">Beneficiary Name:</span> {{ $docBankInfo['beneficiary_name'] }}</p>
+        @endif
+        @if(!empty($docBankInfo['bank_name']))
+            <p><span class="font-bold text-gray-900">Bank Name:</span> {{ $docBankInfo['bank_name'] }}</p>
+        @endif
+        @if(!empty($docBankInfo['iban']) || !empty($docBankInfo['acc_usd']))
+            <div class="flex flex-wrap items-center gap-x-10 gap-y-1">
+                @if(!empty($docBankInfo['iban']))
+                    <p><span class="font-bold text-gray-900">IBAN:</span> <span class="font-mono">{{ $docBankInfo['iban'] }}</span></p>
+                @endif
+                @if(!empty($docBankInfo['acc_usd']))
+                    <p><span class="font-bold text-gray-900">Acc # USD:</span> <span class="font-mono">{{ $docBankInfo['acc_usd'] }}</span></p>
+                @endif
+            </div>
+        @endif
+        @if(!empty($docBankInfo['swift_code']))
+            <p><span class="font-bold text-gray-900">Swift Code:</span> <span class="font-mono">{{ $docBankInfo['swift_code'] }}</span></p>
+        @endif
+    </div>
+    @endif
 
     {{-- باركود رقم أمر البيع --}}
     <div class="px-8 pt-4 pb-3 border-t border-gray-100 flex items-center justify-center" dir="ltr">

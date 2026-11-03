@@ -17,25 +17,56 @@ class LabelController extends Controller
     {
         $items = \App\Models\Item::orderBy('name_ar')->get(['name_ar', 'item_code']);
         $clients = \App\Models\Client::orderBy('company_name')->get(['company_name']);
-        return view('labels.create', compact('items', 'clients'));
+        $defaultCompanyName = 'ايجيبيشن فودز';
+        $todayDate = now()->format('Y/m/d');
+
+        return view('labels.create', compact('items', 'clients', 'defaultCompanyName', 'todayDate'));
     }
 
     public function print(Request $request)
     {
+        $labelType = $request->input('label_type', 'compact');
+
+        if ($labelType === 'compact') {
+            $data = $request->validate([
+                'label_type'   => 'required|in:compact',
+                'company_name' => 'required|string|max:255',
+                'item_name'    => 'required|string|max:255',
+                'date'         => 'required|string|max:100',
+                'size'         => 'nullable|string|max:50',
+                'show_logo'    => 'nullable',
+                'copies'       => 'required|integer|min:1|max:5000',
+            ]);
+
+            $data['show_logo'] = $request->boolean('show_logo', true);
+            $data['size'] = $data['size'] ?? '60x30';
+
+            PrintedLabel::create([
+                'brand_name'      => $data['company_name'],
+                'item_name'       => $data['item_name'],
+                'exporter'        => $data['company_name'],
+                'production_date' => $data['date'],
+                'batch_code'      => 'COMPACT',
+                'copies'          => $data['copies'],
+            ]);
+
+            return view('labels.print_compact', compact('data'));
+        }
+
         $data = $request->validate([
-            'brand_name' => 'required|string',
-            'item_name' => 'required|string',
-            'manufacturer' => 'required|string',
+            'brand_name'           => 'required|string',
+            'item_name'            => 'required|string',
+            'manufacturer'         => 'required|string',
             'manufacturer_address' => 'required|string',
-            'exporter' => 'required|string',
-            'exporter_address' => 'required|string',
-            'importer' => 'required|string',
-            'importer_address' => 'required|string',
-            'production_date' => 'required|string',
-            'expiry_date' => 'required|string',
-            'batch_code' => 'required|string',
-            'website' => 'required|string',
-            'copies' => 'required|integer|min:1',
+            'exporter'             => 'required|string',
+            'exporter_address'     => 'required|string',
+            'importer'             => 'required|string',
+            'importer_address'     => 'required|string',
+            'production_date'      => 'required|string',
+            'expiry_date'          => 'required|string',
+            'batch_code'           => 'required|string',
+            'website'              => 'required|string',
+            'copies'               => 'required|integer|min:1',
         ]);
 
         PrintedLabel::create($data);

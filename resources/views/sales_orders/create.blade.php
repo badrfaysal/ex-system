@@ -93,8 +93,9 @@
                     $lineDisc = $lineBase * $line->discount_percent / 100;
                     $lineAfter = $lineBase - $lineDisc;
                     $lineTax  = $lineAfter * $line->tax_percent / 100;
+                    $isCert   = $line->isCertificate();
                 @endphp
-                <tr class="item-row {{ $idx % 2 === 0 ? '' : 'bg-gray-50/70' }} border-b border-gray-100 transition-opacity"
+                <tr class="item-row {{ $isCert ? 'bg-slate-200/80 border-y-2 border-slate-300' : ($idx % 2 === 0 ? '' : 'bg-gray-50/70') }} border-b border-gray-100 transition-opacity"
                     data-list-price="{{ $line->list_price }}"
                     data-disc-percent="{{ $line->discount_percent }}"
                     data-tax-percent="{{ $line->tax_percent }}"
@@ -105,22 +106,25 @@
                         <input type="checkbox" name="selected_items[]" value="{{ $line->id }}" checked
                             class="item-check w-4 h-4 accent-green-600 cursor-pointer">
                     </td>
-                    <td class="px-3 py-2 text-center text-gray-400 text-[11px]">{{ $idx + 1 }}</td>
+                    <td class="px-3 py-2 text-center {{ $isCert ? 'text-amber-600 font-bold' : 'text-gray-400' }} text-[11px]">{{ $idx + 1 }}</td>
                     <td class="px-3 py-2 text-[11px] font-mono font-bold text-[#005B9F]" dir="ltr">
                         {{ $line->item_code ?? '—' }}
                     </td>
-                    <td class="px-3 py-2 text-gray-800 font-medium text-xs">
+                    <td class="px-3 py-2 {{ $isCert ? 'text-slate-900 font-extrabold' : 'text-gray-800 font-medium' }} text-xs">
+                        @if($isCert)<i class="fas fa-certificate text-amber-600 me-1"></i>@endif
                         {{ $line->displayDescription($isAr ? 'ar' : 'en') }}
                     </td>
                     <td class="px-3 py-2 text-center" dir="ltr">
                         <div class="flex items-center justify-center gap-1">
-                            <input type="number"
+                            <input type="{{ $isCert ? 'hidden' : 'number' }}"
                                 name="quantities[{{ $line->id }}]"
                                 value="{{ rtrim(rtrim(number_format($line->quantity, 4, '.', ''), '0'), '.') }}"
                                 readonly
                                 class="qty-input w-20 text-center border-0 bg-transparent text-xs font-bold text-gray-800 focus:outline-none">
-                            @if($line->uom)
-                            <span class="text-[10px] text-gray-400">{{ $line->displayUom($isAr ? 'ar' : 'en') }}</span>
+                            @if($isCert)
+                                <span class="text-slate-400 text-xs font-bold">—</span>
+                            @elseif($line->uom)
+                                <span class="text-[10px] text-gray-400">{{ $line->displayUom($isAr ? 'ar' : 'en') }}</span>
                             @endif
                         </div>
                     </td>

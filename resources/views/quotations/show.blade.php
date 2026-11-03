@@ -32,19 +32,22 @@
     // اسم الشركة بحسب اللغة
     $clientDisplay = optional($quotation->client)->displayName($isAr ? 'ar' : 'en') ?? '—';
 
-    // حسابات صف الإجماليات
-    $totalQty     = $quotation->items->sum('quantity');
+    // حسابات صف الإجماليات (نستبعد أسطر الشهادات من مجموع الكميات والأصناف ونعرضها كصف مميز)
+    $regularItems = $quotation->items->reject(fn($l) => $l->isCertificate());
+    $certItems    = $quotation->items->filter(fn($l) => $l->isCertificate());
+    $totalQty     = $regularItems->sum('quantity');
     $totalDisc    = $quotation->items->sum(fn($l) => $l->quantity * $l->list_price * $l->discount_percent / 100);
-    $totalNet     = $quotation->items->sum('net_total');
+    $totalNet     = $regularItems->sum('net_total');
+    $docBankInfo  = \App\Models\Setting::documentBankDetails();
 
     $jsLines = $quotation->items->map(fn($l) => [
         'code'  => $l->item_code ?? '—',
         'desc'  => $l->displayDescription($isAr ? 'ar' : 'en'),
-        'qty'   => rtrim(rtrim(number_format($l->quantity, 2), '0'), '.'),
-        'uom'   => $l->displayUom($isAr ? 'ar' : 'en'),
+        'qty'   => $l->isCertificate() ? '—' : rtrim(rtrim(number_format($l->quantity, 2), '0'), '.'),
+        'uom'   => $l->isCertificate() ? '—' : $l->displayUom($isAr ? 'ar' : 'en'),
         'price' => number_format($l->list_price, 2),
-        'disc'  => $l->discount_percent > 0 ? number_format($l->discount_percent, 2).'%' : '—',
-        'tax'   => $l->tax_percent > 0      ? number_format($l->tax_percent, 2).'%'      : '—',
+        'disc'  => (!$l->isCertificate() && $l->discount_percent > 0) ? number_format($l->discount_percent, 2).'%' : '—',
+        'tax'   => (!$l->isCertificate() && $l->tax_percent > 0)      ? number_format($l->tax_percent, 2).'%'      : '—',
         'net'   => number_format($l->net_total, 2),
     ])->values();
 @endphp
@@ -324,9 +327,12 @@
                 </tr>
             </thead>
             <tbody>
+                @php $rowNo = 0; @endphp
                 @foreach($quotation->items as $idx => $line)
-                    <tr class="tbl-row {{ $idx % 2 === 0 ? '' : 'bg-gray-50/70' }} border-b border-gray-100">
-                        <td class="px-3 py-2 text-center text-gray-400 text-[11px]">{{ $idx + 1 }}</td>
+                    @if($line->isCertificate()) @continue @endif
+                    @php $rowNo++; @endphp
+                    <tr class="tbl-row {{ $rowNo % 2 === 1 ? '' : 'bg-gray-50/70' }} border-b border-gray-100">
+                        <td class="px-3 py-2 text-center text-gray-400 text-[11px]">{{ $rowNo }}</td>
                         <td class="px-3 py-2 text-[11px]" dir="ltr">
                             <button type="button"
                                 onclick="openLineModal({{ $idx }})"
@@ -358,7 +364,7 @@
                         style="text-align:{{ $txtAlign }}">
                         {{ $isAr ? 'الإجمالي' : 'Total' }}
                         <span class="font-normal text-gray-400 text-[10px] mr-1">
-                            ({{ $quotation->items->count() }} {{ $isAr ? 'صنف' : 'items' }})
+                            ({{ $regularItems->count() }} {{ $isAr ? 'صنف' : 'items' }})
                         </span>
                     </td>
                     {{-- إجمالي الكمية --}}
@@ -375,16 +381,32 @@
                         <span class="text-[10px] font-normal text-gray-400 mr-0.5">{{ $cur }}</span>
                     </td>
                 </tr>
+                @foreach($quotation->items as $idx => $cert)
+                    @if(!$cert->isCertificate()) @continue @endif
+                    <tr class="tbl-row" style="background:#cbd5e1;border-top:1px solid #94a3b8;border-bottom:1px solid #94a3b8;">
+                        <td colspan="6" class="px-4 py-2.5 font-extrabold text-gray-900 text-xs text-center tracking-wide">
+                            <button type="button" onclick="openLineModal({{ $idx }})" class="no-print font-extrabold text-gray-900 hover:underline bg-transparent border-0 p-0 cursor-pointer">
+                                {{ $cert->displayDescription($isAr ? 'ar' : 'en') }}
+                            </button>
+                            <span class="hidden print:inline font-extrabold text-gray-900">{{ $cert->displayDescription($isAr ? 'ar' : 'en') }}</span>
+                        </td>
+                        <td class="px-3 py-2.5 font-extrabold text-gray-900 text-sm" style="text-align:{{ $txtAlignOpp }}; border-{{ $isAr ? 'right' : 'left' }}:1px solid #94a3b8;" dir="ltr">
+                            {{ number_format($cert->net_total, 2) }} {{ $cur }}
+                        </td>
+                    </tr>
+                @endforeach
             </tfoot>
         </table>
     </div>
 
     {{-- الشروط + الإجماليات --}}
     <div class="doc-footer-section px-8 py-4 grid grid-cols-2 gap-8 items-start">
-        <div>
+        <div class="space-y-3">
             @if($quotation->terms)
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{{ __('messages.quotations.show_terms') }}</p>
-                <p class="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{{ $quotation->terms }}</p>
+                <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{{ __('messages.quotations.show_terms') }}</p>
+                    <p class="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{{ $quotation->terms }}</p>
+                </div>
             @endif
         </div>
         <div class="rounded-xl border border-gray-200 overflow-hidden text-xs">
@@ -425,6 +447,34 @@
             </div>
         </div>
     </div>
+
+    {{-- بيانات البنك والملاحظة على الشمال دائماً --}}
+    @if(array_filter($docBankInfo))
+    <div class="px-8 pb-4 pt-2 border-t border-gray-100 text-xs text-gray-800 space-y-1 text-left" dir="ltr">
+        @if(!empty($docBankInfo['note']))
+            <p class="font-extrabold text-gray-900 mb-2">{{ $docBankInfo['note'] }}</p>
+        @endif
+        @if(!empty($docBankInfo['beneficiary_name']))
+            <p><span class="font-bold text-gray-900">Beneficiary Name:</span> {{ $docBankInfo['beneficiary_name'] }}</p>
+        @endif
+        @if(!empty($docBankInfo['bank_name']))
+            <p><span class="font-bold text-gray-900">Bank Name:</span> {{ $docBankInfo['bank_name'] }}</p>
+        @endif
+        @if(!empty($docBankInfo['iban']) || !empty($docBankInfo['acc_usd']))
+            <div class="flex flex-wrap items-center gap-x-10 gap-y-1">
+                @if(!empty($docBankInfo['iban']))
+                    <p><span class="font-bold text-gray-900">IBAN:</span> <span class="font-mono">{{ $docBankInfo['iban'] }}</span></p>
+                @endif
+                @if(!empty($docBankInfo['acc_usd']))
+                    <p><span class="font-bold text-gray-900">Acc # USD:</span> <span class="font-mono">{{ $docBankInfo['acc_usd'] }}</span></p>
+                @endif
+            </div>
+        @endif
+        @if(!empty($docBankInfo['swift_code']))
+            <p><span class="font-bold text-gray-900">Swift Code:</span> <span class="font-mono">{{ $docBankInfo['swift_code'] }}</span></p>
+        @endif
+    </div>
+    @endif
 
     {{-- باركود رقم عرض السعر (تحت خالص) --}}
     <div class="doc-barcode px-8 pt-4 pb-3 border-t border-gray-100 flex items-center justify-center" dir="ltr">

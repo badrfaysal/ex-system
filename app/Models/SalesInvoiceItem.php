@@ -50,4 +50,18 @@ class SalesInvoiceItem extends Model
         $raw = $this->uom ?: optional($this->item)->base_uom;
         return \App\Services\UomHelper::translate($raw, $locale);
     }
+
+    /**
+     * هل هذا السطر يمثل بند شهادات (Certificates) المميز؟
+     */
+    public function isCertificate(): bool
+    {
+        $code = strtoupper(trim((string) $this->item_code));
+        $desc = strtolower(trim((string) $this->description));
+
+        return $code === 'CERT'
+            || str_contains($desc, 'certificate')
+            || str_contains($desc, 'شهادات')
+            || str_contains($desc, 'شهادة');
+    }
 }

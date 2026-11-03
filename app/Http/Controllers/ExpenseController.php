@@ -108,6 +108,8 @@ class ExpenseController extends Controller
 
     private function formData(): array
     {
+        Setting::ensureExpenseCategoriesSeeded();
+
         $lookups = Cache::remember('system_settings', 60 * 60 * 24, function () {
             return Setting::all()->groupBy('category');
         });

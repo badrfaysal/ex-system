@@ -12,6 +12,8 @@ class SettingController extends Controller
 {
     public function index()
     {
+        Setting::ensureExpenseCategoriesSeeded();
+
         // جلب كل الإعدادات وتصنيفها حسب نوع القائمة (category)
         $settings = Setting::all()->groupBy('category');
         $wallets = \App\Models\Wallet::orderBy('name')->get();
@@ -20,6 +22,29 @@ class SettingController extends Controller
 
     public function store(Request $request)
     {
+        // ===== بيانات البنك وملاحظات عروض الأسعار والفواتير =====
+        if ($request->category === 'doc_bank_info') {
+            $data = $request->validate([
+                'note'             => 'nullable|string|max:255',
+                'beneficiary_name' => 'nullable|string|max:255',
+                'bank_name'        => 'nullable|string|max:255',
+                'iban'             => 'nullable|string|max:255',
+                'acc_usd'          => 'nullable|string|max:255',
+                'swift_code'       => 'nullable|string|max:255',
+            ]);
+
+            foreach (['note', 'beneficiary_name', 'bank_name', 'iban', 'acc_usd', 'swift_code'] as $field) {
+                Setting::updateOrCreate(
+                    ['category' => 'doc_bank_info', 'display_name' => $field],
+                    ['key_value' => trim((string) ($data[$field] ?? '')), 'parent_key' => null]
+                );
+            }
+
+            \Illuminate\Support\Facades\Cache::forget('system_settings');
+
+            return back()->with('success', 'تم حفظ بيانات البنك وملاحظات المستندات بنجاح.');
+        }
+
         // ===== إيميلات إشعارات الإدارة =====
         if ($request->category === 'notify_email') {
             $request->validate([
