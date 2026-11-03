@@ -41,7 +41,7 @@
         'code'  => $l->item_code ?? '—',
         'desc'  => $l->displayDescription($isAr ? 'ar' : 'en'),
         'qty'   => rtrim(rtrim(number_format($l->quantity, 2), '0'), '.'),
-        'uom'   => $l->uom ?? '—',
+        'uom'   => $l->displayUom($isAr ? 'ar' : 'en'),
         'price' => number_format($l->list_price, 2),
         'disc'  => $l->discount_percent > 0 ? number_format($l->discount_percent, 2).'%' : '—',
         'tax'   => $l->tax_percent > 0      ? number_format($l->tax_percent, 2).'%'      : '—',
@@ -343,7 +343,7 @@
                             {{ number_format($line->list_price, 2) }}
                         </td>
                         <td class="px-3 py-2 text-center text-gray-600 text-xs" dir="ltr">
-                            {{ $line->uom ?? '—' }}
+                            {{ $line->displayUom($isAr ? 'ar' : 'en') }}
                         </td>
                         <td class="px-3 py-2 font-extrabold text-gray-900 text-xs" style="text-align:{{ $txtAlignOpp }}" dir="ltr">
                             {{ number_format($line->net_total, 2) }}

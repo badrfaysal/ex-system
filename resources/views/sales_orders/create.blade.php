@@ -120,7 +120,7 @@
                                 readonly
                                 class="qty-input w-20 text-center border-0 bg-transparent text-xs font-bold text-gray-800 focus:outline-none">
                             @if($line->uom)
-                            <span class="text-[10px] text-gray-400">{{ $line->uom }}</span>
+                            <span class="text-[10px] text-gray-400">{{ $line->displayUom($isAr ? 'ar' : 'en') }}</span>
                             @endif
                         </div>
                     </td>

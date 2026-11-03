@@ -36,5 +36,10 @@ class Item extends Model
                     ->withPivot('last_purchase_price')
                     ->withTimestamps();
     }
-    
+
+    public function displayBaseUom(?string $locale = null): string
+    {
+        $locale = $locale ?? app()->getLocale();
+        return \App\Services\UomHelper::translate($this->base_uom, $locale);
+    }
 }

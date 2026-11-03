@@ -127,7 +127,10 @@ return [
         ],
         'uom' => [
             'choose' => 'Choose unit...',
-            'kg' => 'Kilogram', 'ton' => 'Ton', 'piece' => 'Piece', 'box' => 'Box',
+            'kg' => 'Kg', 'ton' => 'Ton', 'piece' => 'Piece', 'box' => 'Box',
+            'carton' => 'Carton', 'crate' => 'Crate', 'bag' => 'Bag', 'meter' => 'Meter',
+            'liter' => 'Liter', 'dozen' => 'Dozen', 'pack' => 'Pack', 'pallet' => 'Pallet',
+            'drum' => 'Drum', 'roll' => 'Roll', 'bottle' => 'Bottle', 'can' => 'Can',
         ],
         'rating' => [
             'A' => 'A (Excellent - approved)', 'B' => 'B (Very good)',

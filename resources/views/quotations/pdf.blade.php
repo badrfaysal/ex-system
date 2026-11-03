@@ -195,7 +195,7 @@
             <td style="width: 33%;" class="col-directional">{{ $isAr ? 'البيان / الوصف' : 'Description' }}</td>
             <td style="width: 8%;" class="col-center">{{ $isAr ? 'الكمية' : 'Qty' }}</td>
             <td style="width: 12%;" class="col-center">{{ $isAr ? 'سعر الوحدة' : 'Unit Price' }}</td>
-            <td style="width: 10%;" class="col-center">{{ $isAr ? 'الوحدة' : 'UOM' }}</td>
+            <td style="width: 10%;" class="col-center">{{ $isAr ? 'الوحدة' : 'Unit' }}</td>
             <td style="width: 18%;" class="col-directional">{{ $isAr ? 'الإجمالي' : 'Total' }}</td>
         </tr>
     </thead>
@@ -214,7 +214,7 @@
             <td class="col-center item-qty-cell">{{ rtrim(rtrim(number_format($line->quantity, 2), '0'), '.') }}</td>
             <td class="col-center">{{ number_format($line->list_price, 2) }}</td>
             <td class="col-center">
-                {{ $line->uom ?? '—' }}
+                {{ $line->displayUom($isAr ? 'ar' : 'en') }}
             </td>
             <td class="col-directional item-total-cell">{{ number_format($line->net_total, 2) }}</td>
         </tr>

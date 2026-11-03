@@ -115,7 +115,7 @@
                                 min="0.001" step="any"
                                 class="qty-input w-20 text-center border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold text-gray-800 focus:outline-none focus:border-[#008A3B] focus:ring-1 focus:ring-[#008A3B]/30">
                             @if($item->uom)
-                            <span class="text-[10px] text-gray-400">{{ $item->uom }}</span>
+                            <span class="text-[10px] text-gray-400">{{ $item->displayUom($isAr ? 'ar' : 'en') }}</span>
                             @endif
                         </div>
                     </td>

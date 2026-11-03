@@ -363,7 +363,7 @@ class QuotationController extends Controller
             'items'      => Item::select('id', 'item_code', 'name_ar', 'name_en', 'base_uom')->orderBy('name_ar')->get(),
             'priceLists' => PriceList::where('status', 'active')->orderBy('name')->get(),
             'currencies' => $lookups->get('currency') ?? collect(),
-            'uoms'       => ($lookups->get('uom') ?? collect())->pluck('display_name', 'key_value'),
+            'uoms'       => \App\Services\UomHelper::options(app()->getLocale(), $lookups->get('uom')),
         ];
     }
 

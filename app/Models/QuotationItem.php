@@ -42,4 +42,15 @@ class QuotationItem extends Model
         }
         return $this->description ?? '';
     }
+
+    /**
+     * يرجع وحدة القياس بحسب اللغة الحالية (عربي / إنجليزي):
+     * يترجم الوحدة سواء كانت مسجلة بالعربي أو الإنجليزي أو كود برمجي.
+     */
+    public function displayUom(?string $locale = null): string
+    {
+        $locale = $locale ?? app()->getLocale();
+        $raw = $this->uom ?: optional($this->item)->base_uom;
+        return \App\Services\UomHelper::translate($raw, $locale);
+    }
 }

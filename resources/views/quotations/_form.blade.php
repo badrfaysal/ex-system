@@ -11,10 +11,13 @@
     })->values();
 
     $jsPreload = array_values(old('items', $isEdit
-        ? $quotation->items->map(function ($it) {
+        ? $quotation->items->map(function ($it) use ($isAr) {
             return [
-                'item_id' => $it->item_id, 'item_code' => $it->item_code, 'description' => $it->description,
-                'quantity' => $it->quantity, 'uom' => $it->uom, 'list_price' => $it->list_price,
+                'item_id' => $it->item_id, 'item_code' => $it->item_code,
+                'description' => $it->displayDescription($isAr ? 'ar' : 'en'),
+                'quantity' => $it->quantity,
+                'uom' => $it->displayUom($isAr ? 'ar' : 'en'),
+                'list_price' => $it->list_price,
                 'discount_percent' => $it->discount_percent, 'tax_percent' => $it->tax_percent,
             ];
         })->toArray()

@@ -17,7 +17,7 @@
         'code'  => $l->item_code ?? '—',
         'desc'  => $l->displayDescription($isAr ? 'ar' : 'en'),
         'qty'   => rtrim(rtrim(number_format($l->quantity, 2), '0'), '.'),
-        'uom'   => $l->uom ?? '—',
+        'uom'   => $l->displayUom($isAr ? 'ar' : 'en'),
         'price' => number_format($l->list_price, 2),
         'disc'  => $l->discount_percent > 0 ? number_format($l->discount_percent, 2).'%' : '—',
         'tax'   => $l->tax_percent > 0      ? number_format($l->tax_percent, 2).'%'      : '—',

@@ -43,4 +43,11 @@ class SalesInvoiceItem extends Model
         }
         return $this->description ?? '';
     }
+
+    public function displayUom(?string $locale = null): string
+    {
+        $locale = $locale ?? app()->getLocale();
+        $raw = $this->uom ?: optional($this->item)->base_uom;
+        return \App\Services\UomHelper::translate($raw, $locale);
+    }
 }
