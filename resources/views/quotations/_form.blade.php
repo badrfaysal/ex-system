@@ -199,11 +199,54 @@
                     @endforeach
                 </select>
                 <button type="button" onclick="addBlankRow()" class="px-4 py-2 border border-dashed border-gray-400 text-gray-600 rounded-lg text-sm hover:border-[#008A3B] hover:text-[#008A3B] flex items-center gap-2">
-                    <i class="fas fa-plus"></i> {{ app()->getLocale()==='ar' ? 'سطر يدوي (خدمة)' : 'Manual line (service)' }}
+                    <i class="fas fa-plus"></i> {{ app()->getLocale()==='ar' ? 'سطر يدوي (صنف حر)' : 'Manual line' }}
                 </button>
-                <button type="button" onclick="addCertificateRow()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 border border-slate-400 text-slate-800 font-bold rounded-lg text-sm flex items-center gap-2 transition-colors shadow-sm">
-                    <i class="fas fa-certificate text-amber-600"></i> {{ app()->getLocale()==='ar' ? 'إضافة بند شهادات (Certificates)' : 'Add Certificates Line' }}
-                </button>
+
+                @php
+                    $otherServices = \App\Models\Setting::getOtherServices();
+                @endphp
+                <div class="relative inline-block text-right" id="otherServicesDropdownWrapper">
+                    <button type="button" onclick="toggleOtherServicesMenu()" id="otherServicesMenuBtn"
+                        class="px-4 py-2 bg-slate-200 hover:bg-slate-300 border border-slate-400 text-slate-800 font-bold rounded-lg text-sm flex items-center gap-2 transition-colors shadow-sm">
+                        <i class="fas fa-concierge-bell text-amber-600"></i>
+                        <span>{{ $isAr ? '+ إضافة خدمة خاصة (شهادات / خدمات أخرى)' : '+ Add Special Service' }}</span>
+                        <i class="fas fa-chevron-down text-xs opacity-70"></i>
+                    </button>
+                    <div id="otherServicesMenu" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-200 z-50 py-1 divide-y divide-gray-100">
+                        <div class="px-3 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider text-right">
+                            {{ $isAr ? 'الخدمات المتاحة من الإعدادات' : 'Available Services from Settings' }}
+                        </div>
+                        <div class="py-1">
+                            @foreach($otherServices as $srv)
+                                @php
+                                    $srvLabel = $isAr ? ($srv['name_ar'] ?: $srv['name_en']) : ($srv['name_en'] ?: $srv['name_ar']);
+                                    $subLabel = $isAr ? $srv['name_en'] : $srv['name_ar'];
+                                @endphp
+                                <button type="button" onclick='addSpecialServiceRow(@json($srv))'
+                                    class="w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-900 flex items-center justify-between group transition-colors">
+                                    <div class="flex flex-col text-right">
+                                        <span class="font-bold text-gray-900 group-hover:text-amber-800">{{ $srvLabel }}</span>
+                                        @if(!empty($subLabel) && $subLabel !== $srvLabel)
+                                            <span class="text-[11px] text-gray-400 font-sans" dir="ltr">{{ $subLabel }}</span>
+                                        @endif
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        @if(!empty($srv['default_price']))
+                                            <span class="text-xs font-mono font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded">{{ number_format((float)$srv['default_price'], 2) }}</span>
+                                        @endif
+                                        <span class="text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{{ $srv['code'] }}</span>
+                                    </div>
+                                </button>
+                            @endforeach
+                        </div>
+                        <div class="p-1.5 bg-gray-50">
+                            <a href="{{ route('settings.index') }}#other_service" target="_blank"
+                                class="w-full block text-center px-3 py-1.5 text-xs text-[#005B9F] hover:underline font-bold">
+                                <i class="fas fa-cog me-1"></i> {{ $isAr ? 'إدارة بنود الخدمات في الإعدادات...' : 'Manage Services in Settings...' }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -361,13 +404,33 @@
     function uomLabel(key) { return key ? (Q_UOM[key] || key) : ''; }
     function fmt(n) { return (Math.round(n * 100) / 100).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
 
+    const OTHER_SERVICES = @json(\App\Models\Setting::getOtherServices());
+
+    function isOtherService(data) {
+        if (!data) return false;
+        if (data.is_service) return true;
+        const code = String(data.code || '').toUpperCase().trim();
+        const desc = String(data.description || '').trim();
+        const descLower = desc.toLowerCase();
+
+        if (code === 'CERT' || descLower.includes('certificate') || desc.includes('شهادات') || desc.includes('شهادة')) {
+            return true;
+        }
+
+        return Array.isArray(OTHER_SERVICES) && OTHER_SERVICES.some(s => {
+            const sCode = String(s.code || '').toUpperCase().trim();
+            const sAr   = String(s.name_ar || '').trim();
+            const sEn   = String(s.name_en || '').toLowerCase().trim();
+            return (sCode && sCode === code)
+                || (sAr && desc.includes(sAr))
+                || (sEn && descLower.includes(sEn));
+        });
+    }
+
     function rowTemplate(data) {
         const i = qIndex++;
         const tr = document.createElement('tr');
-        const isCert = String(data.code || '').toUpperCase().trim() === 'CERT'
-            || String(data.description || '').toLowerCase().includes('certificate')
-            || String(data.description || '').includes('شهادات')
-            || String(data.description || '').includes('شهادة');
+        const isCert = isOtherService(data);
         tr.className = isCert
             ? 'bg-slate-200/80 hover:bg-slate-200 align-top border-y-2 border-slate-300 cert-row'
             : 'hover:bg-green-50/30 align-top';
@@ -380,7 +443,7 @@
             </td>
             <td class="p-2">
                 <div class="relative flex items-center">
-                    ${isCert ? '<i class="fas fa-certificate text-amber-600 mx-1.5"></i>' : ''}
+                    ${isCert ? '<i class="fas fa-concierge-bell text-amber-600 mx-1.5"></i>' : ''}
                     <input type="text" name="items[${i}][description]" required value="${(data.description ?? '').replace(/"/g,'&quot;')}"
                         class="w-full px-2 py-1.5 border ${isCert ? 'border-slate-400 bg-white font-extrabold text-slate-900' : 'border-gray-300'} rounded text-sm focus:outline-none focus:border-[#008A3B]">
                 </div>
@@ -449,21 +512,55 @@
         rowTemplate({ quantity: 1, list_price: 0, discount_percent: 0, tax_percent: 14 });
     }
 
-    function addCertificateRow() {
+    function addSpecialServiceRow(service) {
+        const isAr = {{ $isAr ? 'true' : 'false' }};
+        const desc = isAr ? (service.name_ar || service.name_en) : (service.name_en || service.name_ar);
         const tr = rowTemplate({
-            code: 'CERT',
-            description: 'Certificates',
+            code: service.code || 'CERT',
+            description: desc,
             uom: '',
             quantity: 1,
-            list_price: '',
+            list_price: (service.default_price !== null && service.default_price !== undefined && service.default_price !== '') ? service.default_price : '',
             discount_percent: 0,
-            tax_percent: 0
+            tax_percent: 0,
+            is_service: true
         });
+
+        closeOtherServicesMenu();
+
         const priceInp = tr.querySelector('.calc-p');
         if (priceInp) {
             priceInp.focus();
+            if (priceInp.select) priceInp.select();
         }
     }
+
+    function addCertificateRow() {
+        const cert = (Array.isArray(OTHER_SERVICES) && OTHER_SERVICES.find(s => s.code === 'CERT')) || {
+            code: 'CERT',
+            name_ar: 'شهادات',
+            name_en: 'Certificates',
+            default_price: ''
+        };
+        addSpecialServiceRow(cert);
+    }
+
+    function toggleOtherServicesMenu() {
+        const menu = document.getElementById('otherServicesMenu');
+        if (menu) menu.classList.toggle('hidden');
+    }
+
+    function closeOtherServicesMenu() {
+        const menu = document.getElementById('otherServicesMenu');
+        if (menu) menu.classList.add('hidden');
+    }
+
+    document.addEventListener('click', function(e) {
+        const wrapper = document.getElementById('otherServicesDropdownWrapper');
+        if (wrapper && !wrapper.contains(e.target)) {
+            closeOtherServicesMenu();
+        }
+    });
 
     function qRemove(btn) { btn.closest('tr').remove(); qRenumber(); recalc(); }
 

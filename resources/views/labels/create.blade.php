@@ -103,23 +103,17 @@
                                     placeholder="YYYY/MM/DD">
                             </div>
 
-                            <!-- مقاس ورق الطباعة -->
+                            <!-- عدد النسخ -->
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 mb-1.5">
-                                    مقاس ورق الطباعة (الستيكر)
+                                    عدد النسخ <span class="text-red-500">*</span>
                                 </label>
-                                <select name="size" id="compact_size" onchange="updateCompactPreview()"
-                                    class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-pink-500 bg-white font-medium text-gray-700">
-                                    <option value="60x30" selected>60 × 30 مم (مقاس مستطيل قياسي - موصى به)</option>
-                                    <option value="50x25">50 × 25 مم (مقاس مستطيل صغير)</option>
-                                    <option value="70x35">70 × 35 مم (مقاس مستطيل متوسط)</option>
-                                    <option value="80x40">80 × 40 مم (مقاس مستطيل كبير)</option>
-                                    <option value="auto">تلقائي (حسب إعدادات طابعة الملصقات)</option>
-                                </select>
+                                <input type="number" name="copies" min="1" max="5000" value="1" required
+                                    class="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm text-center font-bold focus:outline-none focus:border-pink-500">
                             </div>
                         </div>
 
-                        <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                        <div class="pt-1">
                             <!-- خيار إظهار اللوجو -->
                             <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700 select-none">
                                 <input type="checkbox" name="show_logo" id="compact_show_logo" value="1" checked
@@ -127,13 +121,14 @@
                                     class="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500">
                                 <span>تضمين شعار الشركة (اللوجو)</span>
                             </label>
+                        </div>
+                    </div>
 
-                            <!-- عدد النسخ -->
-                            <div class="flex items-center gap-2">
-                                <label class="text-xs font-bold text-gray-700">عدد النسخ:</label>
-                                <input type="number" name="copies" min="1" max="5000" value="1" required
-                                    class="w-20 px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-center font-bold focus:outline-none focus:border-pink-500">
-                            </div>
+                    {{-- نصيحة ضبط الطابعة لمنع طباعة ورقتين --}}
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 flex items-start gap-2">
+                        <i class="fas fa-lightbulb text-amber-500 mt-0.5 shrink-0"></i>
+                        <div class="leading-relaxed">
+                            <strong>ملاحظة لطابعة الباركود:</strong> في نافذة الطباعة المنبثقة، تأكد من اختيار مقاس الورق الصغير <strong>(50×25 مم / USER)</strong> وضبط <strong>الهوامش (Margins)</strong> على <strong>بدون (None)</strong> ليطبع في منتصف الستيكر بالضبط.
                         </div>
                     </div>
 
@@ -150,36 +145,38 @@
                         <span class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
                             <i class="fas fa-eye text-pink-600"></i> معاينة شكل الملصق
                         </span>
-                        <span id="previewSizeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-200 text-gray-600 font-bold">
-                            60 × 30 مم
+                        <span id="previewSizeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-pink-100 text-pink-800 font-bold">
+                            بالعرض (50 × 25 مم)
                         </span>
                     </div>
 
-                    {{-- الستيكر المستطيل الواقعي --}}
+                    {{-- الستيكر المستطيل الواقعي بالعرض ومتوسطن في النص بالضبط --}}
                     <div class="flex justify-center items-center py-4">
                         <div id="previewCard"
-                            class="bg-white text-black border-2 border-dashed border-gray-400 rounded-md shadow-md p-3 transition-all duration-300 flex flex-col justify-between"
-                            style="width: 260px; min-height: 140px; aspect-ratio: 2 / 1;">
+                            class="bg-white text-black border-2 border-dashed border-gray-400 rounded-md shadow-md px-4 py-2.5 transition-all duration-300 flex items-center justify-center"
+                            style="width: 260px; height: 130px; aspect-ratio: 2 / 1;">
                             
-                            {{-- رأس الملصق: اسم الشركة + اللوجو --}}
-                            <div class="flex items-center justify-between gap-2 border-b border-black pb-1.5">
-                                <span id="pvCompany" class="font-extrabold text-sm text-black truncate leading-tight">
-                                    {{ $defaultCompanyName }}
-                                </span>
-                                <img id="pvLogo" src="{{ asset('images/EFC-.png') }}" alt="Logo" class="h-6 w-auto object-contain">
-                            </div>
+                            <div class="w-full h-full flex flex-col justify-between">
+                                {{-- رأس الملصق: اسم الشركة + اللوجو مكبر --}}
+                                <div id="pvHeader" class="flex items-center justify-between gap-2 border-b-2 border-black pb-1">
+                                    <span id="pvCompany" class="font-black text-sm text-black truncate leading-tight">
+                                        {{ $defaultCompanyName }}
+                                    </span>
+                                    <img id="pvLogo" src="{{ asset('images/EFC-.png') }}" alt="Logo" class="h-8 w-auto object-contain">
+                                </div>
 
-                            {{-- منتصف الملصق: اسم الصنف بخط عريض وواضح --}}
-                            <div class="my-auto py-2 text-center">
-                                <span id="pvItem" class="font-black text-base text-black block leading-snug line-clamp-2">
-                                    اسم الصنف يظهر هنا
-                                </span>
-                            </div>
+                                {{-- منتصف الملصق: اسم الصنف في النص بالضبط --}}
+                                <div class="my-auto py-1 text-center flex items-center justify-center">
+                                    <span id="pvItem" class="font-black text-lg text-black block leading-tight line-clamp-2 text-center">
+                                        اسم الصنف يظهر هنا
+                                    </span>
+                                </div>
 
-                            {{-- أسفل الملصق: التاريخ --}}
-                            <div class="border-t border-black pt-1 flex items-center justify-between text-[11px] font-bold text-black">
-                                <span>التاريخ:</span>
-                                <span id="pvDate" class="font-mono" dir="ltr">{{ $todayDate }}</span>
+                                {{-- أسفل الملصق: التاريخ متوسطن في النص --}}
+                                <div class="border-t-2 border-black pt-1 flex items-center justify-center gap-2 text-[11px] font-black text-black">
+                                    <span>التاريخ:</span>
+                                    <span id="pvDate" class="font-mono font-black" dir="ltr">{{ $todayDate }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -325,7 +322,6 @@ function updateCompactPreview() {
     const compName = document.getElementById('compact_company_name')?.value || 'ايجيبيشن فودز';
     const dateVal  = document.getElementById('compact_date')?.value || '';
     const showLogo = document.getElementById('compact_show_logo')?.checked;
-    const sizeVal  = document.getElementById('compact_size')?.value || '60x30';
 
     let itemVal = '';
     if (compactItemSelectInstance) {
@@ -335,31 +331,19 @@ function updateCompactPreview() {
         itemVal = itemEl ? itemEl.value : '';
     }
 
+    const pvHeader  = document.getElementById('pvHeader');
     const pvCompany = document.getElementById('pvCompany');
     const pvItem    = document.getElementById('pvItem');
     const pvDate    = document.getElementById('pvDate');
     const pvLogo    = document.getElementById('pvLogo');
-    const pvBadge   = document.getElementById('previewSizeBadge');
-    const pvCard    = document.getElementById('previewCard');
 
     if (pvCompany) pvCompany.textContent = compName;
     if (pvItem) pvItem.textContent = itemVal ? itemVal : 'اسم الصنف يظهر هنا';
     if (pvDate) pvDate.textContent = dateVal;
     if (pvLogo) pvLogo.style.display = showLogo ? 'block' : 'none';
-
-    // تحديث شارة المقاس وأبعاد كارت المعاينة
-    const sizeMap = {
-        '50x25': { text: '50 × 25 مم', w: '240px', minH: '120px' },
-        '60x30': { text: '60 × 30 مم', w: '260px', minH: '140px' },
-        '70x35': { text: '70 × 35 مم', w: '280px', minH: '150px' },
-        '80x40': { text: '80 × 40 مم', w: '300px', minH: '160px' },
-        'auto':  { text: 'تلقائي (حسب الطابعة)', w: '260px', minH: '140px' },
-    };
-    const sInfo = sizeMap[sizeVal] || sizeMap['60x30'];
-    if (pvBadge) pvBadge.textContent = sInfo.text;
-    if (pvCard) {
-        pvCard.style.width = sInfo.w;
-        pvCard.style.minHeight = sInfo.minH;
+    if (pvHeader) {
+        pvHeader.classList.toggle('justify-between', !!showLogo);
+        pvHeader.classList.toggle('justify-center', !showLogo);
     }
 }
 

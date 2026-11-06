@@ -40,6 +40,18 @@ class QuotationItem extends Model
                 return $this->item->name_ar;
             }
         }
+
+        // خدمات أخرى / شهادات مسجلة في الإعدادات
+        $service = \App\Models\Setting::findOtherService($this->item_code, $this->description);
+        if ($service) {
+            if ($locale === 'en' && !empty($service['name_en'])) {
+                return $service['name_en'];
+            }
+            if ($locale === 'ar' && !empty($service['name_ar'])) {
+                return $service['name_ar'];
+            }
+        }
+
         return $this->description ?? '';
     }
 
@@ -55,16 +67,20 @@ class QuotationItem extends Model
     }
 
     /**
-     * هل هذا السطر يمثل بند شهادات (Certificates) المميز؟
+     * هل هذا السطر يمثل بند شهادات أو خدمات خاصة مميزة؟
      */
     public function isCertificate(): bool
     {
         $code = strtoupper(trim((string) $this->item_code));
         $desc = strtolower(trim((string) $this->description));
 
-        return $code === 'CERT'
+        if ($code === 'CERT'
             || str_contains($desc, 'certificate')
             || str_contains($desc, 'شهادات')
-            || str_contains($desc, 'شهادة');
+            || str_contains($desc, 'شهادة')) {
+            return true;
+        }
+
+        return \App\Models\Setting::isOtherServiceCodeOrName($this->item_code, $this->description);
     }
 }

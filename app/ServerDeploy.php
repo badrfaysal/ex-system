@@ -117,7 +117,14 @@ class ServerDeploy
                 $output .= "• الحسابات والمحافظ التجريبية: {$cleanReport['wallets']}\n";
                 $output .= "• المصروفات التجريبية: {$cleanReport['expenses']}\n\n";
 
-                // 3. مسح الكاش وربط التخزين
+                // 3. تهيئة بنود المصروفات والخدمات الخاصة (شهادات/حراسة/تغليف)
+                try {
+                    \App\Models\Setting::ensureExpenseCategoriesSeeded();
+                    \App\Models\Setting::ensureOtherServicesSeeded();
+                    $output .= "=== تهيئة الإعدادات ===\nتم تحديث بنود المصروفات وخدمات النظام الخاصة بنجاح.\n\n";
+                } catch (\Throwable $e) {}
+
+                // 4. مسح الكاش وربط التخزين
                 Artisan::call('optimize:clear');
                 $output .= "=== نتيجة مسح الكاش ===\n" . Artisan::output();
                 try {
@@ -187,7 +194,7 @@ class ServerDeploy
                 if (!empty($clientIds) && Schema::hasColumn('sales_orders', 'client_id')) {
                     $q->orWhereIn('client_id', $clientIds);
                 }
-                self::addSearchPattern($q, 'sales_orders', ['so_number', 'order_number', 'notes']);
+                self::addSearchPattern($q, 'sales_orders', ['so_number', 'terms']);
             })->pluck('id')->all();
         }
 
@@ -223,7 +230,7 @@ class ServerDeploy
         $walletIds = [];
         if (Schema::hasTable('wallets')) {
             $walletIds = DB::table('wallets')->where(function ($q) {
-                self::addSearchPattern($q, 'wallets', ['name', 'account_number']);
+                self::addSearchPattern($q, 'wallets', ['name', 'notes']);
             })->pluck('id')->all();
         }
 
@@ -243,7 +250,7 @@ class ServerDeploy
                 if (!empty($walletIds) && Schema::hasColumn('client_receipts', 'wallet_id')) {
                     $q->orWhereIn('wallet_id', $walletIds);
                 }
-                self::addSearchPattern($q, 'client_receipts', ['receipt_number', 'notes']);
+                self::addSearchPattern($q, 'client_receipts', ['notes']);
             })->pluck('id')->all();
         }
 
@@ -257,7 +264,7 @@ class ServerDeploy
                 if (!empty($walletIds) && Schema::hasColumn('vendor_payments', 'wallet_id')) {
                     $q->orWhereIn('wallet_id', $walletIds);
                 }
-                self::addSearchPattern($q, 'vendor_payments', ['payment_number', 'notes']);
+                self::addSearchPattern($q, 'vendor_payments', ['notes']);
             })->pluck('id')->all();
         }
 
@@ -282,7 +289,7 @@ class ServerDeploy
                 if (!empty($walletIds) && Schema::hasColumn('revenues', 'wallet_id')) {
                     $q->whereIn('wallet_id', $walletIds);
                 }
-                self::addSearchPattern($q, 'revenues', ['description', 'notes']);
+                self::addSearchPattern($q, 'revenues', ['revenue_number', 'description', 'notes']);
             })->pluck('id')->all();
         }
 
@@ -290,7 +297,7 @@ class ServerDeploy
         $vendorIds = [];
         if (Schema::hasTable('vendors')) {
             $vendorIds = DB::table('vendors')->where(function ($q) {
-                self::addSearchPattern($q, 'vendors', ['name', 'company_name', 'email']);
+                self::addSearchPattern($q, 'vendors', ['vendor_code', 'name_ar', 'name_en', 'legal_name', 'email']);
             })->pluck('id')->all();
         }
 
@@ -380,8 +387,20 @@ class ServerDeploy
      */
     protected static function addSearchPattern($query, string $table, array $columns): void
     {
+        try {
+            $tableCols = Schema::getColumnListing($table);
+        } catch (\Throwable $e) {
+            $tableCols = [];
+        }
+
         $patterns = ['%test%', '%تجريب%', '%تست%', '%dummy%', '%وهمي%'];
-        $existingCols = array_filter($columns, fn($col) => Schema::hasColumn($table, $col));
+        $existingCols = !empty($tableCols)
+            ? array_values(array_intersect($columns, $tableCols))
+            : array_values(array_filter($columns, fn($col) => Schema::hasColumn($table, $col)));
+
+        if (empty($existingCols)) {
+            return;
+        }
 
         foreach ($existingCols as $col) {
             foreach ($patterns as $pattern) {

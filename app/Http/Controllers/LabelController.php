@@ -33,13 +33,11 @@ class LabelController extends Controller
                 'company_name' => 'required|string|max:255',
                 'item_name'    => 'required|string|max:255',
                 'date'         => 'required|string|max:100',
-                'size'         => 'nullable|string|max:50',
                 'show_logo'    => 'nullable',
                 'copies'       => 'required|integer|min:1|max:5000',
             ]);
 
             $data['show_logo'] = $request->boolean('show_logo', true);
-            $data['size'] = $data['size'] ?? '60x30';
 
             PrintedLabel::create([
                 'brand_name'      => $data['company_name'],

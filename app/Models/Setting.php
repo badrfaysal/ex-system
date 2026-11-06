@@ -12,9 +12,39 @@ class Setting extends Model
     // هذه الدالة السحرية ستمسح الكاش تلقائياً عند إضافة أو تعديل أي إعداد
     protected static function booted()
     {
-        static::saved(fn() => Cache::forget('system_settings'));
-        static::deleted(fn() => Cache::forget('system_settings'));
+        static::saved(function () {
+            Cache::forget('system_settings');
+            Cache::forget('other_services_list');
+        });
+        static::deleted(function () {
+            Cache::forget('system_settings');
+            Cache::forget('other_services_list');
+        });
     }
+
+    /**
+     * الخدمات الأخرى الخاصة (شهادات، حراسة، تغليف، تجهيز) كبديل ديناميكي لبند الشهادات الثابت
+     */
+    public const DEFAULT_OTHER_SERVICES = [
+        [
+            'code'          => 'CERT',
+            'name_ar'       => 'شهادات',
+            'name_en'       => 'Certificates',
+            'default_price' => null,
+        ],
+        [
+            'code'          => 'SRV-GUARD',
+            'name_ar'       => 'خدمة حراسة',
+            'name_en'       => 'Guarding Service',
+            'default_price' => null,
+        ],
+        [
+            'code'          => 'SRV-PACK',
+            'name_ar'       => 'خدمة تغليف وتجهيز',
+            'name_en'       => 'Packaging & Handling Service',
+            'default_price' => null,
+        ],
+    ];
 
     /**
      * بنود المصروفات الأساسية لشركة شحن وتصدير مأكولات غذائية وحاصلات زراعية (شركة صغيرة)
@@ -152,5 +182,154 @@ class Setting extends Model
             'acc_usd'          => $rows->get('acc_usd', ''),
             'swift_code'       => $rows->get('swift_code', ''),
         ];
+    }
+
+    /**
+     * التأكد من وجود الخدمات الخاصة الافتراضية (شهادات، حراسة، تغليف)
+     */
+    public static function ensureOtherServicesSeeded(): void
+    {
+        try {
+            $hasAny = static::where('category', 'other_service')->exists();
+            if (!$hasAny) {
+                foreach (self::DEFAULT_OTHER_SERVICES as $srv) {
+                    static::create([
+                        'category'     => 'other_service',
+                        'display_name' => $srv['name_ar'],
+                        'key_value'    => $srv['code'],
+                        'parent_key'   => json_encode([
+                            'name_en'       => $srv['name_en'],
+                            'default_price' => $srv['default_price'],
+                        ], JSON_UNESCAPED_UNICODE),
+                    ]);
+                }
+                Cache::forget('system_settings');
+                Cache::forget('other_services_list');
+            }
+        } catch (\Throwable $e) {}
+    }
+
+    /**
+     * جلب قائمة الخدمات الأخرى المُعرفة في النظام
+     */
+    public static function getOtherServices(): \Illuminate\Support\Collection
+    {
+        try {
+            return Cache::remember('other_services_list', 3600, function () {
+                self::ensureOtherServicesSeeded();
+
+                $records = static::where('category', 'other_service')->orderBy('id')->get();
+                if ($records->isEmpty()) {
+                    return collect(self::DEFAULT_OTHER_SERVICES)->map(fn($s) => [
+                        'id'            => null,
+                        'code'          => $s['code'],
+                        'name_ar'       => $s['name_ar'],
+                        'name_en'       => $s['name_en'],
+                        'name'          => app()->getLocale() === 'en' ? $s['name_en'] : $s['name_ar'],
+                        'default_price' => $s['default_price'],
+                    ]);
+                }
+
+                $locale = app()->getLocale();
+
+                return $records->map(function ($rec) use ($locale) {
+                    $meta = [];
+                    if (!empty($rec->parent_key)) {
+                        $decoded = json_decode($rec->parent_key, true);
+                        if (is_array($decoded)) {
+                            $meta = $decoded;
+                        } else {
+                            $meta['name_en'] = (string) $rec->parent_key;
+                        }
+                    }
+
+                    $nameAr = $rec->display_name ?: '';
+                    $nameEn = $meta['name_en'] ?? $nameAr;
+                    $defaultPrice = $meta['default_price'] ?? null;
+
+                    return [
+                        'id'            => $rec->id,
+                        'code'          => $rec->key_value ?: 'SRV-' . $rec->id,
+                        'name_ar'       => $nameAr,
+                        'name_en'       => $nameEn,
+                        'name'          => ($locale === 'en' && !empty($nameEn)) ? $nameEn : $nameAr,
+                        'default_price' => $defaultPrice,
+                    ];
+                });
+            });
+        } catch (\Throwable $e) {
+            return collect(self::DEFAULT_OTHER_SERVICES)->map(fn($s) => [
+                'id'            => null,
+                'code'          => $s['code'],
+                'name_ar'       => $s['name_ar'],
+                'name_en'       => $s['name_en'],
+                'name'          => app()->getLocale() === 'en' ? $s['name_en'] : $s['name_ar'],
+                'default_price' => $s['default_price'],
+            ]);
+        }
+    }
+
+    /**
+     * البحث عن خدمة أخرى بالكود أو الاسم لمعرفة ترجمتها الثنائية ونوعها
+     */
+    public static function findOtherService(?string $code, ?string $name = null): ?array
+    {
+        $codeClean = strtoupper(trim((string) $code));
+        $nameClean = trim((string) $name);
+        $nameLower = strtolower($nameClean);
+
+        $services = static::getOtherServices();
+
+        // 1. بحث بالكود المباشر
+        if ($codeClean !== '') {
+            $match = $services->first(fn($s) => strtoupper(trim((string) $s['code'])) === $codeClean);
+            if ($match) {
+                return $match;
+            }
+        }
+
+        // 2. كود الشهادات التقليدي CERT أو كلمات شهادة/شهادات/certificate
+        if ($codeClean === 'CERT' || str_contains($nameLower, 'certificate') || str_contains($nameClean, 'شهادات') || str_contains($nameClean, 'شهادة')) {
+            $certMatch = $services->first(function ($s) {
+                return strtoupper(trim((string) $s['code'])) === 'CERT'
+                    || str_contains(strtolower($s['name_en']), 'cert')
+                    || str_contains($s['name_ar'], 'شه');
+            });
+            if ($certMatch) {
+                return $certMatch;
+            }
+
+            return [
+                'id'            => null,
+                'code'          => 'CERT',
+                'name_ar'       => 'شهادات',
+                'name_en'       => 'Certificates',
+                'name'          => app()->getLocale() === 'en' ? 'Certificates' : 'شهادات',
+                'default_price' => null,
+            ];
+        }
+
+        // 3. مطابقة الاسم بالعربي أو بالإنجليزي
+        if ($nameClean !== '') {
+            $match = $services->first(function ($s) use ($nameClean, $nameLower) {
+                $ar = trim((string) $s['name_ar']);
+                $en = strtolower(trim((string) $s['name_en']));
+                return ($ar !== '' && (str_contains($nameClean, $ar) || str_contains($ar, $nameClean)))
+                    || ($en !== '' && (str_contains($nameLower, $en) || str_contains($en, $nameLower)));
+            });
+            if ($match) {
+                return $match;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * التحقق مما إذا كان الكود أو الاسم يمثل خدمة خاصة (شهادات أو غيرها)
+     */
+    public static function isOtherServiceCodeOrName(?string $code, ?string $name = null): bool
+    {
+        return static::findOtherService($code, $name) !== null;
     }
 }

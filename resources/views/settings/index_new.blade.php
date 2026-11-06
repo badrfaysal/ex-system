@@ -49,12 +49,14 @@
             'المالية والحسابات' => [
                 'wallets'          => ['icon' => 'fa-wallet', 'custom' => true, 'title' => 'الحسابات البنكية والصناديق المالية'],
                 'doc_bank_info'    => ['icon' => 'fa-university', 'custom' => true, 'title' => 'بيانات البنك بالمستندات'],
+                'other_service'    => ['icon' => 'fa-concierge-bell', 'custom' => true, 'title' => 'خدمات أخرى (الشهادات والخدمات)'],
                 'expense_category' => ['icon' => 'fa-file-invoice-dollar'],
             ],
         ];
-        $allUsers     = \App\Models\User::orderBy('name')->get();
-        $notifyEmails = \App\Models\Setting::where('category', 'notify_email')->orderBy('display_name')->get();
-        $docBankInfo  = \App\Models\Setting::documentBankDetails();
+        $allUsers          = \App\Models\User::orderBy('name')->get();
+        $notifyEmails      = \App\Models\Setting::where('category', 'notify_email')->orderBy('display_name')->get();
+        $docBankInfo       = \App\Models\Setting::documentBankDetails();
+        $otherServicesList = \App\Models\Setting::getOtherServices();
     @endphp
 
     <div class="flex flex-col md:flex-row gap-8 items-start">
@@ -684,6 +686,120 @@
                         </button>
                     </div>
                 </form>
+
+            </div>
+
+            {{-- ===== panel خدمات أخرى (custom) ===== --}}
+            <div id="panel-other_service" class="tab-panel hidden p-6 animate-fade-in">
+
+                <div class="border-b border-gray-100 pb-4 mb-6">
+                    <h3 class="text-xl font-bold text-[#005B9F] flex items-center gap-2">
+                        <i class="fas fa-concierge-bell"></i> خدمات أخرى (الشهادات والخدمات الخاصة)
+                    </h3>
+                    <p class="text-sm text-gray-500 mt-1.5 leading-relaxed">
+                        تُستخدم هذه الخدمات لإضافتها كبنود خاصة في <strong>عروض الأسعار</strong> و<strong>أوامر البيع</strong> و<strong>فواتير البيع</strong> (مثل الشهادات، خدمة الحراسة، التغليف والتجهيز) مع دعم كامل للغتين العربية والإنجليزية.
+                    </p>
+                </div>
+
+                {{-- فورم إضافة خدمة جديدة --}}
+                <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 mb-8">
+                    <h4 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <i class="fas fa-plus-circle text-[#008A3B]"></i> إضافة خدمة خاصة جديدة
+                    </h4>
+                    <form action="{{ route('settings.store') }}" method="POST" class="space-y-4" onsubmit="sessionStorage.setItem('activeSettingTab', 'other_service');">
+                        @csrf
+                        <input type="hidden" name="category" value="other_service">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">اسم الخدمة (بالعربي) <span class="text-red-500">*</span></label>
+                                <input type="text" name="name_ar" required placeholder="مثال: خدمة حراسة"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Service Name (English)</label>
+                                <input type="text" name="name_en" dir="ltr" placeholder="e.g. Guarding Service"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">كود الخدمة (اختياري)</label>
+                                <input type="text" name="code" dir="ltr" placeholder="مثال: SRV-GUARD أو CERT"
+                                    class="w-full px-3 py-2 text-sm font-mono uppercase border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">السعر الافتراضي (اختياري)</label>
+                                <input type="number" step="0.01" min="0" name="default_price" dir="ltr" placeholder="سعر ثابت أو اتركه فارغاً"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-2">
+                            <button type="submit" class="px-5 py-2 bg-[#008A3B] text-white text-sm font-bold rounded-lg hover:bg-[#007030] transition-colors flex items-center gap-2 shadow-sm">
+                                <i class="fas fa-plus"></i> إضافة الخدمة
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- جدول الخدمات الحالية --}}
+                <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-gray-100 text-gray-700 border-b border-gray-200">
+                            <tr>
+                                <th class="p-3 font-bold w-12 text-center">#</th>
+                                <th class="p-3 font-bold">الكود</th>
+                                <th class="p-3 font-bold">اسم الخدمة (عربي)</th>
+                                <th class="p-3 font-bold">Service Name (EN)</th>
+                                <th class="p-3 font-bold text-center">السعر الافتراضي</th>
+                                <th class="p-3 font-bold w-20 text-center">حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                            @forelse($otherServicesList as $idx => $srv)
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="p-3 text-center text-gray-400 font-bold">{{ $idx + 1 }}</td>
+                                    <td class="p-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-100 text-slate-800 border border-slate-300" dir="ltr">
+                                            {{ $srv['code'] }}
+                                        </span>
+                                    </td>
+                                    <td class="p-3 font-bold text-gray-900">{{ $srv['name_ar'] }}</td>
+                                    <td class="p-3 font-medium text-gray-700 font-sans" dir="ltr">{{ $srv['name_en'] }}</td>
+                                    <td class="p-3 text-center text-gray-600 font-mono">
+                                        @if(!empty($srv['default_price']))
+                                            {{ number_format((float) $srv['default_price'], 2) }}
+                                        @else
+                                            <span class="text-xs text-gray-400 italic">يدوي عند الإدخال</span>
+                                        @endif
+                                    </td>
+                                    <td class="p-3 text-center">
+                                        @if(!empty($srv['id']))
+                                        <form action="{{ route('settings.destroy', $srv['id']) }}" method="POST"
+                                            onsubmit="sessionStorage.setItem('activeSettingTab', 'other_service'); return confirm('هل أنت متأكد من حذف هذه الخدمة؟');">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors" title="حذف">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                        @else
+                                        <span class="text-[11px] text-gray-400">افتراضي</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="p-10 text-center text-gray-500 bg-gray-50/50">
+                                        <i class="fas fa-concierge-bell text-3xl text-gray-300 mb-3 block"></i>
+                                        لا توجد خدمات مضافة حتى الآن.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
             </div>
 

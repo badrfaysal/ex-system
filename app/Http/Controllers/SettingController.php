@@ -45,6 +45,40 @@ class SettingController extends Controller
             return back()->with('success', 'تم حفظ بيانات البنك وملاحظات المستندات بنجاح.');
         }
 
+        // ===== خدمات أخرى (الشهادات والخدمات الخاصة) =====
+        if ($request->category === 'other_service') {
+            $data = $request->validate([
+                'name_ar'       => 'required|string|max:255',
+                'name_en'       => 'nullable|string|max:255',
+                'code'          => 'nullable|string|max:50',
+                'default_price' => 'nullable|numeric|min:0',
+            ]);
+
+            $code = strtoupper(trim((string) ($data['code'] ?? '')));
+            if ($code === '') {
+                $code = 'SRV-' . strtoupper(Str::random(5));
+            }
+
+            $nameAr = trim($data['name_ar']);
+            $nameEn = trim((string) ($data['name_en'] ?? '')) ?: $nameAr;
+            $defaultPrice = (isset($data['default_price']) && $data['default_price'] !== '') ? (float) $data['default_price'] : null;
+
+            Setting::create([
+                'category'     => 'other_service',
+                'display_name' => $nameAr,
+                'key_value'    => $code,
+                'parent_key'   => json_encode([
+                    'name_en'       => $nameEn,
+                    'default_price' => $defaultPrice,
+                ], JSON_UNESCAPED_UNICODE),
+            ]);
+
+            \Illuminate\Support\Facades\Cache::forget('system_settings');
+            \Illuminate\Support\Facades\Cache::forget('other_services_list');
+
+            return back()->with('success', 'تمت إضافة الخدمة بنجاح.');
+        }
+
         // ===== إيميلات إشعارات الإدارة =====
         if ($request->category === 'notify_email') {
             $request->validate([
@@ -125,6 +159,7 @@ class SettingController extends Controller
     {
         $setting->delete();
         \Illuminate\Support\Facades\Cache::forget('system_settings');
+        \Illuminate\Support\Facades\Cache::forget('other_services_list');
         return back()->with('success', 'تم حذف العنصر من النظام');
     }
 
