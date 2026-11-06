@@ -152,8 +152,19 @@
                 <label class="block text-xs font-bold text-gray-600 mb-1">{{ $isAr ? 'بند المصروف' : 'Expense Category' }} *</label>
                 <select name="category" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm">
                     <option value="">{{ $isAr ? '— اختر البند —' : '-- Select Category --' }}</option>
-                    @foreach($categories as $cat)
-                        <option value="{{ $cat->key_value }}">{{ $cat->display_name }}</option>
+                    @php
+                        $groupedCats = $categories->filter(fn($c) => $c->allow_posting || !empty($c->parent_key))->groupBy(fn($c) => $c->parent_key ?: 'other');
+                    @endphp
+                    @foreach($groupedCats as $pKey => $items)
+                        @php
+                            $pRec = $categories->firstWhere('key_value', $pKey) ?: $categories->firstWhere('code', $pKey);
+                            $grpTitle = $pRec ? ($pRec->account_code . ' — ' . $pRec->localized_name) : ($isAr ? 'بنود عامة' : 'General');
+                        @endphp
+                        <optgroup label="{{ $grpTitle }}">
+                            @foreach($items as $cat)
+                                <option value="{{ $cat->key_value }}">{{ $cat->account_code ? "[{$cat->account_code}] " : '' }}{{ $cat->localized_name }}</option>
+                            @endforeach
+                        </optgroup>
                     @endforeach
                 </select>
             </div>

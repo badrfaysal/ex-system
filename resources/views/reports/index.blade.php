@@ -276,7 +276,10 @@
             @php $maxExp = $expenseByCategory->max('total') ?: 1; @endphp
             <div class="space-y-2.5">
                 @forelse($expenseByCategory as $e)
-                    @php $eName = $expenseCatMap->has($e->category) ? $expenseCatMap->get($e->category)->display_name : ($e->category ?? ($isAr ? 'غير مصنف' : 'Uncategorized')); @endphp
+                    @php
+                        $catItem = $expenseCatMap->get($e->category) ?: $expenseCatMap->firstWhere('code', $e->category);
+                        $eName = $catItem ? ($catItem->account_code ? "[{$catItem->account_code}] " : '') . $catItem->localized_name : ($e->category ?? ($isAr ? 'غير مصنف' : 'Uncategorized'));
+                    @endphp
                     <div>
                         <div class="flex justify-between text-xs text-gray-600 mb-1"><span>{{ $eName }}</span><span class="font-bold font-mono" dir="ltr">{{ $fmt($e->total) }} ({{ $e->cnt }})</span></div>
                         <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-red-400" style="width: {{ $e->total / $maxExp * 100 }}%"></div></div>

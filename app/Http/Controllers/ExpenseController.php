@@ -34,7 +34,10 @@ class ExpenseController extends Controller
 
         $expenses = $query->latest()->paginate(15)->withQueryString();
 
-        return view('expenses.index', compact('expenses'));
+        Setting::ensureExpenseCategoriesSeeded();
+        $expenseAccountsMap = Setting::where('category', 'expense_category')->get()->keyBy('key_value');
+
+        return view('expenses.index', compact('expenses', 'expenseAccountsMap'));
     }
 
     public function create(Request $request)
@@ -114,11 +117,17 @@ class ExpenseController extends Controller
             return Setting::all()->groupBy('category');
         });
 
+        $allExpenseAccounts = $lookups->get('expense_category') ?? collect();
+        $expenseParents = $allExpenseAccounts->filter(fn($a) => empty($a->parent_key))->keyBy('key_value');
+        $postableCategories = $allExpenseAccounts->filter(fn($a) => !empty($a->parent_key) || $a->allow_posting);
+
         return [
-            'quotations' => Quotation::orderByDesc('id')->get(['id', 'quote_number', 'cost_center_name', 'client_id']),
-            'categories' => $lookups->get('expense_category') ?? collect(),
-            'currencies' => $lookups->get('currency') ?? collect(),
-            'wallets'    => Wallet::orderBy('name')->get(['id', 'name', 'currency']),
+            'quotations'         => Quotation::orderByDesc('id')->get(['id', 'quote_number', 'cost_center_name', 'client_id']),
+            'categories'         => $postableCategories,
+            'expenseParents'     => $expenseParents,
+            'allExpenseAccounts' => $allExpenseAccounts,
+            'currencies'         => $lookups->get('currency') ?? collect(),
+            'wallets'            => Wallet::orderBy('name')->get(['id', 'name', 'currency']),
         ];
     }
 

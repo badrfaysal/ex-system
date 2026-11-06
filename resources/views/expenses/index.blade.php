@@ -49,11 +49,19 @@
                 <tbody class="divide-y divide-gray-100 text-sm">
                     @forelse ($expenses as $expense)
                         @php
+                            $catModel = ($expenseAccountsMap ?? collect())->get($expense->category)
+                                ?: ($expenseAccountsMap ?? collect())->firstWhere('code', $expense->category);
+                            $catName = $catModel ? $catModel->localized_name : $expense->category;
+                            $catCode = $catModel?->account_code;
+                            $parentModel = $catModel && $catModel->parent_key ? ($expenseAccountsMap ?? collect())->get($catModel->parent_key) : null;
+
+                            $catFullLabel = ($catCode ? "#{$catCode} — " : '') . $catName . ($parentModel ? " ({$parentModel->localized_name})" : '');
+
                             $modalData = [
                                 'number' => $expense->expense_number,
                                 'cost_center' => optional($expense->quotation)->cost_center_name ?: optional($expense->quotation)->quote_number,
                                 'quote_number' => optional($expense->quotation)->quote_number,
-                                'category' => $expense->category,
+                                'category' => $catFullLabel,
                                 'description' => $expense->description,
                                 'amount' => number_format($expense->amount, 2),
                                 'currency' => $expense->currency,
@@ -64,7 +72,19 @@
                         <tr onclick="openExpenseModal({{ json_encode($modalData) }})" class="hover:bg-blue-50/40 cursor-pointer transition-colors">
                             <td class="p-4 font-mono font-bold text-gray-800" dir="ltr">{{ $expense->expense_number }}</td>
                             <td class="p-4 font-mono text-[#005B9F]" dir="ltr">{{ optional($expense->quotation)->quote_number }}</td>
-                            <td class="p-4 text-gray-700">{{ $expense->category }}</td>
+                            <td class="p-4">
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-800 flex items-center gap-1.5">
+                                        @if($catCode) <span class="font-mono text-xs text-[#005B9F] bg-blue-50 px-1.5 py-0.5 rounded">#{{ $catCode }}</span> @endif
+                                        {{ $catName }}
+                                    </span>
+                                    @if($parentModel || $catModel?->classification)
+                                        <span class="text-[11px] text-gray-400">
+                                            {{ $parentModel ? $parentModel->localized_name : $catModel->classification }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </td>
                             <td class="p-4 font-bold text-gray-900" dir="ltr">{{ number_format($expense->amount, 2) }} <span class="text-xs text-gray-400">{{ $expense->currency }}</span></td>
                             <td class="p-4 text-gray-500" dir="ltr">{{ $expense->expense_date->format('Y-m-d') }}</td>
                             <td class="p-4 text-left">

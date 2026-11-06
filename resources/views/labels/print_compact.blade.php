@@ -3,8 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <title>طباعة ملصق صغير - {{ $data['item_name'] }}</title>
+    @php
+        if (!isset($dim)) {
+            $dim = [
+                'key'          => '50x25',
+                'w'            => '50mm',
+                'h'            => '25mm',
+                'label'        => '50 × 25 مم (المقاس القياسي الصغير)',
+                'company_font' => '13px',
+                'item_font'    => '16.5px',
+                'date_font'    => '11px',
+                'logo_h'       => '6.3mm',
+            ];
+        }
+    @endphp
     <style>
         @page {
+            size: {{ $dim['w'] }} {{ $dim['h'] }};
             margin: 0 !important;
         }
 
@@ -272,10 +287,10 @@
             }
 
             .compact-label {
-                width: 100vw !important;
-                height: 98vh !important;
-                max-width: 100vw !important;
-                max-height: 98vh !important;
+                width: {{ $dim['w'] }} !important;
+                height: {{ $dim['h'] }} !important;
+                max-width: {{ $dim['w'] }} !important;
+                max-height: {{ $dim['h'] }} !important;
                 margin: 0 auto !important;
                 padding: 0 0 0.8mm 0 !important;
                 border: none !important;
@@ -311,6 +326,10 @@
                 🖨️ طباعة الآن (Print)
             </button>
 
+            <span style="font-family: monospace; font-size: 11px; background: #fce7f3; color: #be185d; padding: 4px 10px; border-radius: 6px; font-weight: bold;">
+                المقاس: {{ $dim['label'] }}
+            </span>
+
             <div class="divider"></div>
 
             <button type="button" onclick="changeFontSize(1.5)" class="btn-action" title="تكبير حجم خط الصنف">
@@ -321,7 +340,7 @@
             </button>
         </div>
         <div class="tip-box">
-            <span>💡 تم ضبط موضع المحتوى لأسفل الستيكر لضمان ظهور اسم الشركة واللوجو كاملاً دون أي قص في رأس الملصق.</span>
+            <span>💡 <strong>تنبيه لطابعة الباركود:</strong> تأكد من اختيار مقاس الورق <strong>({{ $dim['label'] }})</strong> والهوامش على <strong>None / بلا</strong>. تم ضبط موضع المحتوى لأسفل الستيكر لضمان ظهور اسم الشركة واللوجو كاملاً دون أي قص في رأس الملصق.</span>
         </div>
     </div>
 

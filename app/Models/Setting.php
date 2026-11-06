@@ -7,9 +7,23 @@ use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
-    protected $fillable = ['category', 'display_name', 'key_value', 'parent_key'];
+    protected $fillable = [
+        'category',
+        'display_name',
+        'name_en',
+        'key_value',
+        'code',
+        'parent_key',
+        'classification',
+        'nature',
+        'allow_posting',
+    ];
 
-    // هذه الدالة السحرية ستمسح الكاش تلقائياً عند إضافة أو تعديل أي إعداد
+    protected $casts = [
+        'allow_posting' => 'boolean',
+    ];
+
+    // مسح الكاش تلقائياً عند إضافة أو تعديل أي إعداد
     protected static function booted()
     {
         static::saved(function () {
@@ -20,6 +34,70 @@ class Setting extends Model
             Cache::forget('system_settings');
             Cache::forget('other_services_list');
         });
+    }
+
+    /* =========================================================================
+     * علاقات شجرة الحسابات (Parent / Children)
+     * ========================================================================= */
+
+    public function parentAccount()
+    {
+        return $this->belongsTo(Setting::class, 'parent_key', 'key_value')
+            ->where('category', 'expense_category');
+    }
+
+    public function childAccounts()
+    {
+        return $this->hasMany(Setting::class, 'parent_key', 'key_value')
+            ->where('category', 'expense_category')
+            ->orderBy('code')
+            ->orderBy('key_value');
+    }
+
+    /* =========================================================================
+     * Scopes & Accessors
+     * ========================================================================= */
+
+    public function scopeExpenseParents($query)
+    {
+        return $query->where('category', 'expense_category')
+            ->where(function ($q) {
+                $q->whereNull('parent_key')->orWhere('parent_key', '');
+            })
+            ->orderBy('code');
+    }
+
+    public function scopeExpenseItems($query)
+    {
+        return $query->where('category', 'expense_category')
+            ->whereNotNull('parent_key')
+            ->where('parent_key', '!=', '')
+            ->orderBy('code');
+    }
+
+    public function getLocalizedNameAttribute(): string
+    {
+        if (app()->getLocale() === 'en' && !empty($this->name_en)) {
+            return $this->name_en;
+        }
+        return $this->display_name ?: '';
+    }
+
+    public function getAccountCodeAttribute(): string
+    {
+        return $this->code ?: $this->key_value;
+    }
+
+    public function getFullDisplayAttribute(): string
+    {
+        $code = $this->account_code;
+        $name = $this->localized_name;
+        return $code ? "{$code} — {$name}" : $name;
+    }
+
+    public function isParent(): bool
+    {
+        return empty($this->parent_key);
     }
 
     /**
@@ -47,121 +125,290 @@ class Setting extends Model
     ];
 
     /**
-     * بنود المصروفات الأساسية لشركة شحن وتصدير مأكولات غذائية وحاصلات زراعية (شركة صغيرة)
+     * الحسابات الرئيسية لدليل بنود المصروفات (Chart of Accounts Parents)
      */
-    public const DEFAULT_EXPENSE_CATEGORIES = [
-        ['key_value' => 'land_freight',            'display_name' => 'نقل بري وشحن / سيارات مبردة'],
-        ['key_value' => 'packaging_materials',     'display_name' => 'كرتون وعبوات ومواد تغليف'],
-        ['key_value' => 'pallets',                 'display_name' => 'طبالي خشبية (Pallets)'],
-        ['key_value' => 'certificates_inspection', 'display_name' => 'شهادات صحية وفحص وحجر زراعي'],
-        ['key_value' => 'customs_clearance',       'display_name' => 'تخليص جمركي وأوراق ومستندات تصدير'],
-        ['key_value' => 'labor_loading',           'display_name' => 'أجور عمالة وتعتيق وتحميل (عتالة)'],
-        ['key_value' => 'cold_storage',            'display_name' => 'إيجار وتبريد ثلاجات ومخازن'],
-        ['key_value' => 'bank_charges',            'display_name' => 'مصاريف ورسوم وتحويلات بنكية'],
-        ['key_value' => 'salaries_wages',          'display_name' => 'رواتب وأجور وبدلات عمال وموظفين'],
-        ['key_value' => 'office_buffet_expenses',  'display_name' => 'بوفيه وضيافة ومستلزمات مكتب'],
-        ['key_value' => 'utilities',               'display_name' => 'فواتير مرافق (كهرباء ومياه وإنترنت)'],
-        ['key_value' => 'maintenance_repairs',     'display_name' => 'صيانة سيارات ومعدات وإصلاحات'],
-        ['key_value' => 'general_expenses',        'display_name' => 'مصروفات عمومية ونثرية أخرى'],
+    public const DEFAULT_EXPENSE_PARENTS = [
+        [
+            'code'           => '500000',
+            'key_value'      => '500000',
+            'display_name'   => 'تكلفة المبيعات والشحنات',
+            'name_en'        => 'Cost of sales and shipments',
+            'parent_key'     => null,
+            'classification' => 'Cost of sales and shipments',
+            'nature'         => 'Debit',
+            'allow_posting'  => false,
+        ],
+        [
+            'code'           => '600000',
+            'key_value'      => '600000',
+            'display_name'   => 'مصروفات التشغيل والإدارة',
+            'name_en'        => 'Operating expenses',
+            'parent_key'     => null,
+            'classification' => 'Operating expenses',
+            'nature'         => 'Debit',
+            'allow_posting'  => false,
+        ],
+        [
+            'code'           => '700000',
+            'key_value'      => '700000',
+            'display_name'   => 'نتائج التمويل والبنود الأخرى',
+            'name_en'        => 'Finance and other results',
+            'parent_key'     => null,
+            'classification' => 'Finance and other results',
+            'nature'         => 'Debit',
+            'allow_posting'  => false,
+        ],
     ];
 
     /**
-     * بنود زائدة عن حاجة الشركات الصغيرة (موانئ، خطوط ملاحية، طيران) لتنظيفها تلقائياً
+     * بنود المصروفات الفرعية التابعة للحسابات الرئيسية
      */
-    public const OBSOLETE_EXPENSE_KEYS = [
-        'sea_freight',
-        'air_freight',
-        'internal_transport',
-        'reefer_genset',
-        'temp_data_loggers',
-        'cargo_insurance',
-        'port_handling_thc',
-        'demurrage_detention',
-        'shipping_line_fees',
-        'port_reefer_power',
-        'weighbridge_scale',
-        'fsa_inspection',
-        'agricultural_quarantine',
-        'health_certificates',
-        'certificate_of_origin',
-        'embassy_legalization',
-        'lab_analysis_pesticides',
-        'fumigation_pest_control',
-        'sgs_inspection',
-        'packing_house_fees',
-        'cartons_boxes',
-        'wrapping_strapping',
-        'labels_stickers',
-        'food_preservatives_wax',
-        'loading_unloading_labor',
-        'sorting_packing_labor',
-        'forklift_equipment_rent',
-        'samples_dhl_courier',
-        'bank_lc_charges',
-        'sales_broker_commission',
-        'exhibitions_marketing',
-        'travel_accommodation',
-        'office_rent_utilities',
-        'hospitality_buffet',
-        'maintenance_spare_parts',
-        'gov_taxes_fees',
+    public const DEFAULT_EXPENSE_SUB_ITEMS = [
+        // تحت 500000: تكلفة المبيعات والشحنات
+        [
+            'code'           => '510001',
+            'key_value'      => 'land_freight',
+            'display_name'   => 'نقل بري وشحن / سيارات مبردة',
+            'name_en'        => 'Land freight and refrigerated transport',
+            'parent_key'     => '500000',
+            'classification' => 'Cost of sales and shipments',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+        [
+            'code'           => '510002',
+            'key_value'      => 'packaging_materials',
+            'display_name'   => 'كرتون وعبوات ومواد تغليف',
+            'name_en'        => 'Cartons, boxes and packaging materials',
+            'parent_key'     => '500000',
+            'classification' => 'Cost of sales and shipments',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+        [
+            'code'           => '510003',
+            'key_value'      => 'pallets',
+            'display_name'   => 'طبالي خشبية (Pallets)',
+            'name_en'        => 'Wooden and plastic pallets',
+            'parent_key'     => '500000',
+            'classification' => 'Cost of sales and shipments',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+        [
+            'code'           => '510004',
+            'key_value'      => 'certificates_inspection',
+            'display_name'   => 'شهادات صحية وفحص وحجر زراعي',
+            'name_en'        => 'Health certificates, quarantine & inspection',
+            'parent_key'     => '500000',
+            'classification' => 'Cost of sales and shipments',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+        [
+            'code'           => '510005',
+            'key_value'      => 'customs_clearance',
+            'display_name'   => 'تخليص جمركي وأوراق ومستندات تصدير',
+            'name_en'        => 'Customs clearance and export documentation',
+            'parent_key'     => '500000',
+            'classification' => 'Cost of sales and shipments',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+        [
+            'code'           => '510006',
+            'key_value'      => 'labor_loading',
+            'display_name'   => 'أجور عمالة وتعتيق وتحميل (عتالة)',
+            'name_en'        => 'Loading, unloading & handling labor',
+            'parent_key'     => '500000',
+            'classification' => 'Cost of sales and shipments',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+        [
+            'code'           => '510007',
+            'key_value'      => 'cold_storage',
+            'display_name'   => 'إيجار وتبريد ثلاجات ومخازن',
+            'name_en'        => 'Cold storage rent and reefer cooling',
+            'parent_key'     => '500000',
+            'classification' => 'Cost of sales and shipments',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+
+        // تحت 600000: مصروفات التشغيل والإدارة
+        [
+            'code'           => '610001',
+            'key_value'      => 'salaries_wages',
+            'display_name'   => 'رواتب وأجور وبدلات عمال وموظفين',
+            'name_en'        => 'Salaries, wages and employee allowances',
+            'parent_key'     => '600000',
+            'classification' => 'Operating expenses',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+        [
+            'code'           => '610002',
+            'key_value'      => 'office_buffet_expenses',
+            'display_name'   => 'بوفيه وضيافة ومستلزمات مكتب',
+            'name_en'        => 'Buffet, hospitality and office supplies',
+            'parent_key'     => '600000',
+            'classification' => 'Operating expenses',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+        [
+            'code'           => '610003',
+            'key_value'      => 'utilities',
+            'display_name'   => 'فواتير مرافق (كهرباء ومياه وإنترنت)',
+            'name_en'        => 'Utilities (electricity, water, internet)',
+            'parent_key'     => '600000',
+            'classification' => 'Operating expenses',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+        [
+            'code'           => '610004',
+            'key_value'      => 'maintenance_repairs',
+            'display_name'   => 'صيانة سيارات ومعدات وإصلاحات',
+            'name_en'        => 'Vehicles & equipment maintenance & repairs',
+            'parent_key'     => '600000',
+            'classification' => 'Operating expenses',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+        [
+            'code'           => '610005',
+            'key_value'      => 'general_expenses',
+            'display_name'   => 'مصروفات عمومية ونثرية أخرى',
+            'name_en'        => 'General and petty expenses',
+            'parent_key'     => '600000',
+            'classification' => 'Operating expenses',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
+
+        // تحت 700000: نتائج التمويل والبنود الأخرى
+        [
+            'code'           => '710001',
+            'key_value'      => 'bank_charges',
+            'display_name'   => 'مصاريف ورسوم وتحويلات بنكية',
+            'name_en'        => 'Bank charges and transfer commissions',
+            'parent_key'     => '700000',
+            'classification' => 'Finance and other results',
+            'nature'         => 'Debit',
+            'allow_posting'  => true,
+        ],
     ];
 
     /**
-     * التأكد من وجود بنود المصروفات الأساسية وحذف البنود الزائدة غير المستخدمة
+     * التأكد من وجود وتحديث شجرة الحسابات لبنود المصروفات
      */
     public static function ensureExpenseCategoriesSeeded(): void
     {
-        if (Cache::get('food_export_expense_categories_v3')) {
+        if (Cache::get('expense_chart_of_accounts_v1')) {
             return;
         }
 
         try {
-            // تنظيف بيانات البنك التجريبية القديمة إن وُجدت في جدول settings
-            static::where('category', 'doc_bank_info')
-                ->where(function ($q) {
-                    $q->where('key_value', 'like', '%FOODICO%')
-                      ->orWhere('key_value', 'like', '%QNB%')
-                      ->orWhere('key_value', 'like', '%EG680037070808402031980204271%');
-                })
-                ->update(['key_value' => '']);
+            // 1. إضافة أو تحديث الحسابات الرئيسية (الآباء)
+            foreach (self::DEFAULT_EXPENSE_PARENTS as $parent) {
+                $rec = static::where('category', 'expense_category')
+                    ->where(function ($q) use ($parent) {
+                        $q->where('key_value', $parent['key_value'])
+                          ->orWhere('code', $parent['code'])
+                          ->orWhere('display_name', $parent['display_name']);
+                    })
+                    ->first();
 
-            // تعديل مسمى بند النقل لحذف كلمة نولون
-            static::where('category', 'expense_category')
-                ->where('key_value', 'land_freight')
-                ->where('display_name', 'like', '%نولون%')
-                ->update(['display_name' => 'نقل بري وشحن / سيارات مبردة']);
-
-            // حذف بنود المصروفات الزائدة (موانئ وطيران) غير المستخدمة في أي مصروف فعلي
-            $usedKeys = \App\Models\Expense::distinct()->pluck('category')->filter()->all();
-            $keysToDelete = array_diff(self::OBSOLETE_EXPENSE_KEYS, $usedKeys);
-
-            if (!empty($keysToDelete)) {
-                static::where('category', 'expense_category')
-                    ->whereIn('key_value', $keysToDelete)
-                    ->delete();
+                if ($rec) {
+                    $rec->update([
+                        'code'           => $parent['code'],
+                        'display_name'   => $parent['display_name'],
+                        'name_en'        => $parent['name_en'],
+                        'parent_key'     => null,
+                        'classification' => $parent['classification'],
+                        'nature'         => $parent['nature'],
+                        'allow_posting'  => $parent['allow_posting'],
+                    ]);
+                } else {
+                    static::create([
+                        'category'       => 'expense_category',
+                        'key_value'      => $parent['key_value'],
+                        'code'           => $parent['code'],
+                        'display_name'   => $parent['display_name'],
+                        'name_en'        => $parent['name_en'],
+                        'parent_key'     => null,
+                        'classification' => $parent['classification'],
+                        'nature'         => $parent['nature'],
+                        'allow_posting'  => $parent['allow_posting'],
+                    ]);
+                }
             }
 
-            // إضافة البنود الأساسية إن لم تكن مضافة
-            $existingKeys = static::where('category', 'expense_category')->pluck('key_value')->all();
-            $existingNames = static::where('category', 'expense_category')->pluck('display_name')->all();
+            // 2. تحديث أو إضافة البنود الفرعية
+            foreach (self::DEFAULT_EXPENSE_SUB_ITEMS as $item) {
+                $rec = static::where('category', 'expense_category')
+                    ->where(function ($q) use ($item) {
+                        $q->where('key_value', $item['key_value'])
+                          ->orWhere('code', $item['code'])
+                          ->orWhere('display_name', $item['display_name']);
+                    })
+                    ->first();
 
-            $inserted = false;
-            foreach (self::DEFAULT_EXPENSE_CATEGORIES as $row) {
-                if (in_array($row['key_value'], $existingKeys, true) || in_array($row['display_name'], $existingNames, true)) {
-                    continue;
+                if ($rec) {
+                    $rec->update([
+                        'code'           => $rec->code ?: $item['code'],
+                        'name_en'        => $rec->name_en ?: $item['name_en'],
+                        'parent_key'     => $rec->parent_key ?: $item['parent_key'],
+                        'classification' => $rec->classification ?: $item['classification'],
+                        'nature'         => $rec->nature ?: $item['nature'],
+                        'allow_posting'  => $item['allow_posting'],
+                    ]);
+                } else {
+                    static::create([
+                        'category'       => 'expense_category',
+                        'key_value'      => $item['key_value'],
+                        'code'           => $item['code'],
+                        'display_name'   => $item['display_name'],
+                        'name_en'        => $item['name_en'],
+                        'parent_key'     => $item['parent_key'],
+                        'classification' => $item['classification'],
+                        'nature'         => $item['nature'],
+                        'allow_posting'  => $item['allow_posting'],
+                    ]);
                 }
-                static::create([
-                    'category'     => 'expense_category',
-                    'key_value'    => $row['key_value'],
-                    'display_name' => $row['display_name'],
-                    'parent_key'   => null,
+            }
+
+            // 3. تسوية أي بنود قديمة كانت موجودة بدون كود أو حساب أب
+            $orphans = static::where('category', 'expense_category')
+                ->where(function ($q) {
+                    $q->whereNull('parent_key')->orWhere('parent_key', '');
+                })
+                ->whereNotIn('key_value', ['500000', '600000', '700000'])
+                ->whereNotIn('code', ['500000', '600000', '700000'])
+                ->get();
+
+            $autoCodeIndex = 10;
+            foreach ($orphans as $orphan) {
+                $parentKey = '600000'; // مصروفات التشغيل والإدارة كافتراضي
+                $classification = 'Operating expenses';
+                if (str_contains($orphan->display_name, 'نقل') || str_contains($orphan->display_name, 'شحن') || str_contains($orphan->display_name, 'جمارك')) {
+                    $parentKey = '500000';
+                    $classification = 'Cost of sales and shipments';
+                }
+
+                $orphan->update([
+                    'code'           => $orphan->code ?: ('6100' . str_pad((string) $autoCodeIndex++, 2, '0', STR_PAD_LEFT)),
+                    'parent_key'     => $parentKey,
+                    'classification' => $orphan->classification ?: $classification,
+                    'nature'         => $orphan->nature ?: 'Debit',
+                    'allow_posting'  => true,
                 ]);
-                $inserted = true;
             }
 
             Cache::forget('system_settings');
-            Cache::forever('food_export_expense_categories_v3', true);
+            Cache::forever('expense_chart_of_accounts_v1', true);
         } catch (\Throwable $e) {
             // تجاهل أي خطأ أثناء التهيئة المبدئية
         }

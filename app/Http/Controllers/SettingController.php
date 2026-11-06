@@ -45,6 +45,63 @@ class SettingController extends Controller
             return back()->with('success', 'تم حفظ بيانات البنك وملاحظات المستندات بنجاح.');
         }
 
+        // ===== دليل بنود المصروفات وشجرة الحسابات =====
+        if ($request->category === 'expense_category') {
+            $data = $request->validate([
+                'display_name'   => 'required|string|max:255',
+                'name_en'        => 'nullable|string|max:255',
+                'code'           => 'required|string|max:50',
+                'parent_key'     => 'nullable|string|max:50',
+                'classification' => 'nullable|string|max:255',
+                'nature'         => 'nullable|string|in:Debit,Credit,Memo',
+                'allow_posting'  => 'nullable',
+            ]);
+
+            $code = trim($data['code']);
+
+            $exists = Setting::where('category', 'expense_category')
+                ->where(function ($q) use ($code) {
+                    $q->where('code', $code)->orWhere('key_value', $code);
+                })->exists();
+
+            if ($exists) {
+                return back()->with('error', "كود الحساب ($code) مستخدم بالفعل، يرجى اختيار كود آخر.")->withInput();
+            }
+
+            $parentKey = !empty($data['parent_key']) ? trim($data['parent_key']) : null;
+            $classification = !empty($data['classification']) ? trim($data['classification']) : null;
+
+            // إذا لم يتم تحديد التصنيف، يرث تصنيف الحساب الأب
+            if (!$classification && $parentKey) {
+                $parent = Setting::where('category', 'expense_category')
+                    ->where(function($q) use ($parentKey) {
+                        $q->where('key_value', $parentKey)->orWhere('code', $parentKey);
+                    })->first();
+                $classification = $parent?->classification;
+            }
+
+            // هل يسمح بالترحيل؟
+            $allowPosting = isset($data['allow_posting'])
+                ? filter_var($data['allow_posting'], FILTER_VALIDATE_BOOLEAN)
+                : ($parentKey !== null);
+
+            Setting::create([
+                'category'       => 'expense_category',
+                'display_name'   => trim($data['display_name']),
+                'name_en'        => !empty($data['name_en']) ? trim($data['name_en']) : null,
+                'key_value'      => $code,
+                'code'           => $code,
+                'parent_key'     => $parentKey,
+                'classification' => $classification,
+                'nature'         => $data['nature'] ?? 'Debit',
+                'allow_posting'  => $allowPosting,
+            ]);
+
+            \Illuminate\Support\Facades\Cache::forget('system_settings');
+
+            return back()->with('success', 'تمت إضافة حساب / بند المصروف بنجاح.');
+        }
+
         // ===== خدمات أخرى (الشهادات والخدمات الخاصة) =====
         if ($request->category === 'other_service') {
             $data = $request->validate([
@@ -155,12 +212,113 @@ class SettingController extends Controller
         return back()->with('success', 'تم إضافة العنصر للقائمة بنجاح');
     }
 
+    public function update(Request $request, Setting $setting)
+    {
+        // ===== تحديث بنود المصروفات وشجرة الحسابات =====
+        if ($setting->category === 'expense_category') {
+            $data = $request->validate([
+                'display_name'   => 'required|string|max:255',
+                'name_en'        => 'nullable|string|max:255',
+                'code'           => 'required|string|max:50',
+                'parent_key'     => 'nullable|string|max:50',
+                'classification' => 'nullable|string|max:255',
+                'nature'         => 'nullable|string|in:Debit,Credit,Memo',
+                'allow_posting'  => 'nullable',
+            ]);
+
+            $newCode = trim($data['code']);
+
+            $exists = Setting::where('category', 'expense_category')
+                ->where('id', '!=', $setting->id)
+                ->where(function ($q) use ($newCode) {
+                    $q->where('code', $newCode)->orWhere('key_value', $newCode);
+                })->exists();
+
+            if ($exists) {
+                return back()->with('error', "كود الحساب ($newCode) مستخدم بالفعل بحساب آخر.")->withInput();
+            }
+
+            $parentKey = !empty($data['parent_key']) ? trim($data['parent_key']) : null;
+            if ($parentKey === $setting->key_value || ($setting->code && $parentKey === $setting->code)) {
+                return back()->with('error', 'لا يمكن جعل الحساب أباً لنفسه.')->withInput();
+            }
+
+            $classification = !empty($data['classification']) ? trim($data['classification']) : null;
+            if (!$classification && $parentKey) {
+                $parent = Setting::where('category', 'expense_category')
+                    ->where(function($q) use ($parentKey) {
+                        $q->where('key_value', $parentKey)->orWhere('code', $parentKey);
+                    })->first();
+                $classification = $parent?->classification;
+            }
+
+            $allowPosting = isset($data['allow_posting'])
+                ? filter_var($data['allow_posting'], FILTER_VALIDATE_BOOLEAN)
+                : ($parentKey !== null);
+
+            $oldCode = $setting->code;
+            $oldKey  = $setting->key_value;
+
+            $setting->update([
+                'display_name'   => trim($data['display_name']),
+                'name_en'        => !empty($data['name_en']) ? trim($data['name_en']) : null,
+                'code'           => $newCode,
+                'key_value'      => $setting->key_value ?: $newCode,
+                'parent_key'     => $parentKey,
+                'classification' => $classification,
+                'nature'         => $data['nature'] ?? 'Debit',
+                'allow_posting'  => $allowPosting,
+            ]);
+
+            if ($oldKey && $oldKey !== $newCode) {
+                // إذا كان الحساب أباً وتغير كوده، حدّث البنود التابعة له
+                Setting::where('category', 'expense_category')
+                    ->where('parent_key', $oldKey)
+                    ->update(['parent_key' => $setting->key_value]);
+            }
+
+            \Illuminate\Support\Facades\Cache::forget('system_settings');
+
+            return back()->with('success', 'تم تحديث بيانات الحساب بنجاح.');
+        }
+
+        // تحديث عام لأي إعداد آخر إن لزم
+        $setting->update($request->only(['display_name', 'key_value', 'parent_key', 'name_en']));
+        \Illuminate\Support\Facades\Cache::forget('system_settings');
+
+        return back()->with('success', 'تم التحديث بنجاح.');
+    }
+
     public function destroy(Setting $setting)
     {
+        if ($setting->category === 'expense_category') {
+            // التحقق مما إذا كان الحساب أباً لحسابات أخرى
+            $hasChildren = Setting::where('category', 'expense_category')
+                ->where(function ($q) use ($setting) {
+                    $q->where('parent_key', $setting->key_value);
+                    if ($setting->code) {
+                        $q->orWhere('parent_key', $setting->code);
+                    }
+                })->exists();
+
+            if ($hasChildren) {
+                return back()->with('error', "لا يمكن حذف الحساب ({$setting->display_name}) لوجود بنود فرعية تابعة له. يرجى حذف أو نقل البنود الفرعية أولاً.");
+            }
+
+            // التحقق من الاستخدام في المصروفات
+            $usedInExpenses = \App\Models\Expense::where('category', $setting->key_value)
+                ->orWhere('category', $setting->code)
+                ->exists();
+
+            if ($usedInExpenses) {
+                return back()->with('error', "لا يمكن حذف بند المصروف ({$setting->display_name}) لأنه مستخدم في مصروفات مسجلة بالفعل.");
+            }
+        }
+
         $setting->delete();
         \Illuminate\Support\Facades\Cache::forget('system_settings');
         \Illuminate\Support\Facades\Cache::forget('other_services_list');
-        return back()->with('success', 'تم حذف العنصر من النظام');
+        return back()->with('success', 'تم حذف العنصر من النظام بنجاح.');
     }
 
     public function resetDatabase(Request $request)

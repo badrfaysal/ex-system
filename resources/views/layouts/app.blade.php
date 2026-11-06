@@ -241,7 +241,15 @@
                         <span>{{ $rtl ? 'طباعة الملصقات' : 'Print Labels' }}</span>
                     </div>
                     <div class="sb-indent space-y-0.5">
-                        <a href="{{ route('labels.create') }}" class="sb-sub {{ request()->routeIs('labels.*') ? 'active' : '' }}">{{ $rtl ? 'طباعة ملصق جديد' : 'Print New Label' }}</a>
+                        <a href="{{ route('labels.detailed') }}" class="sb-sub {{ request()->routeIs('labels.detailed*') ? 'active' : '' }}">
+                            <i class="fas fa-file-invoice text-xs me-1"></i> {{ $rtl ? 'الملصق التفصيلي' : 'Detailed Label' }}
+                        </a>
+                        <a href="{{ route('labels.compact') }}" class="sb-sub {{ request()->routeIs('labels.compact*') ? 'active' : '' }}">
+                            <i class="fas fa-barcode text-xs me-1"></i> {{ $rtl ? 'الملصق الصغير (50×25)' : 'Compact Label' }}
+                        </a>
+                        <a href="{{ route('labels.index') }}" class="sb-sub {{ request()->routeIs('labels.index') ? 'active' : '' }}">
+                            <i class="fas fa-history text-xs me-1"></i> {{ $rtl ? 'سجل الطباعة' : 'Print History' }}
+                        </a>
                     </div>
                 </div>
 

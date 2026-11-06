@@ -217,6 +217,7 @@ return [
             'item_status'       => ['title' => 'Item statuses',     'desc' => 'Item eligibility for buying and selling.'],
             'users'             => ['title' => 'User Management', 'desc' => 'Add new users or edit existing users.'],
             'notify_emails'     => ['title' => 'Management Alerts', 'desc' => 'Emails that receive a copy of every quotation sent to clients.'],
+            'expense_category'  => ['title' => 'Expense Chart of Accounts', 'desc' => 'Chart of accounts and categories for expenses.'],
         ],
     ],
 

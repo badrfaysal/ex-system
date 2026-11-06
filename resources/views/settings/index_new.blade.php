@@ -50,7 +50,7 @@
                 'wallets'          => ['icon' => 'fa-wallet', 'custom' => true, 'title' => 'الحسابات البنكية والصناديق المالية'],
                 'doc_bank_info'    => ['icon' => 'fa-university', 'custom' => true, 'title' => 'بيانات البنك بالمستندات'],
                 'other_service'    => ['icon' => 'fa-concierge-bell', 'custom' => true, 'title' => 'خدمات أخرى (الشهادات والخدمات)'],
-                'expense_category' => ['icon' => 'fa-file-invoice-dollar'],
+                'expense_category' => ['icon' => 'fa-sitemap', 'custom' => true, 'title' => 'دليل بنود المصروفات (شجرة الحسابات)'],
             ],
         ];
         $allUsers          = \App\Models\User::orderBy('name')->get();
@@ -803,6 +803,469 @@
 
             </div>
 
+            {{-- ===== panel بنود المصروفات وشجرة الحسابات (custom) ===== --}}
+            <div id="panel-expense_category" class="tab-panel hidden p-6 animate-fade-in">
+
+                @php
+                    $allExpenseCats = $settings->get('expense_category') ?? collect();
+                    $expenseParents = $allExpenseCats->filter(fn($a) => empty($a->parent_key))->sortBy('code');
+                    $expenseChildren = $allExpenseCats->filter(fn($a) => !empty($a->parent_key))->sortBy('code');
+                    $parentMap = $expenseParents->keyBy('key_value');
+                    foreach ($expenseParents as $p) {
+                        if ($p->code && !$parentMap->has($p->code)) {
+                            $parentMap->put($p->code, $p);
+                        }
+                    }
+                    $postableCount = $allExpenseCats->where('allow_posting', true)->count();
+                @endphp
+
+                <div class="border-b border-gray-100 pb-4 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-[#005B9F] flex items-center gap-2">
+                            <i class="fas fa-sitemap"></i> دليل بنود المصروفات (شجرة الحسابات)
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1.5 leading-relaxed">
+                            هيكلة الحسابات وبنود التكاليف والمصروفات وفق شجرة الحسابات المالية: كود الحساب، والاسم بالعربي والإنجليزي، والحساب الأب، والتصنيف، والطبيعة، وقابلية الترحيل.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" onclick="openExpenseForm('child')" class="px-4 py-2 bg-[#008A3B] text-white text-xs font-bold rounded-lg hover:bg-[#007030] transition-colors flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-plus"></i> إضافة بند فرعي
+                        </button>
+                        <button type="button" onclick="openExpenseForm('parent')" class="px-3.5 py-2 bg-[#005B9F] text-white text-xs font-bold rounded-lg hover:bg-[#004680] transition-colors flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-folder-plus"></i> إضافة فئة / حساب أب
+                        </button>
+                    </div>
+                </div>
+
+                {{-- إحصائيات سريعة --}}
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-gradient-to-br from-blue-50 to-white p-4 rounded-xl border border-blue-100 shadow-xs flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-500 font-semibold block">إجمالي الحسابات</span>
+                            <span class="text-2xl font-black text-[#005B9F]">{{ $allExpenseCats->count() }}</span>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-[#005B9F]/10 flex items-center justify-center text-[#005B9F]">
+                            <i class="fas fa-list-ol text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-indigo-50 to-white p-4 rounded-xl border border-indigo-100 shadow-xs flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-500 font-semibold block">الفئات والحسابات الرئيسية (الآباء)</span>
+                            <span class="text-2xl font-black text-indigo-700">{{ $expenseParents->count() }}</span>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-700">
+                            <i class="fas fa-folder-open text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-emerald-50 to-white p-4 rounded-xl border border-emerald-100 shadow-xs flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-500 font-semibold block">البنود الفرعية (تقبل الترحيل)</span>
+                            <span class="text-2xl font-black text-[#008A3B]">{{ $postableCount }}</span>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-[#008A3B]">
+                            <i class="fas fa-check-circle text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- فورم إضافة حساب جديد (قابل للطي) --}}
+                <div id="addExpenseAccountBox" class="bg-gray-50 p-5 rounded-xl border border-gray-200 mb-8 transition-all">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 id="expenseFormTitle" class="text-sm font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-plus-circle text-[#008A3B]"></i> إضافة حساب / بند مصروف جديد
+                        </h4>
+                        <button type="button" onclick="toggleExpenseForm()" class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                            <i id="expenseFormToggleIcon" class="fas fa-chevron-up"></i>
+                        </button>
+                    </div>
+
+                    <form id="addExpenseAccountForm" action="{{ route('settings.store') }}" method="POST" class="space-y-4" onsubmit="sessionStorage.setItem('activeSettingTab', 'expense_category');">
+                        @csrf
+                        <input type="hidden" name="category" value="expense_category">
+
+                        {{-- نوع الحساب (رئيسي أو فرعي) --}}
+                        <div class="flex flex-wrap items-center gap-6 p-3 bg-white border border-gray-200 rounded-lg">
+                            <span class="text-xs font-bold text-gray-700">نوع الحساب:</span>
+                            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-800">
+                                <input type="radio" name="account_type" value="child" checked onchange="toggleAccountType('child')" class="text-[#008A3B] focus:ring-[#008A3B]">
+                                <span>بند فرعي (تابع لحساب أب - يقبل تسجيل المصروفات)</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-800">
+                                <input type="radio" name="account_type" value="parent" onchange="toggleAccountType('parent')" class="text-[#005B9F] focus:ring-[#005B9F]">
+                                <span>حساب رئيسي (فئة أب تجميعية)</span>
+                            </label>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {{-- الحساب الأب --}}
+                            <div id="parentKeyContainer">
+                                <label class="block text-xs font-bold text-gray-700 mb-1">
+                                    <i class="fas fa-folder text-[#005B9F] me-1"></i> الحساب الأب (الفئة الرئيسية) <span class="text-red-500">*</span>
+                                </label>
+                                <select name="parent_key" id="accountParentSelect" onchange="onParentSelected(this)"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                                    <option value="">— اختر الحساب الأب —</option>
+                                    @foreach($expenseParents as $parent)
+                                        <option value="{{ $parent->key_value }}" data-classification="{{ $parent->classification }}" data-code="{{ $parent->account_code }}">
+                                            {{ $parent->account_code }} — {{ $parent->display_name }} @if($parent->name_en)({{ $parent->name_en }})@endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- كود الحساب --}}
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-xs font-bold text-gray-700">كود الحساب <span class="text-red-500">*</span></label>
+                                    <button type="button" onclick="autoGenerateCode()" class="text-[11px] text-[#005B9F] font-bold hover:underline flex items-center gap-1 cursor-pointer" title="توليد الكود التالي تلقائياً">
+                                        <i class="fas fa-magic text-[10px]"></i> توليد تلقائي
+                                    </button>
+                                </div>
+                                <input type="text" name="code" id="accountCodeInput" required placeholder="يُولّد تلقائياً عند اختيار الفئة" dir="ltr"
+                                    class="w-full px-3 py-2 text-sm font-mono font-bold text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            {{-- اسم الحساب بالعربي --}}
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">اسم الحساب بالعربية <span class="text-red-500">*</span></label>
+                                <input type="text" name="display_name" required placeholder="مثال: نقل بري وشحن مبرد"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            {{-- اسم الحساب بالإنجليزي --}}
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Account Name (EN)</label>
+                                <input type="text" name="name_en" dir="ltr" placeholder="e.g. Refrigerated land freight"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            {{-- التصنيف --}}
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">التصنيف (Classification)</label>
+                                <input type="text" name="classification" id="accountClassificationInput" list="classificationsList" placeholder="مثال: Cost of sales and shipments"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                                <datalist id="classificationsList">
+                                    <option value="Cost of sales and shipments">تكلفة المبيعات والشحنات</option>
+                                    <option value="Operating expenses">مصروفات التشغيل والإدارة</option>
+                                    <option value="Finance and other results">نتائج التمويل والبنود الأخرى</option>
+                                    <option value="General and administrative expenses">مصروفات عمومية وإدارية</option>
+                                    <option value="Selling and marketing expenses">مصروفات بيعية وتسويقية</option>
+                                </datalist>
+                            </div>
+
+                            {{-- الطبيعة المحاسبية --}}
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">الطبيعة المحاسبية</label>
+                                <select name="nature" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                                    <option value="Debit" selected>مدين (Debit)</option>
+                                    <option value="Credit">دائن (Credit)</option>
+                                    <option value="Memo">حساب رقابي (Memo)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-gray-200">
+                            <label class="inline-flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="allow_posting" id="allowPostingCheckbox" value="1" checked
+                                    class="w-4 h-4 text-[#008A3B] rounded border-gray-300 focus:ring-[#008A3B]">
+                                <span class="text-xs font-bold text-gray-700">يسمح بالترحيل (يقبل تسجيل مصروفات مباشرة عليه في النظام)</span>
+                            </label>
+
+                            <button type="submit" class="px-6 py-2.5 bg-[#008A3B] text-white text-sm font-bold rounded-lg hover:bg-[#007030] transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                <i class="fas fa-save"></i> حفظ الحساب
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- شريط البحث والتصفية --}}
+                <div class="bg-white p-3 border border-gray-200 rounded-xl mb-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="relative w-full sm:w-72">
+                        <i class="fas fa-search absolute right-3 top-3 text-gray-400 text-xs"></i>
+                        <input type="text" id="expenseSearchInput" onkeyup="filterExpenseTable()" placeholder="بحث بالكود أو الاسم بالعربي أو الإنجليزي..."
+                            class="w-full pr-9 pl-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F]">
+                    </div>
+
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <select id="expenseFilterParent" onchange="filterExpenseTable()" class="px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            <option value="">جميع الفئات والحسابات الرئيسية</option>
+                            @foreach($expenseParents as $p)
+                                <option value="{{ $p->key_value }}">{{ $p->account_code }} — {{ $p->display_name }}</option>
+                            @endforeach
+                        </select>
+
+                        <select id="expenseFilterPosting" onchange="filterExpenseTable()" class="px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            <option value="">جميع الحالات</option>
+                            <option value="yes">يقبل الترحيل فقط (نعم)</option>
+                            <option value="no">حسابات رئيسية تجميعية (لا)</option>
+                        </select>
+                    </div>
+                </div>
+
+                {{-- جدول شجرة الحسابات المنظمة --}}
+                <div class="border border-gray-200 rounded-xl overflow-hidden shadow-xs bg-white">
+                    <table class="w-full text-right text-xs" id="expenseAccountsTable">
+                        <thead class="bg-gray-100 text-gray-700 border-b border-gray-200 font-bold">
+                            <tr>
+                                <th class="p-3 w-28 text-center">كود الحساب</th>
+                                <th class="p-3">اسم الحساب بالعربية</th>
+                                <th class="p-3">Account Name (EN)</th>
+                                <th class="p-3 w-44">الحساب الأب</th>
+                                <th class="p-3">التصنيف</th>
+                                <th class="p-3 w-24 text-center">الطبيعة</th>
+                                <th class="p-3 w-28 text-center">يسمح بالترحيل</th>
+                                <th class="p-3 w-28 text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse($expenseParents as $parent)
+                                @php
+                                    $children = $allExpenseCats->filter(fn($c) => $c->parent_key == $parent->key_value || $c->parent_key == $parent->code)->sortBy('code');
+                                    $parentJson = json_encode([
+                                        'id'             => $parent->id,
+                                        'code'           => $parent->account_code,
+                                        'display_name'   => $parent->display_name,
+                                        'name_en'        => $parent->name_en,
+                                        'parent_key'     => '',
+                                        'classification' => $parent->classification,
+                                        'nature'         => $parent->nature ?: 'Debit',
+                                        'allow_posting'  => $parent->allow_posting ? 1 : 0,
+                                    ], JSON_UNESCAPED_UNICODE);
+                                @endphp
+
+                                {{-- صف الحساب الأب (الفئة الرئيسية) --}}
+                                <tr class="parent-row bg-slate-50/80 hover:bg-slate-100/80 font-bold border-r-4 border-r-[#005B9F] transition-colors"
+                                    data-account-id="{{ $parent->id }}"
+                                    data-parent-key="{{ $parent->key_value }}"
+                                    data-code="{{ $parent->account_code }}"
+                                    data-posting="{{ $parent->allow_posting ? 'yes' : 'no' }}">
+                                    <td class="p-3 text-center font-mono text-sm text-[#005B9F]">
+                                        {{ $parent->account_code }}
+                                    </td>
+                                    <td class="p-3 text-gray-900">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-folder-open text-[#005B9F] text-sm"></i>
+                                            <span class="text-sm">{{ $parent->display_name }}</span>
+                                            <span class="text-[10px] bg-[#005B9F]/10 text-[#005B9F] px-1.5 py-0.5 rounded font-normal">({{ $children->count() }} بنود)</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-3 text-gray-600 font-mono text-xs" dir="ltr">
+                                        {{ $parent->name_en ?: '—' }}
+                                    </td>
+                                    <td class="p-3 text-gray-400 italic">
+                                        <span class="inline-flex items-center gap-1 text-[11px] bg-gray-200/70 text-gray-600 px-2 py-0.5 rounded-full font-medium">
+                                            <i class="fas fa-crown text-[9px] text-amber-500"></i> رئيسي
+                                        </span>
+                                    </td>
+                                    <td class="p-3 text-gray-700">
+                                        <span class="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-[#005B9F] px-2 py-0.5 rounded-md font-medium">
+                                            {{ $parent->classification ?: '—' }}
+                                        </span>
+                                    </td>
+                                    <td class="p-3 text-center">
+                                        <span class="font-mono text-[11px] font-bold text-gray-600">{{ $parent->nature ?: 'Debit' }}</span>
+                                    </td>
+                                    <td class="p-3 text-center">
+                                        @if($parent->allow_posting)
+                                            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                                <i class="fas fa-check text-[9px]"></i> نعم
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                                                <i class="fas fa-layer-group text-[9px]"></i> لا (تجميعي)
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="p-3 text-center">
+                                        <div class="flex items-center justify-center gap-1">
+                                            <button type="button" onclick="addChildUnderParent('{{ $parent->key_value }}', '{{ $parent->account_code }}', '{{ addslashes($parent->classification ?? '') }}')"
+                                                class="text-[#008A3B] hover:bg-emerald-50 p-1.5 rounded transition-colors" title="إضافة بند فرعي تحت هذا الحساب">
+                                                <i class="fas fa-plus text-xs"></i>
+                                            </button>
+                                            <button type="button" onclick='openEditModal({!! $parentJson !!})'
+                                                class="text-gray-500 hover:text-[#005B9F] hover:bg-blue-50 p-1.5 rounded transition-colors" title="تعديل">
+                                                <i class="fas fa-pen text-xs"></i>
+                                            </button>
+                                            <form action="{{ route('settings.destroy', $parent->id) }}" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الحساب الرئيسي؟ لن يمكن الحذف إذا كانت تتبعه بنود فرعية.');">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors" title="حذف">
+                                                    <i class="fas fa-trash-alt text-xs"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                {{-- صفوف البنود الفرعية التابعة لهذا الأب --}}
+                                @foreach($children as $child)
+                                    @php
+                                        $childJson = json_encode([
+                                            'id'             => $child->id,
+                                            'code'           => $child->account_code,
+                                            'display_name'   => $child->display_name,
+                                            'name_en'        => $child->name_en,
+                                            'parent_key'     => $child->parent_key,
+                                            'classification' => $child->classification,
+                                            'nature'         => $child->nature ?: 'Debit',
+                                            'allow_posting'  => $child->allow_posting ? 1 : 0,
+                                        ], JSON_UNESCAPED_UNICODE);
+                                    @endphp
+                                    <tr class="child-row hover:bg-blue-50/30 transition-colors"
+                                        data-account-id="{{ $child->id }}"
+                                        data-parent-key="{{ $parent->key_value }}"
+                                        data-code="{{ $child->account_code }}"
+                                        data-posting="{{ $child->allow_posting ? 'yes' : 'no' }}">
+                                        <td class="p-3 text-center font-mono font-bold text-gray-800">
+                                            {{ $child->account_code }}
+                                        </td>
+                                        <td class="p-3">
+                                            <div class="flex items-center gap-2 pr-6">
+                                                <span class="text-gray-300 font-mono text-sm leading-none">↳</span>
+                                                <i class="fas fa-file-invoice text-emerald-600 text-xs"></i>
+                                                <span class="font-medium text-gray-900">{{ $child->display_name }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="p-3 text-gray-600 font-mono text-xs" dir="ltr">
+                                            {{ $child->name_en ?: '—' }}
+                                        </td>
+                                        <td class="p-3">
+                                            <span class="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-gray-700 px-2 py-0.5 rounded-full font-mono">
+                                                <i class="fas fa-level-up-alt text-[9px] text-[#005B9F]"></i>
+                                                {{ $parent->account_code }}
+                                            </span>
+                                        </td>
+                                        <td class="p-3 text-gray-600">
+                                            {{ $child->classification ?: $parent->classification ?: '—' }}
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            <span class="font-mono text-[11px] text-gray-600">{{ $child->nature ?: 'Debit' }}</span>
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            @if($child->allow_posting)
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                                                    <i class="fas fa-check text-[9px]"></i> نعم
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                                                    لا
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            <div class="flex items-center justify-center gap-1">
+                                                <button type="button" onclick='openEditModal({!! $childJson !!})'
+                                                    class="text-gray-400 hover:text-[#005B9F] hover:bg-blue-50 p-1.5 rounded transition-colors" title="تعديل">
+                                                    <i class="fas fa-pen text-xs"></i>
+                                                </button>
+                                                <form action="{{ route('settings.destroy', $child->id) }}" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف بند المصروف هذا؟');">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors" title="حذف">
+                                                        <i class="fas fa-trash-alt text-xs"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="p-10 text-center text-gray-500 bg-gray-50/50">
+                                        <i class="fas fa-sitemap text-3xl text-gray-300 mb-3 block"></i>
+                                        لا توجد حسابات مصروفات مسجلة حتى الآن.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            {{-- ===== مودال تعديل حساب / بند مصروف ===== --}}
+            <div id="editExpenseAccountModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs hidden flex items-center justify-center p-4">
+                <div class="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 border border-gray-100 animate-scale-up" onclick="event.stopPropagation()">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                        <h4 class="text-base font-bold text-[#005B9F] flex items-center gap-2">
+                            <i class="fas fa-edit"></i> تعديل حساب / بند المصروف
+                        </h4>
+                        <button type="button" onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 text-sm">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <form id="editExpenseAccountForm" action="" method="POST" class="space-y-4" onsubmit="sessionStorage.setItem('activeSettingTab', 'expense_category');">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">الحساب الأب (الفئة)</label>
+                                <select name="parent_key" id="editParentKey" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                                    <option value="">— بدون حساب أب (حساب رئيسي) —</option>
+                                    @foreach($expenseParents as $parent)
+                                        <option value="{{ $parent->key_value }}">
+                                            {{ $parent->account_code }} — {{ $parent->display_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">كود الحساب <span class="text-red-500">*</span></label>
+                                <input type="text" name="code" id="editCode" required dir="ltr"
+                                    class="w-full px-3 py-2 text-sm font-mono border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">اسم الحساب بالعربية <span class="text-red-500">*</span></label>
+                                <input type="text" name="display_name" id="editDisplayName" required
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Account Name (EN)</label>
+                                <input type="text" name="name_en" id="editNameEn" dir="ltr"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">التصنيف</label>
+                                <input type="text" name="classification" id="editClassification" list="classificationsList"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">الطبيعة المحاسبية</label>
+                                <select name="nature" id="editNature" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
+                                    <option value="Debit">مدين (Debit)</option>
+                                    <option value="Credit">دائن (Credit)</option>
+                                    <option value="Memo">حساب رقابي (Memo)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <label class="inline-flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="allow_posting" id="editAllowPosting" value="1"
+                                    class="w-4 h-4 text-[#008A3B] rounded border-gray-300 focus:ring-[#008A3B]">
+                                <span class="text-xs font-bold text-gray-700">يسمح بالترحيل (يقبل تسجيل مصروفات مباشرة عليه)</span>
+                            </label>
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                            <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg transition-colors">
+                                إلغاء
+                            </button>
+                            <button type="submit" class="px-5 py-2 bg-[#005B9F] hover:bg-[#004680] text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                                <i class="fas fa-save"></i> حفظ التعديلات
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
@@ -949,6 +1412,18 @@
                 switchTab('client_type');
             }
         }
+
+        // تهيئة كود الحساب التلقائي لبنود المصروفات
+        const pSel = document.getElementById('accountParentSelect');
+        const cInput = document.getElementById('accountCodeInput');
+        if (pSel && cInput && !cInput.value) {
+            if (!pSel.value && pSel.options.length > 1) {
+                pSel.selectedIndex = 1;
+            }
+            if (pSel.value) {
+                onParentSelected(pSel);
+            }
+        }
     };
 
     // ===== Dynamic rows for sub-category names =====
@@ -971,6 +1446,237 @@
             // إذا بقي صف واحد فقط نمسح قيمته بدل الحذف
             btn.closest('.subcat-row').querySelector('input').value = '';
         }
+    }
+
+    // ===== دوال إدارة شجرة الحسابات وبنود المصروفات =====
+    function generateNextAccountCode(parentKey) {
+        if (!parentKey) {
+            // حساب رئيسي جديد (بدون أب)
+            var parentRows = document.querySelectorAll('#expenseAccountsTable tr.parent-row');
+            var maxParent6 = 0;
+            var maxAny = 0;
+            parentRows.forEach(function(r) {
+                var c = parseInt(r.getAttribute('data-code'));
+                if (c) {
+                    if (c > maxAny) maxAny = c;
+                    if (c >= 100000 && c <= 900000 && c % 100000 === 0 && c > maxParent6) {
+                        maxParent6 = c;
+                    }
+                }
+            });
+            if (maxParent6 >= 500000 && maxParent6 < 900000) {
+                return (maxParent6 + 100000).toString();
+            }
+            if (maxAny > 0) {
+                return (maxAny + 1).toString();
+            }
+            return '800000';
+        }
+
+        var parentSelect = document.getElementById('accountParentSelect');
+        var selectedOpt = parentSelect ? parentSelect.querySelector('option[value="' + parentKey + '"]') : null;
+        var parentCode = selectedOpt ? (selectedOpt.getAttribute('data-code') || selectedOpt.value) : parentKey;
+        var pStr = parentCode ? parentCode.toString() : '';
+
+        // البادئة المتوقعة للأبناء
+        var expectedPrefix = '';
+        if (/^\d{6}$/.test(pStr) && pStr.endsWith('0000')) {
+            // كود 6 أرقام مثل 500000 -> بادئة الأبناء 51
+            expectedPrefix = (parseInt(pStr.substring(0, 2)) + 1).toString();
+        } else if (pStr.length >= 2) {
+            expectedPrefix = pStr.substring(0, 2);
+        }
+
+        var maxChildCode = 0;
+        var childRows = document.querySelectorAll('#expenseAccountsTable tr.child-row');
+        childRows.forEach(function(r) {
+            var pk = r.getAttribute('data-parent-key');
+            if (pk === parentKey || pk === parentCode) {
+                var cStr = (r.getAttribute('data-code') || '').trim();
+                var c = parseInt(cStr);
+                if (c && (!expectedPrefix || cStr.startsWith(expectedPrefix))) {
+                    if (c > maxChildCode) {
+                        maxChildCode = c;
+                    }
+                }
+            }
+        });
+
+        if (maxChildCode > 0) {
+            return (maxChildCode + 1).toString();
+        }
+
+        // لو لم يكن له أبناء بعد يحملون نفس البادئة:
+        if (/^\d{6}$/.test(pStr) && pStr.endsWith('0000')) {
+            return expectedPrefix + '0001';
+        }
+
+        var num = parseInt(parentCode);
+        if (!isNaN(num)) {
+            return (num + 1).toString();
+        }
+
+        return parentCode + '-01';
+    }
+
+    function autoGenerateCode() {
+        var isParent = false;
+        var radios = document.getElementsByName('account_type');
+        for (var i = 0; i < radios.length; i++) {
+            if (radios[i].checked && radios[i].value === 'parent') {
+                isParent = true;
+                break;
+            }
+        }
+
+        var codeInput = document.getElementById('accountCodeInput');
+        if (!codeInput) return;
+
+        if (isParent) {
+            codeInput.value = generateNextAccountCode('');
+        } else {
+            var parentSelect = document.getElementById('accountParentSelect');
+            var pVal = parentSelect ? parentSelect.value : '';
+            if (!pVal && parentSelect && parentSelect.options.length > 1) {
+                parentSelect.selectedIndex = 1;
+                onParentSelected(parentSelect);
+            } else {
+                codeInput.value = generateNextAccountCode(pVal);
+            }
+        }
+    }
+
+    function toggleExpenseForm() {
+        var box = document.getElementById('addExpenseAccountBox');
+        var icon = document.getElementById('expenseFormToggleIcon');
+        if (!box) return;
+        if (box.classList.contains('hidden')) {
+            box.classList.remove('hidden');
+            if (icon) icon.className = 'fas fa-chevron-up';
+        } else {
+            box.classList.add('hidden');
+            if (icon) icon.className = 'fas fa-chevron-down';
+        }
+    }
+
+    function openExpenseForm(type) {
+        var box = document.getElementById('addExpenseAccountBox');
+        if (!box) return;
+        box.classList.remove('hidden');
+        var icon = document.getElementById('expenseFormToggleIcon');
+        if (icon) icon.className = 'fas fa-chevron-up';
+
+        var radios = document.getElementsByName('account_type');
+        for (var i = 0; i < radios.length; i++) {
+            radios[i].checked = (radios[i].value === type);
+        }
+        toggleAccountType(type);
+
+        box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function toggleAccountType(type) {
+        var parentContainer = document.getElementById('parentKeyContainer');
+        var parentSelect    = document.getElementById('accountParentSelect');
+        var postingCheck    = document.getElementById('allowPostingCheckbox');
+        var title           = document.getElementById('expenseFormTitle');
+        var codeInput       = document.getElementById('accountCodeInput');
+
+        if (type === 'parent') {
+            if (parentContainer) parentContainer.style.display = 'none';
+            if (parentSelect) parentSelect.required = false;
+            if (parentSelect) parentSelect.value = '';
+            if (postingCheck) postingCheck.checked = false; // الحسابات الرئيسية تجميعية
+            if (title) title.innerHTML = '<i class="fas fa-folder-plus text-[#005B9F]"></i> إضافة حساب رئيسي (فئة أب تجميعية)';
+            if (codeInput) codeInput.value = generateNextAccountCode('');
+        } else {
+            if (parentContainer) parentContainer.style.display = 'block';
+            if (parentSelect) parentSelect.required = true;
+            if (postingCheck) postingCheck.checked = true; // البنود الفرعية تقبل الترحيل
+            if (title) title.innerHTML = '<i class="fas fa-plus-circle text-[#008A3B]"></i> إضافة بند مصروف فرعي (نازل من حساب أب)';
+
+            if (parentSelect) {
+                if (!parentSelect.value && parentSelect.options.length > 1) {
+                    parentSelect.selectedIndex = 1;
+                }
+                onParentSelected(parentSelect);
+            }
+        }
+    }
+
+    function onParentSelected(selectEl) {
+        var opt = selectEl.options[selectEl.selectedIndex];
+        if (!opt || !opt.value) return;
+
+        var cls = opt.getAttribute('data-classification');
+        if (cls) {
+            document.getElementById('accountClassificationInput').value = cls;
+        }
+
+        var nextCode = generateNextAccountCode(opt.value);
+        var codeInput = document.getElementById('accountCodeInput');
+        if (codeInput) {
+            codeInput.value = nextCode;
+        }
+    }
+
+    function addChildUnderParent(parentKey, parentCode, parentCls) {
+        openExpenseForm('child');
+        var pSel = document.getElementById('accountParentSelect');
+        if (pSel) {
+            pSel.value = parentKey;
+            onParentSelected(pSel);
+        }
+        if (parentCls) {
+            document.getElementById('accountClassificationInput').value = parentCls;
+        }
+    }
+
+    function filterExpenseTable() {
+        var queryInput = document.getElementById('expenseSearchInput');
+        var query = queryInput ? (queryInput.value || '').toLowerCase().trim() : '';
+        var parentFilterEl = document.getElementById('expenseFilterParent');
+        var filterParent = parentFilterEl ? parentFilterEl.value : '';
+        var postingFilterEl = document.getElementById('expenseFilterPosting');
+        var filterPosting = postingFilterEl ? postingFilterEl.value : '';
+
+        var rows = document.querySelectorAll('#expenseAccountsTable tbody tr');
+        rows.forEach(function(row) {
+            var text = row.textContent.toLowerCase();
+            var matchesQuery = !query || text.indexOf(query) !== -1;
+
+            var rowParentKey = row.getAttribute('data-parent-key');
+            var matchesParent = !filterParent || (rowParentKey === filterParent);
+
+            var rowPosting = row.getAttribute('data-posting');
+            var matchesPosting = !filterPosting || (rowPosting === filterPosting);
+
+            if (matchesQuery && matchesParent && matchesPosting) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function openEditModal(data) {
+        var modal = document.getElementById('editExpenseAccountModal');
+        var form = document.getElementById('editExpenseAccountForm');
+        form.action = '/settings/' + data.id;
+
+        document.getElementById('editCode').value = data.code || '';
+        document.getElementById('editDisplayName').value = data.display_name || '';
+        document.getElementById('editNameEn').value = data.name_en || '';
+        document.getElementById('editParentKey').value = data.parent_key || '';
+        document.getElementById('editClassification').value = data.classification || '';
+        document.getElementById('editNature').value = data.nature || 'Debit';
+        document.getElementById('editAllowPosting').checked = (data.allow_posting == 1);
+
+        modal.classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editExpenseAccountModal').classList.add('hidden');
     }
 </script>
 @endsection

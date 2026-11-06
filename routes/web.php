@@ -60,13 +60,25 @@ Route::middleware('auth')->group(function () {
     
     // طباعة الملصقات
     Route::get('/labels/history', [LabelController::class, 'index'])->name('labels.index');
-    Route::get('/labels/create', [LabelController::class, 'create'])->name('labels.create');
+    Route::get('/labels', [LabelController::class, 'index']);
+    
+    // 1. الملصق التفصيلي الكامل (بيانات المصنع والمصدر والمستورد وتواريخ الصلاحية)
+    Route::get('/labels/detailed', [LabelController::class, 'createDetailed'])->name('labels.detailed');
+    Route::post('/labels/detailed/print', [LabelController::class, 'printDetailed'])->name('labels.detailed.print');
+
+    // 2. الملصق الصغير المستطيل (50 × 25 مم)
+    Route::get('/labels/compact', [LabelController::class, 'createCompact'])->name('labels.compact');
+    Route::post('/labels/compact/print', [LabelController::class, 'printCompact'])->name('labels.compact.print');
+
+    // نقاط التوافق مع الروابط القديمة
+    Route::get('/labels/create', [LabelController::class, 'createDetailed'])->name('labels.create');
     Route::post('/labels/print', [LabelController::class, 'print'])->name('labels.print');
 
 
     // الإعدادات
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [SettingController::class, 'store'])->name('settings.store');
+    Route::put('settings/{setting}', [SettingController::class, 'update'])->name('settings.update');
     Route::delete('settings/{setting}', [SettingController::class, 'destroy'])->name('settings.destroy');
 
 
