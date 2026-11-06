@@ -118,8 +118,8 @@ class ExpenseController extends Controller
         });
 
         $allExpenseAccounts = $lookups->get('expense_category') ?? collect();
-        $expenseParents = $allExpenseAccounts->filter(fn($a) => empty($a->parent_key))->keyBy('key_value');
-        $postableCategories = $allExpenseAccounts->filter(fn($a) => !empty($a->parent_key) || $a->allow_posting);
+        $expenseParents = $allExpenseAccounts->filter(fn($a) => empty($a->parent_key) || !$a->allow_posting)->keyBy('key_value');
+        $postableCategories = $allExpenseAccounts->filter(fn($a) => (bool) $a->allow_posting);
 
         return [
             'quotations'         => Quotation::orderByDesc('id')->get(['id', 'quote_number', 'cost_center_name', 'client_id']),

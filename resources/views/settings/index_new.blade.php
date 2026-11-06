@@ -808,15 +808,10 @@
 
                 @php
                     $allExpenseCats = $settings->get('expense_category') ?? collect();
-                    $expenseParents = $allExpenseCats->filter(fn($a) => empty($a->parent_key))->sortBy('code');
-                    $expenseChildren = $allExpenseCats->filter(fn($a) => !empty($a->parent_key))->sortBy('code');
-                    $parentMap = $expenseParents->keyBy('key_value');
-                    foreach ($expenseParents as $p) {
-                        if ($p->code && !$parentMap->has($p->code)) {
-                            $parentMap->put($p->code, $p);
-                        }
-                    }
+                    $rootParents = $allExpenseCats->filter(fn($a) => empty($a->parent_key))->sortBy('code');
+                    $expenseParents = $allExpenseCats->filter(fn($a) => empty($a->parent_key) || !$a->allow_posting)->sortBy('code');
                     $postableCount = $allExpenseCats->where('allow_posting', true)->count();
+                    $parentCount = $allExpenseCats->where('allow_posting', false)->count();
                 @endphp
 
                 <div class="border-b border-gray-100 pb-4 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -906,10 +901,20 @@
                                 <select name="parent_key" id="accountParentSelect" onchange="onParentSelected(this)"
                                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
                                     <option value="">— اختر الحساب الأب —</option>
-                                    @foreach($expenseParents as $parent)
-                                        <option value="{{ $parent->key_value }}" data-classification="{{ $parent->classification }}" data-code="{{ $parent->account_code }}">
-                                            {{ $parent->account_code }} — {{ $parent->display_name }} @if($parent->name_en)({{ $parent->name_en }})@endif
-                                        </option>
+                                    @foreach($rootParents as $rp)
+                                        <optgroup label="{{ $rp->account_code }} — {{ $rp->display_name }}">
+                                            <option value="{{ $rp->key_value }}" data-classification="{{ $rp->classification }}" data-code="{{ $rp->account_code }}">
+                                                ★ {{ $rp->account_code }} — {{ $rp->display_name }} (حساب رئيسي)
+                                            </option>
+                                            @php
+                                                $subParents = $allExpenseCats->filter(fn($c) => ($c->parent_key == $rp->key_value || $c->parent_key == $rp->code) && !$c->allow_posting)->sortBy('code');
+                                            @endphp
+                                            @foreach($subParents as $sp)
+                                                <option value="{{ $sp->key_value }}" data-classification="{{ $sp->classification ?: $rp->classification }}" data-code="{{ $sp->account_code }}">
+                                                    &nbsp;&nbsp;↳ {{ $sp->account_code }} — {{ $sp->display_name }}
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
                                     @endforeach
                                 </select>
                             </div>
@@ -990,8 +995,14 @@
                     <div class="flex items-center gap-3 w-full sm:w-auto">
                         <select id="expenseFilterParent" onchange="filterExpenseTable()" class="px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
                             <option value="">جميع الفئات والحسابات الرئيسية</option>
-                            @foreach($expenseParents as $p)
-                                <option value="{{ $p->key_value }}">{{ $p->account_code }} — {{ $p->display_name }}</option>
+                            @foreach($rootParents as $rp)
+                                <option value="{{ $rp->key_value }}" class="font-bold text-[#005B9F]">{{ $rp->account_code }} — {{ $rp->display_name }}</option>
+                                @php
+                                    $subParents = $allExpenseCats->filter(fn($c) => ($c->parent_key == $rp->key_value || $c->parent_key == $rp->code) && !$c->allow_posting)->sortBy('code');
+                                @endphp
+                                @foreach($subParents as $sp)
+                                    <option value="{{ $sp->key_value }}">&nbsp;&nbsp;↳ {{ $sp->account_code }} — {{ $sp->display_name }}</option>
+                                @endforeach
                             @endforeach
                         </select>
 
@@ -1019,55 +1030,69 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            @forelse($expenseParents as $parent)
+                            @php
+                                $renderedIds = [];
+                            @endphp
+
+                            @forelse($rootParents as $root)
                                 @php
-                                    $children = $allExpenseCats->filter(fn($c) => $c->parent_key == $parent->key_value || $c->parent_key == $parent->code)->sortBy('code');
-                                    $parentJson = json_encode([
-                                        'id'             => $parent->id,
-                                        'code'           => $parent->account_code,
-                                        'display_name'   => $parent->display_name,
-                                        'name_en'        => $parent->name_en,
+                                    $renderedIds[] = $root->id;
+                                    $level2Items = $allExpenseCats->filter(fn($c) => $c->parent_key == $root->key_value || $c->parent_key == $root->code)->sortBy('code');
+                                    
+                                    // إجمالي البنود التابعة لهذا الجذر (مستوى 2 ومستوى 3)
+                                    $totalRootDescendants = $level2Items->count();
+                                    foreach ($level2Items as $l2Item) {
+                                        $subC = $allExpenseCats->filter(fn($c) => $c->parent_key == $l2Item->key_value || $c->parent_key == $l2Item->code)->count();
+                                        $totalRootDescendants += $subC;
+                                    }
+
+                                    $rootJson = json_encode([
+                                        'id'             => $root->id,
+                                        'code'           => $root->account_code,
+                                        'display_name'   => $root->display_name,
+                                        'name_en'        => $root->name_en,
                                         'parent_key'     => '',
-                                        'classification' => $parent->classification,
-                                        'nature'         => $parent->nature ?: 'Debit',
-                                        'allow_posting'  => $parent->allow_posting ? 1 : 0,
+                                        'classification' => $root->classification,
+                                        'nature'         => $root->nature ?: 'Debit',
+                                        'allow_posting'  => $root->allow_posting ? 1 : 0,
                                     ], JSON_UNESCAPED_UNICODE);
                                 @endphp
 
-                                {{-- صف الحساب الأب (الفئة الرئيسية) --}}
-                                <tr class="parent-row bg-slate-50/80 hover:bg-slate-100/80 font-bold border-r-4 border-r-[#005B9F] transition-colors"
-                                    data-account-id="{{ $parent->id }}"
-                                    data-parent-key="{{ $parent->key_value }}"
-                                    data-code="{{ $parent->account_code }}"
-                                    data-posting="{{ $parent->allow_posting ? 'yes' : 'no' }}">
-                                    <td class="p-3 text-center font-mono text-sm text-[#005B9F]">
-                                        {{ $parent->account_code }}
+                                {{-- صف المستوى الأول (الحساب الرئيسي الأعلى) --}}
+                                <tr class="parent-row bg-slate-100 hover:bg-slate-200/80 font-bold border-r-4 border-r-[#005B9F] transition-colors"
+                                    data-account-id="{{ $root->id }}"
+                                    data-parent-key=""
+                                    data-root-key="{{ $root->key_value }}"
+                                    data-code="{{ $root->account_code }}"
+                                    data-posting="{{ $root->allow_posting ? 'yes' : 'no' }}">
+                                    <td class="p-3 text-center font-mono text-sm text-[#005B9F] font-black">
+                                        {{ $root->account_code }}
                                     </td>
                                     <td class="p-3 text-gray-900">
                                         <div class="flex items-center gap-2">
-                                            <i class="fas fa-folder-open text-[#005B9F] text-sm"></i>
-                                            <span class="text-sm">{{ $parent->display_name }}</span>
-                                            <span class="text-[10px] bg-[#005B9F]/10 text-[#005B9F] px-1.5 py-0.5 rounded font-normal">({{ $children->count() }} بنود)</span>
+                                            <i class="fas fa-folder-open text-[#005B9F] text-base"></i>
+                                            <span class="text-sm font-black">{{ $root->display_name }}</span>
+                                            <span class="text-[10px] bg-[#005B9F]/10 text-[#005B9F] px-2 py-0.5 rounded-full font-bold">({{ $totalRootDescendants }} حساب تالٍ)</span>
                                         </div>
                                     </td>
-                                    <td class="p-3 text-gray-600 font-mono text-xs" dir="ltr">
-                                        {{ $parent->name_en ?: '—' }}
+                                    <td class="p-3 text-gray-700 font-mono text-xs font-semibold" dir="ltr">
+                                        {{ $root->name_en ?: '—' }}
                                     </td>
                                     <td class="p-3 text-gray-400 italic">
-                                        <span class="inline-flex items-center gap-1 text-[11px] bg-gray-200/70 text-gray-600 px-2 py-0.5 rounded-full font-medium">
-                                            <i class="fas fa-crown text-[9px] text-amber-500"></i> رئيسي
+                                        <span class="inline-flex items-center gap-1 text-[11px] bg-blue-100 text-[#005B9F] px-2.5 py-0.5 rounded-full font-bold">
+                                            <i class="fas fa-crown text-[9px] text-amber-500"></i> رئيسي (مستوى 1)
                                         </span>
                                     </td>
                                     <td class="p-3 text-gray-700">
                                         <span class="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-[#005B9F] px-2 py-0.5 rounded-md font-medium">
-                                            {{ $parent->classification ?: '—' }}
+                                            {{ $root->classification ?: '—' }}
                                         </span>
                                     </td>
                                     <td class="p-3 text-center">
-                                        <span class="font-mono text-[11px] font-bold text-gray-600">{{ $parent->nature ?: 'Debit' }}</span>
+                                        <span class="font-mono text-[11px] font-bold text-gray-700">{{ $root->nature ?: 'Debit' }}</span>
                                     </td>
                                     <td class="p-3 text-center">
-                                        @if($parent->allow_posting)
+                                        @if($root->allow_posting)
                                             <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                                                 <i class="fas fa-check text-[9px]"></i> نعم
                                             </span>
@@ -1079,15 +1104,15 @@
                                     </td>
                                     <td class="p-3 text-center">
                                         <div class="flex items-center justify-center gap-1">
-                                            <button type="button" onclick="addChildUnderParent('{{ $parent->key_value }}', '{{ $parent->account_code }}', '{{ addslashes($parent->classification ?? '') }}')"
-                                                class="text-[#008A3B] hover:bg-emerald-50 p-1.5 rounded transition-colors" title="إضافة بند فرعي تحت هذا الحساب">
+                                            <button type="button" onclick="addChildUnderParent('{{ $root->key_value }}', '{{ $root->account_code }}', '{{ addslashes($root->classification ?? '') }}')"
+                                                class="text-[#008A3B] hover:bg-emerald-50 p-1.5 rounded transition-colors" title="إضافة حساب فرعي تحت هذا الحساب">
                                                 <i class="fas fa-plus text-xs"></i>
                                             </button>
-                                            <button type="button" onclick='openEditModal({!! $parentJson !!})'
+                                            <button type="button" onclick='openEditModal({!! $rootJson !!})'
                                                 class="text-gray-500 hover:text-[#005B9F] hover:bg-blue-50 p-1.5 rounded transition-colors" title="تعديل">
                                                 <i class="fas fa-pen text-xs"></i>
                                             </button>
-                                            <form action="{{ route('settings.destroy', $parent->id) }}" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الحساب الرئيسي؟ لن يمكن الحذف إذا كانت تتبعه بنود فرعية.');">
+                                            <form action="{{ route('settings.destroy', $root->id) }}" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الحساب الرئيسي؟ لن يمكن الحذف إذا كانت تتبعه بنود فرعية.');">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors" title="حذف">
                                                     <i class="fas fa-trash-alt text-xs"></i>
@@ -1097,53 +1122,65 @@
                                     </td>
                                 </tr>
 
-                                {{-- صفوف البنود الفرعية التابعة لهذا الأب --}}
-                                @foreach($children as $child)
+                                {{-- عناصر المستوى الثاني والفرعي --}}
+                                @foreach($level2Items as $l2)
                                     @php
-                                        $childJson = json_encode([
-                                            'id'             => $child->id,
-                                            'code'           => $child->account_code,
-                                            'display_name'   => $child->display_name,
-                                            'name_en'        => $child->name_en,
-                                            'parent_key'     => $child->parent_key,
-                                            'classification' => $child->classification,
-                                            'nature'         => $child->nature ?: 'Debit',
-                                            'allow_posting'  => $child->allow_posting ? 1 : 0,
+                                        $renderedIds[] = $l2->id;
+                                        $level3Items = $allExpenseCats->filter(fn($sc) => $sc->parent_key == $l2->key_value || $sc->parent_key == $l2->code)->sortBy('code');
+                                        $hasLevel3 = $level3Items->isNotEmpty();
+                                        $l2Json = json_encode([
+                                            'id'             => $l2->id,
+                                            'code'           => $l2->account_code,
+                                            'display_name'   => $l2->display_name,
+                                            'name_en'        => $l2->name_en,
+                                            'parent_key'     => $l2->parent_key,
+                                            'classification' => $l2->classification,
+                                            'nature'         => $l2->nature ?: 'Debit',
+                                            'allow_posting'  => $l2->allow_posting ? 1 : 0,
                                         ], JSON_UNESCAPED_UNICODE);
                                     @endphp
-                                    <tr class="child-row hover:bg-blue-50/30 transition-colors"
-                                        data-account-id="{{ $child->id }}"
-                                        data-parent-key="{{ $parent->key_value }}"
-                                        data-code="{{ $child->account_code }}"
-                                        data-posting="{{ $child->allow_posting ? 'yes' : 'no' }}">
-                                        <td class="p-3 text-center font-mono font-bold text-gray-800">
-                                            {{ $child->account_code }}
+
+                                    {{-- صف المستوى الثاني (فئة وسيطة أو بند تابع مباشرة) --}}
+                                    <tr class="{{ $hasLevel3 ? 'bg-slate-50 font-bold border-r-2 border-r-indigo-400' : 'hover:bg-blue-50/30' }} transition-colors"
+                                        data-account-id="{{ $l2->id }}"
+                                        data-parent-key="{{ $l2->parent_key }}"
+                                        data-root-key="{{ $root->key_value }}"
+                                        data-code="{{ $l2->account_code }}"
+                                        data-posting="{{ $l2->allow_posting ? 'yes' : 'no' }}">
+                                        <td class="p-3 text-center font-mono font-bold {{ $hasLevel3 ? 'text-indigo-800' : 'text-gray-800' }}">
+                                            {{ $l2->account_code }}
                                         </td>
                                         <td class="p-3">
-                                            <div class="flex items-center gap-2 pr-6">
-                                                <span class="text-gray-300 font-mono text-sm leading-none">↳</span>
-                                                <i class="fas fa-file-invoice text-emerald-600 text-xs"></i>
-                                                <span class="font-medium text-gray-900">{{ $child->display_name }}</span>
+                                            <div class="flex items-center gap-2 pr-4">
+                                                <span class="text-gray-400 font-mono text-sm leading-none">↳</span>
+                                                @if($hasLevel3)
+                                                    <i class="fas fa-folder text-indigo-500 text-xs"></i>
+                                                    <span class="font-bold text-gray-900">{{ $l2->display_name }}</span>
+                                                    <span class="text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-normal">({{ $level3Items->count() }} بنود)</span>
+                                                @else
+                                                    <i class="fas fa-file-invoice text-emerald-600 text-xs"></i>
+                                                    <span class="font-medium text-gray-900">{{ $l2->display_name }}</span>
+                                                @endif
                                             </div>
                                         </td>
                                         <td class="p-3 text-gray-600 font-mono text-xs" dir="ltr">
-                                            {{ $child->name_en ?: '—' }}
+                                            {{ $l2->name_en ?: '—' }}
                                         </td>
                                         <td class="p-3">
                                             <span class="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-gray-700 px-2 py-0.5 rounded-full font-mono">
                                                 <i class="fas fa-level-up-alt text-[9px] text-[#005B9F]"></i>
-                                                {{ $parent->account_code }}
+                                                {{ $root->account_code }}
                                             </span>
                                         </td>
                                         <td class="p-3 text-gray-600">
-                                            {{ $child->classification ?: $parent->classification ?: '—' }}
+                                            {{ $l2->classification ?: $root->classification ?: '—' }}
                                         </td>
                                         <td class="p-3 text-center">
-                                            <span class="font-mono text-[11px] text-gray-600">{{ $child->nature ?: 'Debit' }}</span>
+                                            <span class="font-mono text-[11px] text-gray-600">{{ $l2->nature ?: 'Debit' }}</span>
                                         </td>
                                         <td class="p-3 text-center">
-                                            @if($child->allow_posting)
-                                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                                            @if($l2->allow_posting)
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                                                     <i class="fas fa-check text-[9px]"></i> نعم
                                                 </span>
                                             @else
@@ -1154,11 +1191,177 @@
                                         </td>
                                         <td class="p-3 text-center">
                                             <div class="flex items-center justify-center gap-1">
-                                                <button type="button" onclick='openEditModal({!! $childJson !!})'
+                                                @if(!$l2->allow_posting || $hasLevel3)
+                                                    <button type="button" onclick="addChildUnderParent('{{ $l2->key_value }}', '{{ $l2->account_code }}', '{{ addslashes($l2->classification ?? '') }}')"
+                                                        class="text-[#008A3B] hover:bg-emerald-50 p-1.5 rounded transition-colors" title="إضافة بند فرعي تحت هذا الحساب">
+                                                        <i class="fas fa-plus text-xs"></i>
+                                                    </button>
+                                                @endif
+                                                <button type="button" onclick='openEditModal({!! $l2Json !!})'
                                                     class="text-gray-400 hover:text-[#005B9F] hover:bg-blue-50 p-1.5 rounded transition-colors" title="تعديل">
                                                     <i class="fas fa-pen text-xs"></i>
                                                 </button>
-                                                <form action="{{ route('settings.destroy', $child->id) }}" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف بند المصروف هذا؟');">
+                                                <form action="{{ route('settings.destroy', $l2->id) }}" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الحساب؟');">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors" title="حذف">
+                                                        <i class="fas fa-trash-alt text-xs"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    {{-- المستوى الثالث: البنود التفصيلية التابعة للمستوى الثاني --}}
+                                    @foreach($level3Items as $l3)
+                                        @php
+                                            $renderedIds[] = $l3->id;
+                                            $l3Json = json_encode([
+                                                'id'             => $l3->id,
+                                                'code'           => $l3->account_code,
+                                                'display_name'   => $l3->display_name,
+                                                'name_en'        => $l3->name_en,
+                                                'parent_key'     => $l3->parent_key,
+                                                'classification' => $l3->classification,
+                                                'nature'         => $l3->nature ?: 'Debit',
+                                                'allow_posting'  => $l3->allow_posting ? 1 : 0,
+                                            ], JSON_UNESCAPED_UNICODE);
+                                        @endphp
+                                        <tr class="child-row hover:bg-blue-50/30 transition-colors"
+                                            data-account-id="{{ $l3->id }}"
+                                            data-parent-key="{{ $l3->parent_key }}"
+                                            data-root-key="{{ $root->key_value }}"
+                                            data-code="{{ $l3->account_code }}"
+                                            data-posting="{{ $l3->allow_posting ? 'yes' : 'no' }}">
+                                            <td class="p-3 text-center font-mono font-bold text-gray-800">
+                                                {{ $l3->account_code }}
+                                            </td>
+                                            <td class="p-3">
+                                                <div class="flex items-center gap-2 pr-10">
+                                                    <span class="text-gray-300 font-mono text-sm leading-none">↳</span>
+                                                    <i class="fas fa-file-invoice text-emerald-600 text-xs"></i>
+                                                    <span class="font-medium text-gray-900">{{ $l3->display_name }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="p-3 text-gray-600 font-mono text-xs" dir="ltr">
+                                                {{ $l3->name_en ?: '—' }}
+                                            </td>
+                                            <td class="p-3">
+                                                <span class="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-gray-700 px-2 py-0.5 rounded-full font-mono">
+                                                    <i class="fas fa-level-up-alt text-[9px] text-indigo-500"></i>
+                                                    {{ $l2->account_code }}
+                                                </span>
+                                            </td>
+                                            <td class="p-3 text-gray-600">
+                                                {{ $l3->classification ?: $l2->classification ?: '—' }}
+                                            </td>
+                                            <td class="p-3 text-center">
+                                                <span class="font-mono text-[11px] text-gray-600">{{ $l3->nature ?: 'Debit' }}</span>
+                                            </td>
+                                            <td class="p-3 text-center">
+                                                @if($l3->allow_posting)
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                                                        <i class="fas fa-check text-[9px]"></i> نعم
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                                                        لا
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="p-3 text-center">
+                                                <div class="flex items-center justify-center gap-1">
+                                                    <button type="button" onclick='openEditModal({!! $l3Json !!})'
+                                                        class="text-gray-400 hover:text-[#005B9F] hover:bg-blue-50 p-1.5 rounded transition-colors" title="تعديل">
+                                                        <i class="fas fa-pen text-xs"></i>
+                                                    </button>
+                                                    <form action="{{ route('settings.destroy', $l3->id) }}" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف بند المصروف هذا؟');">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors" title="حذف">
+                                                            <i class="fas fa-trash-alt text-xs"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endforeach
+
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="p-10 text-center text-gray-500 bg-gray-50/50">
+                                        <i class="fas fa-sitemap text-3xl text-gray-300 mb-3 block"></i>
+                                        لا توجد حسابات مسجلة حتى الآن.
+                                    </td>
+                                </tr>
+                            @endforelse
+
+                            {{-- أي حسابات أخرى غير مدرجة في الشجرة الرئيسية --}}
+                            @php
+                                $unrendered = $allExpenseCats->filter(fn($c) => !in_array($c->id, $renderedIds))->sortBy('code');
+                            @endphp
+                            @if($unrendered->isNotEmpty())
+                                <tr class="bg-amber-50/80 font-bold border-r-4 border-r-amber-500">
+                                    <td colspan="8" class="p-2.5 text-amber-900 text-xs">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-exclamation-triangle text-amber-500"></i>
+                                            <span>حسابات إضافية / مخصصة ({{ $unrendered->count() }} حساب)</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @foreach($unrendered as $un)
+                                    @php
+                                        $unJson = json_encode([
+                                            'id'             => $un->id,
+                                            'code'           => $un->account_code,
+                                            'display_name'   => $un->display_name,
+                                            'name_en'        => $un->name_en,
+                                            'parent_key'     => $un->parent_key,
+                                            'classification' => $un->classification,
+                                            'nature'         => $un->nature ?: 'Debit',
+                                            'allow_posting'  => $un->allow_posting ? 1 : 0,
+                                        ], JSON_UNESCAPED_UNICODE);
+                                    @endphp
+                                    <tr class="child-row hover:bg-amber-50/30 transition-colors"
+                                        data-account-id="{{ $un->id }}"
+                                        data-parent-key="{{ $un->parent_key }}"
+                                        data-root-key=""
+                                        data-code="{{ $un->account_code }}"
+                                        data-posting="{{ $un->allow_posting ? 'yes' : 'no' }}">
+                                        <td class="p-3 text-center font-mono font-bold text-gray-800">
+                                            {{ $un->account_code }}
+                                        </td>
+                                        <td class="p-3">
+                                            <div class="flex items-center gap-2 pr-6">
+                                                <i class="fas fa-tag text-amber-600 text-xs"></i>
+                                                <span class="font-medium text-gray-900">{{ $un->display_name }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="p-3 text-gray-600 font-mono text-xs" dir="ltr">
+                                            {{ $un->name_en ?: '—' }}
+                                        </td>
+                                        <td class="p-3">
+                                            <span class="text-xs text-gray-400 font-mono">{{ $un->parent_key ?: '—' }}</span>
+                                        </td>
+                                        <td class="p-3 text-gray-600">
+                                            {{ $un->classification ?: '—' }}
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            <span class="font-mono text-[11px] text-gray-600">{{ $un->nature ?: 'Debit' }}</span>
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            @if($un->allow_posting)
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">نعم</span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">لا</span>
+                                            @endif
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            <div class="flex items-center justify-center gap-1">
+                                                <button type="button" onclick='openEditModal({!! $unJson !!})'
+                                                    class="text-gray-400 hover:text-[#005B9F] hover:bg-blue-50 p-1.5 rounded transition-colors" title="تعديل">
+                                                    <i class="fas fa-pen text-xs"></i>
+                                                </button>
+                                                <form action="{{ route('settings.destroy', $un->id) }}" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الحساب؟');">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors" title="حذف">
                                                         <i class="fas fa-trash-alt text-xs"></i>
@@ -1168,15 +1371,7 @@
                                         </td>
                                     </tr>
                                 @endforeach
-
-                            @empty
-                                <tr>
-                                    <td colspan="8" class="p-10 text-center text-gray-500 bg-gray-50/50">
-                                        <i class="fas fa-sitemap text-3xl text-gray-300 mb-3 block"></i>
-                                        لا توجد حسابات مصروفات مسجلة حتى الآن.
-                                    </td>
-                                </tr>
-                            @endforelse
+                            @endif
                         </tbody>
                     </table>
                 </div>
@@ -1204,10 +1399,20 @@
                                 <label class="block text-xs font-bold text-gray-700 mb-1">الحساب الأب (الفئة)</label>
                                 <select name="parent_key" id="editParentKey" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#005B9F] bg-white">
                                     <option value="">— بدون حساب أب (حساب رئيسي) —</option>
-                                    @foreach($expenseParents as $parent)
-                                        <option value="{{ $parent->key_value }}">
-                                            {{ $parent->account_code }} — {{ $parent->display_name }}
-                                        </option>
+                                    @foreach($rootParents as $rp)
+                                        <optgroup label="{{ $rp->account_code }} — {{ $rp->display_name }}">
+                                            <option value="{{ $rp->key_value }}">
+                                                ★ {{ $rp->account_code }} — {{ $rp->display_name }} (حساب رئيسي)
+                                            </option>
+                                            @php
+                                                $subParents = $allExpenseCats->filter(fn($c) => ($c->parent_key == $rp->key_value || $c->parent_key == $rp->code) && !$c->allow_posting)->sortBy('code');
+                                            @endphp
+                                            @foreach($subParents as $sp)
+                                                <option value="{{ $sp->key_value }}">
+                                                    &nbsp;&nbsp;↳ {{ $sp->account_code }} — {{ $sp->display_name }}
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
                                     @endforeach
                                 </select>
                             </div>
@@ -1645,8 +1850,10 @@
             var text = row.textContent.toLowerCase();
             var matchesQuery = !query || text.indexOf(query) !== -1;
 
-            var rowParentKey = row.getAttribute('data-parent-key');
-            var matchesParent = !filterParent || (rowParentKey === filterParent);
+            var rowParentKey = row.getAttribute('data-parent-key') || '';
+            var rowRootKey   = row.getAttribute('data-root-key') || '';
+            var rowCode      = row.getAttribute('data-code') || '';
+            var matchesParent = !filterParent || (rowParentKey === filterParent || rowRootKey === filterParent || rowCode === filterParent);
 
             var rowPosting = row.getAttribute('data-posting');
             var matchesPosting = !filterPosting || (rowPosting === filterPosting);

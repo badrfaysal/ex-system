@@ -57,7 +57,7 @@ class ServerDeploy
                 Artisan::call('migrate', ['--force' => true]);
                 $output .= Artisan::output() . "\n";
 
-                $output .= "=== 2. فحص وتأكيد سلامة الجداول والأعمدة الجديدة ===\n";
+                $output .= "=== 2. فحص وتأكيد سلامة الجداول والأعمدة وتحديث دليل شجرة الحسابات ===\n";
                 $output .= self::ensureLatestSchemaAndTables();
 
                 // 3. مسح وتحديث الكاش
@@ -66,17 +66,39 @@ class ServerDeploy
                 $output .= "\n✓ تم مسح وتحديث كاش النظام بنجاح.\n";
 
                 $status = 'success';
-                $message = 'تم تنفيذ كافة ملفات المايجريشن والتأكد من سلامة الجداول بنجاح على قاعدة بيانات السيرفر!';
+                $message = 'تم تنفيذ المايجريشن والتأكد من سلامة الجداول وتحديث شجرة الحسابات المحاسبية بالكامل بنجاح على قاعدة بيانات السيرفر!';
             } catch (\Throwable $e) {
                 try {
                     $output .= "\n=== محاولة التأكد المباشر من الجداول والأعمدة (Schema Fallback) ===\n";
                     $output .= self::ensureLatestSchemaAndTables();
                     $status = 'warning';
-                    $message = 'تم التأكد من سلامة الجداول والأعمدة الأساسية مع وجود تنبيه: ' . $e->getMessage();
+                    $message = 'تم التأكد من سلامة الجداول ودليل الحسابات الأساسية مع وجود تنبيه: ' . $e->getMessage();
                 } catch (\Throwable $e2) {
                     $status = 'error';
                     $message = 'خطأ أثناء المايجريشن: ' . $e->getMessage();
                 }
+                $output .= "\n" . $e->getTraceAsString();
+            }
+        } elseif ($action === 'seed-accounts') {
+            try {
+                $output .= "=== 1. فحص وتأكيد أعمدة شجرة الحسابات في جدول settings ===\n";
+                $output .= self::ensureLatestSchemaAndTables() . "\n";
+
+                $output .= "=== 2. زراعة وتحديث دليل شجرة الحسابات المحاسبية الكامل ===\n";
+                if (class_exists(Setting::class) && method_exists(Setting::class, 'seedFullChartOfAccounts')) {
+                    $count = Setting::seedFullChartOfAccounts(true);
+                    $output .= "✓ تم تحديث وزراعة {$count} حساب محاسبي (أصول، التزامات، حقوق ملكية، إيرادات، تكلفة مبيعات، مصروفات، تمويل، رقابية).\n";
+                }
+
+                Artisan::call('optimize:clear');
+                Cache::flush();
+                $output .= "✓ تم مسح وتحديث كاش النظام بنجاح.\n";
+
+                $status = 'success';
+                $message = 'تم بنجاح زراعة وتحديث دليل شجرة الحسابات المحاسبية بالكامل على قاعدة بيانات السيرفر!';
+            } catch (\Throwable $e) {
+                $status = 'error';
+                $message = 'خطأ أثناء زراعة دليل الحسابات: ' . $e->getMessage();
                 $output .= "\n" . $e->getTraceAsString();
             }
         } elseif ($action === 'clean-test') {
@@ -885,14 +907,17 @@ class ServerDeploy
             $log[] = "⚠ تنبيه فحص/إضافة أعمدة settings: " . $e->getMessage();
         }
 
-        // 3. تهيئة بنود المصروفات ودليل الحسابات
+        // 3. تهيئة شجرة ودليل الحسابات المحاسبية الكامل
         try {
-            if (class_exists(Setting::class) && method_exists(Setting::class, 'ensureExpenseCategoriesSeeded')) {
+            if (class_exists(Setting::class) && method_exists(Setting::class, 'seedFullChartOfAccounts')) {
+                $count = Setting::seedFullChartOfAccounts(true);
+                $log[] = "✓ تم زراعة وتحديث دليل شجرة الحسابات المحاسبية بالكامل بنجاح ({$count} حساب رئيسي وفرعي وتفصيلي).";
+            } elseif (class_exists(Setting::class) && method_exists(Setting::class, 'ensureExpenseCategoriesSeeded')) {
                 Setting::ensureExpenseCategoriesSeeded();
                 $log[] = "✓ تم تهيئة وتحديث دليل الحسابات وبنود المصروفات في جدول settings بنجاح.";
             }
         } catch (\Throwable $e) {
-            $log[] = "⚠ تنبيه أثناء تهيئة بنود المصروفات: " . $e->getMessage();
+            $log[] = "⚠ تنبيه أثناء تهيئة دليل الحسابات: " . $e->getMessage();
         }
 
         // 4. تهيئة الخدمات الإضافية الخاصة
@@ -1075,9 +1100,17 @@ HTML;
             <div class="card">
                 <div>
                     <h3 style="color:#005B9F;">1. ترحيل وتحديث قاعدة البيانات (Migrate)</h3>
-                    <p>ينفذ أمر <code>migrate --force</code> على قاعدة بيانات السيرفر لإنشاء وتحديث الجداول (بما في ذلك جدول ملصقات الطباعة <code>printed_labels</code>، وأعمدة شجرة الحسابات في <code>settings</code>)، وتهيئة بنود المصروفات ومسح الكاش.</p>
+                    <p>ينفذ أمر <code>migrate --force</code> على قاعدة بيانات السيرفر لإنشاء وتحديث الجداول (بما في ذلك جدول ملصقات الطباعة <code>printed_labels</code>، وأعمدة شجرة الحسابات في <code>settings</code>)، وزراعة دليل الحسابات ومسح الكاش.</p>
                 </div>
-                <a href="{$currentUrl}?action=migrate{$keyParam}" class="btn btn-primary">🚀 تنفيذ المايجريشن وتأكيد الجداول</a>
+                <a href="{$currentUrl}?action=migrate{$keyParam}" class="btn btn-primary">🚀 تنفيذ المايجريشن وتحديث الجداول</a>
+            </div>
+
+            <div class="card">
+                <div>
+                    <h3 style="color:#0284c7;">🌳 تحديث شجرة ودليل الحسابات الكامل</h3>
+                    <p>يقوم بزراعة وتحديث دليل الحسابات المحاسبية الكامل لشركة التصدير (أكثر من 80 حساب رئيسي وفرعي وتفصيلي تشمل الأصول، الالتزامات، حقوق الملكية، الإيرادات، تكاليف الشحنات، والمصروفات).</p>
+                </div>
+                <a href="{$currentUrl}?action=seed-accounts{$keyParam}" class="btn" style="background:#0284c7;color:#fff;">🌳 زراعة وتحديث شجرة الحسابات</a>
             </div>
 
             <div class="card">
